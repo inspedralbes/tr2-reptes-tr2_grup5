@@ -77,3 +77,7 @@ Asegúrate de que mi archivo `.env` tenga los valores correctos para producción
 ```env
 NODE_ENV=production
 PORT_NGINX=80
+```
+### 2. Comando
+ Para levantar este entorno de producción, se debe usar el comando:
+ docker compose -f docker-compose.prod.yml up --build -d 

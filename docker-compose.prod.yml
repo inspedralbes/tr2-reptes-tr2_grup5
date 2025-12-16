@@ -1,3 +1,6 @@
+##Para levantar este entorno de producción, se debe usar el comando:
+## !!!!!! docker compose -f docker-compose.prod.yml up --build -d !!!!!!
+
 services:
 
   nginx:
