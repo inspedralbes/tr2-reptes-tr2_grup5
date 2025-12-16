@@ -1,25 +1,27 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+//--- DECLAREM ELS MÒDULS NECESSARIS ---
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
 
-//Importem les rutes definides en centresRoutes.js
-const centresRoutes = require('./routes/centresRoutes');
+//--- IMPORTEM LES RUTES DE TALLERS ---
+const tallersRoutes = require("./routes/tallersRoutes");
 
+//--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
 const PORT = process.env.PORT || 1700;
 
 app.use(cors());
 app.use(express.json());
 
-// Utilitzar les rutes
-app.use('/api/centres', centresRoutes);
+//--- LI DIEM A LA APP QUE UTILITZI LES RUTES DE TALLERS ---
+app.use("/api/tallers", tallersRoutes);
 
-// Ruta de prova
-app.get('/', (req, res) => {
-    res.send('API Backend funcionando 🚀');
+//--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
+app.get("/", (req, res) => {
+  res.send("API Backend del Projecte ENGINY funcionant 🚀");
 });
 
-// Arrancar el servidor
+//--- INICIEM EL SERVIDOR ---
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Servidor escoltant al port ${PORT}`);
 });
