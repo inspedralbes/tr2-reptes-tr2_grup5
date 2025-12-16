@@ -1,11 +1,25 @@
+require('dotenv').config();
 const express = require('express');
-const app = express();
-const port = 1700;
+const cors = require('cors');
 
+//Importem les rutes definides en centresRoutes.js
+const centresRoutes = require('./routes/centresRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 1700;
+
+app.use(cors());
+app.use(express.json());
+
+// Utilitzar les rutes
+app.use('/api/centres', centresRoutes);
+
+// Ruta de prova
 app.get('/', (req, res) => {
-    res.send('¡Backend funcionando con Node y Express!');
+    res.send('API Backend funcionando 🚀');
 });
 
-app.listen(port, () => {
-    console.log(`Servidor escuchando en http://localhost:${port}`);
+// Arrancar el servidor
+app.listen(PORT, () => {
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
