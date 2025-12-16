@@ -6,7 +6,7 @@
 # las imágenes. También expone los puertos necesarios para el acceso durante el desarrollo.
 #
 # Para levantar este entorno, se debe usar el comando:
-# docker compose -f docker-compose.dev.yml up --build
+# !!!!!! docker compose -f docker-compose.dev.yml up --build !!!!!!
 services: 
   frontend:
     build: 

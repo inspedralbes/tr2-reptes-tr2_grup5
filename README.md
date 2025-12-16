@@ -14,3 +14,8 @@ Un cop comenceu heu de canviar aquesta explicació amb la corresponent al vostre
  * Adreça del prototip gràfic del projecte (Penpot, figma, moqups...)
  * URL de producció (quan la tingueu)
  * Estat: (explicació d'en quin punt està)
+
+
+
+# Comandos para dev:
+* docker compose -f docker-compose.dev.yml up --build
