@@ -1,0 +1,37 @@
+services:
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - "${PORT_NGINX}:${PORT_NGINX}"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - prod-network
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    command: npm run start:prod
+    environment:
+      NODE_ENV: ${NODE_ENV}
+    networks:
+      - prod-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    networks:
+      - prod-network
+    restart: unless-stopped
+
+networks:
+  prod-network:
+    driver: bridge

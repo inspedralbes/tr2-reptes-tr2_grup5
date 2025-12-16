@@ -13,7 +13,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - VITE_NODE_ENV={NODE_ENV}
+      - VITE_NODE_ENV=${VITE_NODE_ENV}
+    depends_on:
+      - backend
     ports: 
       - "${PORT_FRONTEND}:${PORT_FRONTEND}"
     volumes: 
@@ -26,6 +28,8 @@ services:
     build: ./backend
     environment:
       NODE_ENV: development
+    depends_on:
+      - frontend
     ports: 
       - "${PORT_BACKEND}:${PORT_BACKEND}"
     volumes:
