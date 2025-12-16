@@ -48,6 +48,7 @@ NODE_ENV=development
 # Puertos de Acceso
 PORT_FRONTEND=3000
 PORT_BACKEND=1700
+```
 
 ## 🚀 Despliegue de Producción - TR2 Grup 5
 
