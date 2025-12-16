@@ -15,7 +15,7 @@ services:
     environment:
       - VITE_NODE_ENV={NODE_ENV}
     ports: 
-      - "3000:3000"
+      - "${PORT_FRONTEND}:${PORT_FRONTEND}"
     volumes: 
       - ./frontend:/app
       - /app/node_modules
@@ -27,7 +27,7 @@ services:
     environment:
       NODE_ENV: development
     ports: 
-      - "1700:1700"
+      - "${PORT_BACKEND}:${PORT_BACKEND}"
     volumes:
       - ./backend:/app
       - /app/node_modules
