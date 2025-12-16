@@ -1,0 +1,39 @@
+# Fichero: docker-compose.dev.yml
+# Descripción: Este fichero de Docker Compose está diseñado para configurar y ejecutar
+# el entorno de desarrollo de la aplicación. Define los servicios necesarios (frontend,
+# backend, bases de datos) y configura volúmenes para el hot-reloading, permitiendo
+# que los cambios en el código se reflejen automáticamente sin necesidad de reconstruir
+# las imágenes. También expone los puertos necesarios para el acceso durante el desarrollo.
+#
+# Para levantar este entorno, se debe usar el comando:
+# docker compose -f docker-compose.dev.yml up --build
+services: 
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_NODE_ENV={NODE_ENV}
+    ports: 
+      - "3000:3000"
+    volumes: 
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - dev-network
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: development
+    ports: 
+      - "1700:1700"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npm run start:dev"
+    networks:
+      - dev-network
+networks:
+  dev-network:
+    driver: bridge
