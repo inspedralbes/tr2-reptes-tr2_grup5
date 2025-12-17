@@ -13,7 +13,9 @@ services:
     volumes: 
       - ./frontend:/app
       - /app/node_modules
-    command: npm run dev
+      - /app/.nuxt
+      - /app/.output
+    command: sh -c "npx nuxi cleanup && npm run dev"
     networks:
       - dev-network
 
