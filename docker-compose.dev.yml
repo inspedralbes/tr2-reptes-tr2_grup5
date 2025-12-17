@@ -1,12 +1,4 @@
 # Fichero: docker-compose.dev.yml
-# Descripción: Este fichero de Docker Compose está diseñado para configurar y ejecutar
-# el entorno de desarrollo de la aplicación. Define los servicios necesarios (frontend,
-# backend, bases de datos) y configura volúmenes para el hot-reloading, permitiendo
-# que los cambios en el código se reflejen automáticamente sin necesidad de reconstruir
-# las imágenes. También expone los puertos necesarios para el acceso durante el desarrollo.
-#
-# Para levantar este entorno, se debe usar el comando:
-# !!!!!! docker compose -f docker-compose.dev.yml up --build !!!!!!
 services: 
   frontend:
     build: 
@@ -24,12 +16,18 @@ services:
     command: npm run dev
     networks:
       - dev-network
+
   backend:
     build: ./backend
     environment:
       NODE_ENV: development
+      DB_HOST: database
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
     depends_on:
-      - frontend
+      - database
     ports: 
       - "${PORT_BACKEND}:${PORT_BACKEND}"
     volumes:
@@ -38,6 +36,38 @@ services:
     command: sh -c "npm run start:dev"
     networks:
       - dev-network
+
+  database:
+    image: mysql:8.0
+    container_name: dev-database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:${DB_PORT}" # Mapea tu puerto externo al 3306 interno de MySQL
+    volumes:
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/mysql_data:/var/lib/mysql
+    networks:
+      - dev-network
+
+  adminer:
+    image: adminer
+    container_name: dev-adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    networks:
+      - dev-network
+
 networks:
   dev-network:
     driver: bridge
+
+volumes:
+  db_data_dev:

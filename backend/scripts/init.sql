@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS Tallers (
     modalitat ENUM('A', 'B', 'C') NOT NULL,
     places_min INT DEFAULT 0,
     places_max INT DEFAULT 0,
-    adreça_realitzacio VARCHAR(255),
+    adreca_realitzacio VARCHAR(255),
     imatge_url VARCHAR(255)
 ) ENGINE=InnoDB;
 
