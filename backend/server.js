@@ -18,7 +18,7 @@ app.use("/api/tallers", tallersRoutes);
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
 app.get("/", (req, res) => {
-  res.send("API Backend del Projecte ENGINY funcionant 🚀");
+  res.send("Backend grup 5 funcionant");
 });
 
 //--- INICIEM EL SERVIDOR ---
