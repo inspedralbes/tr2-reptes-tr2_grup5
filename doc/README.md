@@ -41,6 +41,9 @@ Para ejecutar este proyecto sin instalar Node.js o bases de datos localmente, so
 
 * Docker utiliza un archivo de variables de entorno para gestionar puertos y secretos de forma segura. Antes de arrancar, crea un archivo llamado `.env` en la raíz del proyecto:
 
+
+* Para crear el .env se debe copiar y pegar el archivo .env.example y cambiarle el nombre a .env simplemente
+
 ```env
 # Configuración General
 NODE_ENV=development
