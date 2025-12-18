@@ -33,7 +33,7 @@ export const useHeaderStore = defineStore('header', {
         ]
       })
     },
-      setHeaderProfes() {
+    setHeaderProfes() {
       this.setHeader({
         title: 'Profes',
         buttons: [
