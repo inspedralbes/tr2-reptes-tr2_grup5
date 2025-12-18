@@ -1,9 +1,6 @@
 <template>
   <div class="page">
-    <h2>Llistat de centre</h2>
-     <NuxtLink to="/admin/centres/FormCentres">
-      <button>Crear centre</button>
-    </NuxtLink>
+    <h2>Llistat de sol·lcituds</h2>
   </div>
 </template>
 
