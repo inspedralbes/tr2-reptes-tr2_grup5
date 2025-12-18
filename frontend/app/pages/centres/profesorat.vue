@@ -1,7 +1,7 @@
 <template>
   <div class="page">
 
-    <h2>Llistat de professors nena</h2>
+    <h2>Llistat de professors perros </h2>
     <NuxtLink to="/centres/Prof/Prof">
       <button>Afegir professor</button>
     </NuxtLink>

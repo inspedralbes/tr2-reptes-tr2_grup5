@@ -1,16 +1,19 @@
-# Fichero: docker-compose.dev.yml
-services: 
+services:
   frontend:
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
       - VITE_NODE_ENV=${VITE_NODE_ENV}
+      - NUXT_PUBLIC_API_BASE_URL=http://backend:${PORT_BACKEND}
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
-    ports: 
+    ports:
       - "${PORT_FRONTEND}:${PORT_FRONTEND}"
-    volumes: 
+      - "24678:24678"
+    volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.nuxt
@@ -30,7 +33,7 @@ services:
       DB_NAME: ${DB_NAME}
     depends_on:
       - database
-    ports: 
+    ports:
       - "${PORT_BACKEND}:${PORT_BACKEND}"
     volumes:
       - ./backend:/app
@@ -42,24 +45,22 @@ services:
   database:
     image: mysql:8.0
     container_name: dev-database
-    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${DB_PORT}:${DB_PORT}" # Mapea tu puerto externo al 3306 interno de MySQL
+      - "${DB_PORT}:${DB_PORT}"
     volumes:
       - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./backend/mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
     networks:
       - dev-network
 
   adminer:
     image: adminer
     container_name: dev-adminer
-    restart: always
     ports:
       - "8080:8080"
     depends_on:
@@ -72,4 +73,4 @@ networks:
     driver: bridge
 
 volumes:
-  db_data_dev:
+  db_data:

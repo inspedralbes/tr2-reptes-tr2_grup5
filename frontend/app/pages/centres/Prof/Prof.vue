@@ -8,7 +8,7 @@
       </div>
 
       <div class="form-group">
-        <label for="centre">Nom del centre:</label>
+        <label for="centre">Nom del centre parrica:</label>
         <input type="text" id="centre" v-model="form.centre" required />
       </div>
 
