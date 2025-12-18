@@ -19,7 +19,7 @@ const createTaller = async (req, res) => {
     modalitat, 
     places_min, 
     places_max, 
-    adreça_realitzacio, 
+    adreca_realitzacio, 
     imatge_url 
   } = req.body;
 
@@ -31,12 +31,12 @@ const createTaller = async (req, res) => {
   try { //Provem d'inserir el nou taller a la base de dades
     const sql = `
       INSERT INTO Tallers 
-      (titol, descripcio, ambit, modalitat, places_min, places_max, adreça_realitzacio, imatge_url) 
+      (titol, descripcio, ambit, modalitat, places_min, places_max, adreca_realitzacio, imatge_url) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const [result] = await db.query(sql, [
-      titol, descripcio, ambit, modalitat, places_min || 0, places_max || 0, adreça_realitzacio, imatge_url
+      titol, descripcio, ambit, modalitat, places_min || 0, places_max || 0, adreca_realitzacio, imatge_url
     ]);
 
     res.status(201).json({ 
@@ -59,7 +59,7 @@ const updateTaller = async (req, res) => {
     modalitat, 
     places_min, 
     places_max, 
-    adreça_realitzacio, 
+    adreca_realitzacio, 
     imatge_url 
   } = req.body;
 
@@ -72,13 +72,13 @@ const updateTaller = async (req, res) => {
       modalitat = ?, 
       places_min = ?, 
       places_max = ?, 
-      adreça_realitzacio = ?, 
+      adreca_realitzacio = ?, 
       imatge_url = ?
       WHERE id_taller = ?
     `;
 
     const [result] = await db.query(sql, [
-      titol, descripcio, ambit, modalitat, places_min, places_max, adreça_realitzacio, imatge_url, id
+      titol, descripcio, ambit, modalitat, places_min, places_max, adreca_realitzacio, imatge_url, id
     ]);
 
     if (result.affectedRows === 0) {
