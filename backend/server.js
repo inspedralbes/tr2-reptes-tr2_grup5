@@ -3,11 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-//--- IMPORTEM LES RUTES DE TALLERS ---
-const tallersRoutes = require("./routes/tallersRoutes");
-
-//--- IMPORTEM LES RUTES DE CENTRES ---
-const centresRoutes = require("./routes/centresRoutes");
+//--- IMPORTEM LES RUTES PER ROLS ---
+const adminRoutes = require("./routes/adminRoutes");
 
 //--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
@@ -16,15 +13,12 @@ const PORT = process.env.PORT || 1700;
 app.use(cors());
 app.use(express.json());
 
-//--- LI DIEM A LA APP QUE UTILITZI LES RUTES DE TALLERS ---
-app.use("/api/tallers", tallersRoutes);
-
-//--- LI DIEM A LA APP QUE UTILITZI LES RUTES DE CENTRES ---
-app.use("/api/centres", centresRoutes);
+//--- RUTES PRINCIPALS ---
+app.use("/api/admin", adminRoutes);
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
 app.get("/", (req, res) => {
-  res.send("Backend grup 5 funcionant");
+  res.send("Backend grup 5 funcionant - Estructura per rols activa");
 });
 
 //--- INICIEM EL SERVIDOR ---
