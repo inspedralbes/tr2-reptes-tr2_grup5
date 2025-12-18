@@ -1,8 +1,10 @@
+-- 1. Creació de la Base de Dades i configuració inicial
 CREATE DATABASE IF NOT EXISTS enginy_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE enginy_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- 2. Taula: Tallers
 CREATE TABLE IF NOT EXISTS Tallers (
     id_taller INT AUTO_INCREMENT PRIMARY KEY,
     titol VARCHAR(255) NOT NULL,
@@ -11,10 +13,11 @@ CREATE TABLE IF NOT EXISTS Tallers (
     modalitat ENUM('A', 'B', 'C') NOT NULL,
     places_min INT DEFAULT 0,
     places_max INT DEFAULT 0,
-    adreca_realitzacio VARCHAR(255),
+    adreça_realitzacio VARCHAR(255),
     imatge_url VARCHAR(255)
 ) ENGINE=InnoDB;
 
+-- 3. Taula: Centres
 CREATE TABLE IF NOT EXISTS Centres (
     id_centre INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(255) NOT NULL,
@@ -24,6 +27,7 @@ CREATE TABLE IF NOT EXISTS Centres (
     es_primera_vegada BOOLEAN DEFAULT FALSE
 ) ENGINE=InnoDB;
 
+-- 4. Taula: Usuaris
 CREATE TABLE IF NOT EXISTS Usuaris (
     id_usuari INT AUTO_INCREMENT PRIMARY KEY,
     id_centre INT,
@@ -32,10 +36,10 @@ CREATE TABLE IF NOT EXISTS Usuaris (
     password_hash VARCHAR(255) NOT NULL,
     rol ENUM('Admin', 'Centre', 'Professor') NOT NULL,
     imatge_url VARCHAR(255),
-    CONSTRAINT fk_usuaris_centre FOREIGN KEY (id_centre)
-        REFERENCES Centres(id_centre) ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT fk_usuaris_centre FOREIGN KEY (id_centre) REFERENCES Centres(id_centre) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
+-- 5. Taula: Sollicituds
 CREATE TABLE IF NOT EXISTS Sollicituds (
     id_sollicitud INT AUTO_INCREMENT PRIMARY KEY,
     id_centre INT NOT NULL,
@@ -49,38 +53,43 @@ CREATE TABLE IF NOT EXISTS Sollicituds (
     estat ENUM('Pendent', 'Assignada', 'Rebutjada', 'Realitzada') DEFAULT 'Pendent',
     comentaris TEXT,
     checklist_validacio VARCHAR(255),
-    CONSTRAINT fk_sollicituds_centre FOREIGN KEY (id_centre)
-        REFERENCES Centres(id_centre) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_sollicituds_taller FOREIGN KEY (id_taller)
-        REFERENCES Tallers(id_taller) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT fk_sollicituds_centre FOREIGN KEY (id_centre) REFERENCES Centres(id_centre) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_sollicituds_taller FOREIGN KEY (id_taller) REFERENCES Tallers(id_taller) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
+-- 6. Taula: Assignacions
 CREATE TABLE IF NOT EXISTS Assignacions (
     id_assignacio INT AUTO_INCREMENT PRIMARY KEY,
     id_sollicitud INT NOT NULL,
     id_professor INT NOT NULL,
-    CONSTRAINT fk_assignacions_sollicitud FOREIGN KEY (id_sollicitud)
-        REFERENCES Sollicituds(id_sollicitud) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_assignacions_professor FOREIGN KEY (id_professor)
-        REFERENCES Usuaris(id_usuari) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT fk_assignacions_sollicitud FOREIGN KEY (id_sollicitud) REFERENCES Sollicituds(id_sollicitud) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_assignacions_professor FOREIGN KEY (id_professor) REFERENCES Usuaris(id_usuari) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
+-- 7. Taula: Avaluacions
 CREATE TABLE IF NOT EXISTS Avaluacions (
     id_avaluacio INT AUTO_INCREMENT PRIMARY KEY,
     id_sollicitud INT NOT NULL,
     id_usuari INT NOT NULL,
     respostes_enquesta JSON,
-    CONSTRAINT fk_avaluacions_sollicitud FOREIGN KEY (id_sollicitud)
-        REFERENCES Sollicituds(id_sollicitud) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_avaluacions_usuari FOREIGN KEY (id_usuari)
-        REFERENCES Usuaris(id_usuari) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT fk_avaluacions_sollicitud FOREIGN KEY (id_sollicitud) REFERENCES Sollicituds(id_sollicitud) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_avaluacions_usuari FOREIGN KEY (id_usuari) REFERENCES Usuaris(id_usuari) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-ALTER TABLE Centres
-ADD CONSTRAINT fk_centres_responsable
-    FOREIGN KEY (id_responsable)
-    REFERENCES Usuaris(id_usuari)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
+-- 8. Taula: SolicitudsCentres (NOVA)
+CREATE TABLE IF NOT EXISTS SolicitudsCentres (
+    id_solicitud INT AUTO_INCREMENT PRIMARY KEY,
+    nom_persona VARCHAR(255) COMMENT 'Per Usuaris.nom',
+    email_persona VARCHAR(255) COMMENT 'Per Usuaris.email',
+    password_solicitud VARCHAR(255) COMMENT 'Per Usuaris.password_hash',
+    nom_centre VARCHAR(255) COMMENT 'Per Centres.nom',
+    correu_centre VARCHAR(255) COMMENT 'Per Centres.correu',
+    ubicacio_centre VARCHAR(255) COMMENT 'Per Centres.ubicacio',
+    telefon_centre VARCHAR(20) COMMENT 'Dada de contacte extra',
+    estat ENUM('pendent', 'acceptada', 'rebutjada') DEFAULT 'pendent'
+) ENGINE=InnoDB;
+
+-- 9. Tancar la Relació Circular
+ALTER TABLE Centres ADD CONSTRAINT fk_centres_responsable FOREIGN KEY (id_responsable) REFERENCES Usuaris(id_usuari) ON DELETE SET NULL ON UPDATE CASCADE;
 
 SET FOREIGN_KEY_CHECKS = 1;
