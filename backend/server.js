@@ -5,6 +5,7 @@ const cors = require("cors");
 
 //--- IMPORTEM LES RUTES PER ROLS ---
 const adminRoutes = require("./routes/adminRoutes");
+const centreRoutes = require("./routes/centreRoutes");
 
 //--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 
 //--- RUTES PRINCIPALS ---
 app.use("/api/admin", adminRoutes);
+app.use("/api/centre", centreRoutes);
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
 app.get("/", (req, res) => {
