@@ -13,7 +13,6 @@ header.setHeaderAdmin()
 <style scoped>
 .page {
   text-align: center;
-  margin-top: 0px;
-
+  margin-top: 0px;  
 }
 </style>
