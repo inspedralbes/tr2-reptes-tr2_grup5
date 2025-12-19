@@ -43,7 +43,9 @@ services:
       - dev-network
 
   database:
-    image: mysql:8.0
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.mysql
     container_name: dev-database
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}

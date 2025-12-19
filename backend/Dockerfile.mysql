@@ -4,6 +4,7 @@ FROM mysql:8.0
 # official mysql entrypoint so init scripts in /docker-entrypoint-initdb.d
 # are executed on every start.
 COPY custom-entrypoint.sh /usr/local/bin/custom-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/custom-entrypoint.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
