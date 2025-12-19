@@ -43,9 +43,7 @@ services:
       - dev-network
 
   database:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.mysql
+    image: mysql:8.0
     container_name: dev-database
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
@@ -56,7 +54,7 @@ services:
       - "${DB_PORT}:${DB_PORT}" # Mapea tu puerto externo al 3306 interno de MySQL
     volumes:
       - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./backend/mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
     networks:
       - dev-network
 
