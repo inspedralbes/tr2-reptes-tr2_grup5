@@ -2,7 +2,7 @@
   <div class="page">
     <h2>Crear Taller</h2>
 
-    <form @submit.prevent="submitForm" enctype="multipart/form-data">
+    <form @submit.prevent="submitForm">
       <div>
         <label>Títol</label>
         <input type="text" v-model="taller.titol" required />
@@ -44,8 +44,11 @@
       </div>
 
       <div>
-        <label>Imatge</label>
+        <label>Seleccionar Imatge</label>
         <input type="file" @change="handleFileChange" accept="image/*" />
+        <p v-if="taller.imatge_url" style="margin-top: 5px; font-size: 0.9rem; color: #555;">
+          <strong>Ruta a guardar:</strong> {{ taller.imatge_url }}
+        </p>
       </div>
 
       <button type="submit">Crear Taller</button>
@@ -54,6 +57,8 @@
 </template>
 
 <script setup>
+import { reactive } from 'vue'
+
 const taller = reactive({
   titol: '',
   descripcio: '',
@@ -62,13 +67,15 @@ const taller = reactive({
   places_min: 0,
   places_max: 0,
   adreca_realitzacio: '',
-  imatge_url: ''
+  imatge_url: '' 
 })
 
-let imatgeFile = null
-
 const handleFileChange = (event) => {
-  imatgeFile = event.target.files[0]
+  const file = event.target.files[0]
+  if (file) {
+
+    taller.imatge_url = `/images/tallers/${file.name}`
+  }
 }
 
 const submitForm = async () => {
@@ -77,24 +84,27 @@ const submitForm = async () => {
     return
   }
 
-  // Subida de imagen: aquí debes subir la imagen a tu servidor o storage y obtener la URL
-  if (imatgeFile) {
-    // Ejemplo: taller.imatge_url = await uploadImage(imatgeFile)
-    taller.imatge_url = 'https://ruta-de-la-imagen.com/' + imatgeFile.name
+  try {
+    
+    const response = await $fetch('http://localhost:1700/api/admin/tallers', {
+      method: 'POST',
+      body: taller
+    })
+
+    console.log('Insertado correctamente:', response)
+    alert('Taller creat correctament amb la ruta de la imatge!')
+    
+
+    Object.assign(taller, {
+      titol: '', descripcio: '', ambit: '', modalitat: '',
+      places_min: 0, places_max: 0, adreca_realitzacio: '', imatge_url: ''
+    })
+  } catch (error) {
+    console.error('Error al insertar:', error)
+    alert('Error: ' + (error.data?.message || error.message))
   }
-
-  // POST al backend
-  const response = await $fetch('http://localhost:1700/api/tallers', {
-    method: 'POST',
-    body: { ...taller }
-  })
-
-  console.log('Taller creado:', response)
-  alert('Taller creat correctament!')
 }
 </script>
-
-
 
 <style scoped>
 .page {
@@ -113,7 +123,8 @@ label {
   margin-bottom: 0.25rem;
 }
 
-input, textarea, select {
+input[type="text"],
+input[type="email"] {
   width: 100%;
   padding: 0.5rem;
   box-sizing: border-box;
@@ -123,5 +134,10 @@ button {
   padding: 0.5rem 1rem;
   font-weight: bold;
   cursor: pointer;
+}
+
+input[type="radio"] {
+  margin-right: 0.25rem;
+  margin-left: 0.5rem;
 }
 </style>
