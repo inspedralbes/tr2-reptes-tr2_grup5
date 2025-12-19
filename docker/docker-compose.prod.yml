@@ -5,8 +5,8 @@ services:
 
   nginx:
     build:
-      context: .
-      dockerfile: nginx.Dockerfile
+      context: ..
+      dockerfile: docker/nginx.Dockerfile
     ports:
       - "${PORT_NGINX}:${PORT_NGINX}"
     depends_on:
@@ -17,17 +17,27 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./backend
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
     command: npm run start:prod
     environment:
       NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
     networks:
       - prod-network
     restart: unless-stopped
 
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     depends_on:
       - backend

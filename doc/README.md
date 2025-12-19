@@ -26,8 +26,17 @@ Este repositorio contiene la configuración necesaria para levantar un entorno c
 ---
 ## Para levantar el Docker
 
-Para levantar este Docker en modo Dev hace falta poner este comando en el terminal:
-docker compose -f docker-compose.dev.yml up --build
+### Opción 1: Usando npm (recomendado - funciona en Windows y Linux)
+```bash
+npm run docker:dev
+```
+
+### Opción 2: Comando tradicional de Docker Compose
+```bash
+docker compose --env-file .env -f docker/docker-compose.dev.yml up --build
+```
+
+**Nota importante:** Es necesario usar `--env-file .env` para que Docker Compose lea las variables de entorno correctamente.
 
 ## 🛠️ Requisitos Previos
 

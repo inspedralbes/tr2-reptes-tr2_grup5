@@ -21,3 +21,4 @@ router.put("/centres/:id", centresController.updateCentre);
 router.delete("/centres/:id", centresController.deleteCentre);
 
 module.exports = router;
+

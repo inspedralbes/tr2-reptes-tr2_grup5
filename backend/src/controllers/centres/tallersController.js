@@ -14,3 +14,4 @@ const getAllTallersDisponibles = async (req, res) => {
 module.exports = { 
   getAllTallersDisponibles
 };
+

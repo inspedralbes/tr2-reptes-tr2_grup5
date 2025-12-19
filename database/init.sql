@@ -93,3 +93,4 @@ CREATE TABLE IF NOT EXISTS SolicitudsCentres (
 ALTER TABLE Centres ADD CONSTRAINT fk_centres_responsable FOREIGN KEY (id_responsable) REFERENCES Usuaris(id_usuari) ON DELETE SET NULL ON UPDATE CASCADE;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
