@@ -1,18 +1,10 @@
 <template>
-  <Header />
   <div class="page">
+    <h2>Llistat de sol·lcituds</h2>
   </div>
-  <NuxtPage />
 </template>
 
 <script setup>
 const header = useHeaderStore()
 header.setHeaderAdmin()
 </script>
-
-<style scoped>
-.page {
-  text-align: center;
-  margin-top: 0px;  
-}
-</style>
