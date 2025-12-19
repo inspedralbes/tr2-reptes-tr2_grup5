@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 
 //--- IMPORTEM LES RUTES DE TALLERS ---
-const tallersRoutes = require("./routes/tallersRoutes");
+const tallersRoutes = require("./src/routes/tallersRoutes");
 
 //--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
