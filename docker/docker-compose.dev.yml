@@ -70,6 +70,7 @@ services:
       - "${DB_PORT}:${DB_PORT}" # Mapea tu puerto externo al 3306 interno de MySQL
     volumes:
       - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../database/inserts.sql:/docker-entrypoint-initdb.d/inserts.sql
       - db_data:/var/lib/mysql
     networks:
       - dev-network
