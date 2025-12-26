@@ -1,10 +1,28 @@
-const db = require("../../config/db");
+const Taller = require("../../models/Taller");
+const Log = require("../../models/Log");
+
+// Llista oficial de sectors segons documentació
+const SECTORS_VALID = [
+  "Agroalimentari",
+  "Arts Gràfiques",
+  "Comerç i Màrqueting",
+  "Edificació i Obra Civil",
+  "Electricitat i Electrònica",
+  "Energia i Aigua",
+  "Fabricació Mecànica",
+  "Hoteleria i Turisme", 
+  "Informàtica i Comunicacions",
+  "Instal·lació i Manteniment",
+  "Transport i Manteniment de Vehicles"
+];
 
 // --- 1. GET: Obtenir tots els tallers ---
+// Admet query param ?filter=active|archived|all
 const getAllTallers = async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM Tallers");
-    res.json(rows);
+    const filter = req.query.filter || 'active';
+    const tallers = await Taller.getAll(filter);
+    res.json(tallers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -15,33 +33,62 @@ const createTaller = async (req, res) => {
   const { 
     titol, 
     descripcio, 
-    ambit, 
+    sector, 
     modalitat, 
-    places_min, 
-    places_max, 
-    adreca_realitzacio, 
-    imatge_url 
+    trimestres_disponibles, 
+    places_maximes, 
+    adreca, 
+    ubicacio 
   } = req.body;
 
-  //Comprovem que els camps obligatoris estiguin presents (titol i modalitat)
-  if (!titol || !modalitat) {
-    return res.status(400).json({ message: "El títol i la modalitat són obligatoris" });
+  // Comprovem camps obligatoris
+  if (!titol || !modalitat || !sector) {
+    return res.status(400).json({ message: "El títol, el sector i la modalitat són obligatoris" });
   }
 
-  try { //Provem d'inserir el nou taller a la base de dades
-    const sql = `
-      INSERT INTO Tallers 
-      (titol, descripcio, ambit, modalitat, places_min, places_max, adreca_realitzacio, imatge_url) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+  // Validació sectors
+  if (!SECTORS_VALID.includes(sector)) {
+    return res.status(400).json({ 
+      message: "Sector no vàlid. Triï un dels 11 sectors oficials.",
+      sectors_disponibles: SECTORS_VALID
+    });
+  }
+
+  // Validació modalitat
+  if (!['A', 'B', 'C'].includes(modalitat)) {
+    return res.status(400).json({ message: "La modalitat ha de ser 'A', 'B' o 'C'" });
+  }
+
+  // Validació capacitat mínima
+  if (places_maximes !== undefined && places_maximes < 1) {
+    return res.status(400).json({ message: "Les places màximes han de ser com a mínim 1." });
+  }
+
+  try {
+    const newId = await Taller.create({
+      titol, 
+      descripcio, 
+      sector, 
+      modalitat, 
+      trimestres_disponibles, 
+      places_maximes, 
+      adreca, 
+      ubicacio
+    });
     
-    const [result] = await db.query(sql, [
-      titol, descripcio, ambit, modalitat, places_min || 0, places_max || 0, adreca_realitzacio, imatge_url
-    ]);
+    // AUDITORIA
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null, 
+      accio: 'CREATE',
+      taula_afectada: 'tallers',
+      valor_nou: { id: newId, titol, sector }
+    });
 
     res.status(201).json({ 
-      id: result.insertId, 
-      titol, 
+      id: newId, 
+      titol,
+      sector,
+      modalitat,
       message: "Taller creat correctament" 
     });
   } catch (error) {
@@ -52,38 +99,64 @@ const createTaller = async (req, res) => {
 // --- 3. PUT: Actualitzar un taller existent ---
 const updateTaller = async (req, res) => {
   const { id } = req.params;
+  const newData = req.body;
   const { 
-    titol, 
-    descripcio, 
-    ambit, 
+    sector, 
     modalitat, 
-    places_min, 
-    places_max, 
-    adreca_realitzacio, 
-    imatge_url 
+    places_maximes
   } = req.body;
 
+  // Si s'actualitza el sector, validar-lo
+  if (sector && !SECTORS_VALID.includes(sector)) {
+    return res.status(400).json({ 
+      message: "Sector no vàlid.",
+      sectors_disponibles: SECTORS_VALID
+    });
+  }
+
+  // Si s'actualitza la modalitat
+  if (modalitat && !['A', 'B', 'C'].includes(modalitat)) {
+    return res.status(400).json({ message: "La modalitat ha de ser 'A', 'B' o 'C'" });
+  }
+
+  // Validació de Capacitat amb lògica de negoci (no reduir per sota dels assignats)
+  if (places_maximes !== undefined) {
+    if (places_maximes < 1) {
+      return res.status(400).json({ message: "Les places màximes han de ser com a mínim 1." });
+    }
+    
+    // Comprovar quants alumnes hi ha assignats actualment
+    try {
+      const assignedCount = await Taller.countAssignedStudents(id);
+      if (places_maximes < assignedCount) {
+        return res.status(409).json({ 
+          message: `No es pot reduir la capacitat a ${places_maximes} perquè hi ha ${assignedCount} alumnes ja assignats.` 
+        });
+      }
+    } catch (countError) {
+      console.error("Error validant capacitat:", countError);
+      return res.status(500).json({ error: "Error verificant la capacitat del taller." });
+    }
+  }
+
   try {
-    const sql = `
-      UPDATE Tallers SET 
-      titol = ?, 
-      descripcio = ?, 
-      ambit = ?, 
-      modalitat = ?, 
-      places_min = ?, 
-      places_max = ?, 
-      adreca_realitzacio = ?, 
-      imatge_url = ?
-      WHERE id_taller = ?
-    `;
+    // Recuperar valor anterior
+    const oldData = await Taller.findById(id);
 
-    const [result] = await db.query(sql, [
-      titol, descripcio, ambit, modalitat, places_min, places_max, adreca_realitzacio, imatge_url, id
-    ]);
+    const updated = await Taller.update(id, newData);
 
-    if (result.affectedRows === 0) {
+    if (!updated) {
       return res.status(404).json({ message: "No s'ha trobat el taller per actualitzar" });
     }
+
+    // AUDITORIA
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null,
+      accio: 'UPDATE',
+      taula_afectada: 'tallers',
+      valor_anterior: oldData,
+      valor_nou: { id, ...newData }
+    });
 
     res.json({ message: "Taller actualitzat correctament" });
   } catch (error) {
@@ -91,22 +164,55 @@ const updateTaller = async (req, res) => {
   }
 };
 
-// --- 4. DELETE: Eliminar un taller ---
+// --- 4. DELETE: Eliminar un taller (o Arxivar) ---
 const deleteTaller = async (req, res) => {
   const { id } = req.params;
   try {
-    const [result] = await db.query("DELETE FROM Tallers WHERE id_taller = ?", [id]);
+    // Recuperar valor anterior
+    const oldData = await Taller.findById(id);
 
-    if (result.affectedRows === 0) {
+    // 1. Comprovar si té dependències (fills)
+    const hasDeps = await Taller.hasDependencies(id);
+    
+    if (hasDeps) {
+      // Si té dependències, NO es pot borrar físicament. 
+      // Així que en lloc de cridar a delete(), cridem a archive().
+      
+      const archived = await Taller.archive(id);
+      if (!archived) return res.status(404).json({ message: "No s'ha trobat el taller." });
+      
+      // AUDITORIA: ARCHIVE
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null,
+        accio: 'ARCHIVE',
+        taula_afectada: 'tallers',
+        valor_anterior: oldData, // Estat anterior (actiu=1)
+        valor_nou: { actiu: 0 }
+      });
+
+      return res.json({ 
+        message: "El taller té activitat associada. No s'ha esborrat, però s'ha canviat l'estat a 'Arxivat' (soft-delete).",
+        archived: true 
+      });
+    }
+
+    // 2. Si no té dependències, esborrat físic segur
+    const deleted = await Taller.delete(id);
+
+    if (!deleted) {
       return res.status(404).json({ message: "No s'ha trobat el taller per eliminar" });
     }
 
-    res.json({ message: "Taller eliminat correctament" });
+    // AUDITORIA: DELETE FÍSIC
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null, 
+      accio: 'DELETE',
+      taula_afectada: 'tallers',
+      valor_anterior: oldData
+    });
+
+    res.json({ message: "Taller eliminat correctament (sense historial previ)." });
   } catch (error) {
-    // Si falla per restricció de clau forana (té sol·licituds assignades), ho capturem
-    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({ message: "No es pot eliminar el taller perquè té sol·licituds associades." });
-    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -117,4 +223,3 @@ module.exports = {
   updateTaller, 
   deleteTaller 
 };
-

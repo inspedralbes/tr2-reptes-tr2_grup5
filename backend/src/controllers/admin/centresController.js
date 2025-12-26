@@ -1,10 +1,12 @@
-const db = require("../../config/db");
+const Centre = require("../../models/Centre");
+const Log = require("../../models/Log");
+const User = require("../../models/User");
 
 // --- 1. GET: Obtenir tots els centres ---
 const getAllCentres = async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM Centres");
-    res.json(rows);
+    const centres = await Centre.getAll();
+    res.json(centres);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -13,35 +15,65 @@ const getAllCentres = async (req, res) => {
 // --- 2. POST: Crear un nou centre ---
 const createCentre = async (req, res) => {
   const { 
-    nom, 
-    id_responsable, 
-    correu, 
-    ubicacio, 
+    codi_centre,
+    nom_centre, 
+    user_id, 
+    email_oficial, 
+    adreca,
+    municipi,
+    telefon,
+    nom_coordinador,
     es_primera_vegada 
   } = req.body;
 
-  //Comprovem que els camps obligatoris estiguin presents (nom)
-  if (!nom) {
-    return res.status(400).json({ message: "El nom és obligatori" });
+  // Comprovem camps obligatoris
+  if (!nom_centre || !codi_centre) {
+    return res.status(400).json({ message: "El nom del centre i el codi són obligatoris" });
   }
 
-  try { //Provem d'inserir el nou centre a la base de dades
-    const sql = `
-      INSERT INTO Centres 
-      (nom, id_responsable, correu, ubicacio, es_primera_vegada) 
-      VALUES (?, ?, ?, ?, ?)
-    `;
+  // Validació de Rol: Si s'assigna un usuari, ha de ser rol 'CENTRE'
+  if (user_id) {
+    // Nota: El mètode hasRole retorna true/false, però la consulta SQL potser retorna rows buides.
+    // Millor fem una consulta directa a User.findById per estar segurs del rol.
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ message: "L'usuari assignat no existeix." });
+    }
+    if (user.rol !== 'CENTRE') {
+      return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
+    }
+  }
+
+  try {
+    const newId = await Centre.create({
+      codi_centre,
+      nom_centre, 
+      user_id, 
+      email_oficial, 
+      adreca,
+      municipi, 
+      telefon,
+      nom_coordinador,
+      es_primera_vegada
+    });
     
-    const [result] = await db.query(sql, [
-      nom, id_responsable || null, correu || null, ubicacio || null, es_primera_vegada || false
-    ]);
+    // AUDITORIA
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null, // Assumint que tenim el middleware auth
+      accio: 'CREATE',
+      taula_afectada: 'centres',
+      valor_nou: { id: newId, codi_centre, nom_centre }
+    });
 
     res.status(201).json({ 
-      id: result.insertId, 
-      nom, 
+      id: newId, 
+      nom_centre, 
       message: "Centre creat correctament" 
     });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: "Ja existeix un centre amb aquest codi o nom." });
+    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -49,35 +81,43 @@ const createCentre = async (req, res) => {
 // --- 3. PUT: Actualitzar un centre existent ---
 const updateCentre = async (req, res) => {
   const { id } = req.params;
-  const { 
-    nom, 
-    id_responsable, 
-    correu, 
-    ubicacio, 
-    es_primera_vegada 
-  } = req.body;
+  const newData = req.body;
+
+  // Validació de Rol en cas de canvi d'usuari
+  if (newData.user_id) {
+    const user = await User.findById(newData.user_id);
+    if (!user) {
+      return res.status(404).json({ message: "L'usuari assignat no existeix." });
+    }
+    if (user.rol !== 'CENTRE') {
+      return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
+    }
+  }
 
   try {
-    const sql = `
-      UPDATE Centres SET 
-      nom = ?, 
-      id_responsable = ?, 
-      correu = ?, 
-      ubicacio = ?, 
-      es_primera_vegada = ?
-      WHERE id_centre = ?
-    `;
+    // Recuperar valor anterior per auditoria
+    const oldData = await Centre.findById(id);
 
-    const [result] = await db.query(sql, [
-      nom, id_responsable, correu, ubicacio, es_primera_vegada, id
-    ]);
+    const updated = await Centre.update(id, newData);
 
-    if (result.affectedRows === 0) {
+    if (!updated) {
       return res.status(404).json({ message: "No s'ha trobat el centre per actualitzar" });
     }
 
+    // AUDITORIA
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null, 
+      accio: 'UPDATE',
+      taula_afectada: 'centres',
+      valor_anterior: oldData,
+      valor_nou: { id, ...newData }
+    });
+
     res.json({ message: "Centre actualitzat correctament" });
   } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: "Ja existeix un centre amb aquest codi o nom." });
+    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -86,17 +126,28 @@ const updateCentre = async (req, res) => {
 const deleteCentre = async (req, res) => {
   const { id } = req.params;
   try {
-    const [result] = await db.query("DELETE FROM Centres WHERE id_centre = ?", [id]);
+    // Recuperar valor anterior per auditoria
+    const oldData = await Centre.findById(id);
 
-    if (result.affectedRows === 0) {
+    const deleted = await Centre.delete(id);
+
+    if (!deleted) {
       return res.status(404).json({ message: "No s'ha trobat el centre per eliminar" });
     }
 
+    // AUDITORIA
+    await Log.create({
+      usuari_id: req.user ? req.user.id : null, 
+      accio: 'DELETE',
+      taula_afectada: 'centres',
+      valor_anterior: oldData
+    });
+
     res.json({ message: "Centre eliminat correctament" });
   } catch (error) {
-    // Si falla per restricció de clau forana (té sol·licituds assignades), ho capturem
+    // Si falla per restricció de clau forana
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({ message: "No es pot eliminar el centre perquè té sol·licituds associades." });
+      return res.status(409).json({ message: "No es pot eliminar el centre perquè té registres associades." });
     }
     res.status(500).json({ error: error.message });
   }

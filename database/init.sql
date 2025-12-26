@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS tallers (
     trimestres_disponibles VARCHAR(50),
     places_maximes INT DEFAULT 12,
     adreca VARCHAR(255),
-    ubicacio VARCHAR(255)
+    ubicacio VARCHAR(255),
+    actiu TINYINT(1) DEFAULT 1
 ) ENGINE=InnoDB;
 
 -- 6. Taula: peticions
