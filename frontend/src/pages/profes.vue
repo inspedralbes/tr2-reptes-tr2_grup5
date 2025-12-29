@@ -1,5 +1,4 @@
 <template>
-  <Header />
   <div class="page">
     <h2>Panell de Profes</h2>
     <p>Benvingut/da al panell de profes.</p>
