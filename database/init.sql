@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS tallers (
     titol VARCHAR(255) NOT NULL,
     descripcio TEXT,
     sector VARCHAR(100),
-    modalitat CHAR(1), -- Proyectos A, B o C
+    modalitat ENUM('A', 'B', 'C'), -- Proyectos A, B o C
     trimestres_disponibles VARCHAR(50),
     places_maximes INT DEFAULT 12,
     adreca VARCHAR(255),

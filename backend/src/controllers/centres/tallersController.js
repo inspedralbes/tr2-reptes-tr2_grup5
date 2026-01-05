@@ -4,7 +4,7 @@ const db = require("../../config/db");
 const getAllTallersDisponibles = async (req, res) => {
   try {
     // Fem la consulta a la taula Tallers
-    const [rows] = await db.query("SELECT * FROM Tallers");
+    const [rows] = await db.query("SELECT * FROM tallers");
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -144,6 +144,12 @@ const Taller = {
     if (assignacions[0].c > 0) return true;
 
     return false;
+  },
+
+  // Obtenir només la modalitat d'un taller per ID
+  getModalitat: async (id) => {
+    const [rows] = await db.query("SELECT modalitat FROM tallers WHERE id = ?", [id]);
+    return rows[0] ? rows[0].modalitat : null;
   }
 };
 
