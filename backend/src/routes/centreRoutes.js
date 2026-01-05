@@ -9,5 +9,10 @@ const tallersController = require("../controllers/centres/tallersController");
 // URL base: /api/centre/tallers
 router.get("/tallers", tallersController.getAllTallersDisponibles);
 
+//--- RUTES PER GESTIONAR ALUMNES ---
+const alumnesController = require("../controllers/alumnes/alumnesController");
+// URL base: /api/centre/alumnes (Gestionat pel centre)
+router.post("/alumnes", alumnesController.createAlumne);
+
 module.exports = router;
 

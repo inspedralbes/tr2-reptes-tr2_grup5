@@ -41,6 +41,10 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Sortir', route: '/' }
         ]
       })
+    },
+    resetHeader() {
+      this.title = ''
+      this.buttons = []
     }
   }
 })

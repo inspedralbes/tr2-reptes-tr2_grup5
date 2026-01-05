@@ -1,13 +1,13 @@
 <template>
-  <Header />
   <div class="page">
+    <h2>Panell de Profes</h2>
+    <p>Benvingut/da al panell de profes.</p>
   </div>
-  <NuxtPage />
 </template>
 
 <script setup>
 const header = useHeaderStore()
-header.setHeaderCentres()
+header.setHeaderProfes()
 </script>
 
 <style scoped>

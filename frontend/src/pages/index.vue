@@ -10,6 +10,9 @@
 </template>
 
 <script setup>
+const header = useHeaderStore()
+header.resetHeader()
+
 const goTo = (role) => {
   if (role === 'centres') navigateTo('/centres')
   else if (role === 'admin') navigateTo('/admin')
