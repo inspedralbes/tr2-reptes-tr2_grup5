@@ -1,10 +1,14 @@
 <template>
   <div class="page">
-    <h2>Llistat de sol·lcituds</h2>
+    <NuxtPage />
   </div>
 </template>
 
 <script setup>
 const header = useHeaderStore()
-header.setHeaderAdmin()
+header.setHeaderAlumnes()
 </script>
+
+<style scoped>
+/* Page transition or common styles */
+</style>

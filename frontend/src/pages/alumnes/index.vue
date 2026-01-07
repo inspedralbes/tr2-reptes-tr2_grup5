@@ -1,13 +1,12 @@
 <template>
   <div class="page">
-    <h2>Panell de Profes</h2>
-    <p>Benvingut/da al panell de profes.</p>
+    <h2>Panell d'Alumnes</h2>
+    <p>Benvingut/da al panell d'alumnes.</p>
   </div>
 </template>
 
 <script setup>
-const header = useHeaderStore()
-header.setHeaderProfes()
+// Header is handled by the parent layout (alumnes.vue)
 </script>
 
 <style scoped>

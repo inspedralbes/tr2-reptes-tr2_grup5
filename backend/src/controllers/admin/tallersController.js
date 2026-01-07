@@ -4,16 +4,16 @@ const Log = require("../../models/Log");
 // Llista oficial de sectors segons documentació
 const SECTORS_VALID = [
   "Agroalimentari",
-  "Arts Gràfiques",
-  "Comerç i Màrqueting",
-  "Edificació i Obra Civil",
-  "Electricitat i Electrònica",
+  "Manufacturer",
   "Energia i Aigua",
-  "Fabricació Mecànica",
-  "Hoteleria i Turisme", 
-  "Informàtica i Comunicacions",
-  "Instal·lació i Manteniment",
-  "Transport i Manteniment de Vehicles"
+  "Construcció",
+  "Comerç i Turisme",
+  "Transport",
+  "Hoteleria",
+  "Informació i Comunicació",
+  "Financer",
+  "Immobiliari",
+  "Professional"
 ];
 
 // --- 1. GET: Obtenir tots els tallers ---

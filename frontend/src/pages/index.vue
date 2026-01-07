@@ -2,9 +2,10 @@
   <div class="page">
     <h1>Selecciona el teu rol</h1>
     <div class="buttons">
-      <button @click="goTo('centres')">Centres</button>
       <button @click="goTo('admin')">Admin</button>
-      <button @click="goTo('profes')">Profes</button>
+      <button @click="goTo('centres')">Centres</button>
+      <button @click="goTo('professors')">Professors</button>
+      <button @click="goTo('alumnes')">Alumnes</button>
     </div>
   </div>
 </template>
@@ -14,8 +15,9 @@ const header = useHeaderStore()
 header.resetHeader()
 
 const goTo = (role) => {
-  if (role === 'centres') navigateTo('/centres')
-  else if (role === 'admin') navigateTo('/admin')
-  else if (role === 'profes') navigateTo('/profes')
+  if (role === 'admin') navigateTo('/admin/tallers')
+  else if (role === 'centres') navigateTo('/centres/peticions')
+  else if (role === 'professors') navigateTo('/professors/tallers')
+  else if (role === 'alumnes') navigateTo('/alumnes/info')
 }
 </script>

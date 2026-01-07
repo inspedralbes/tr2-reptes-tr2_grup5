@@ -14,30 +14,46 @@ export const useHeaderStore = defineStore('header', {
     },
     setHeaderAdmin() {
       this.setHeader({
-        title: 'Panell d\'Admin',
+        title: 'Administració CEB',
         buttons: [
-          { label: 'Tallers', route: '/admin/tallers' },
-          { label: 'Centres', route: '/admin/centres' },
-          { label: 'Sol·licituds', route: '/admin/sollicituds' },
+          { label: 'Catàleg', route: '/admin/tallers' },
+          { label: 'Assignacions', route: '/admin/assignacions' },
+          { label: 'Usuaris/Centres', route: '/admin/usuaris' },
+          { label: 'Estadístiques', route: '/admin/estadistiques' },
+          { label: 'Auditoria', route: '/admin/auditoria' },
           { label: 'Sortir', route: '/' }
         ]
       })
     },
     setHeaderCentres() {
       this.setHeader({
-        title: 'Centres',
+        title: 'Gestió de Centre',
         buttons: [
-          { label: 'Tallers', route: '/centres/tallers' },
-          { label: 'Professorat', route: '/centres/profesorat' },
+          { label: 'Inscripció', route: '/centres/peticions' },
+          { label: 'Alumnat/Docs', route: '/centres/alumnat' },
+          { label: 'Assignacions', route: '/centres/assignacions' },
+          { label: 'Professorat', route: '/centres/professorat' },
           { label: 'Sortir', route: '/' }
         ]
       })
     },
-    setHeaderProfes() {
+    setHeaderProfessors() {
       this.setHeader({
-        title: 'Profes',
+        title: 'Panell Professor',
         buttons: [
-          { label: 'Tallers', route: '/profes/tallers' },
+          { label: 'Assistència', route: '/professors/assistencia' },
+          { label: 'Avaluacions', route: '/professors/avaluacions' },
+          { label: 'Els meus Tallers', route: '/professors/tallers' },
+          { label: 'Sortir', route: '/' }
+        ]
+      })
+    },
+    setHeaderAlumnes() {
+      this.setHeader({
+        title: 'Portal Alumne',
+        buttons: [
+          { label: 'Enquesta', route: '/alumnes/enquesta' },
+          { label: 'Informació', route: '/alumnes/info' },
           { label: 'Sortir', route: '/' }
         ]
       })
