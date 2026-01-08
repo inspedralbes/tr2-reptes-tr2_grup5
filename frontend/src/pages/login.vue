@@ -49,35 +49,54 @@ password: ''
 
 const loading = ref(false);
 const errorMessage = ref('');
-
 const handleLogin = async () => {
 loading.value = true;
 errorMessage.value = '';
 
 try {
-    const response = await $fetch('/api/login', {
+    const response = await $fetch('http://localhost:1700/api/login', {
     method: 'POST',
     body: form.value
     });
+    const role = response.user?.rol?.toLowerCase();
+    if (role === 'admin') {
+    await navigateTo('/admin/dashboard');
+    } else if (role === 'profe' || role === 'profesor') {
+    await navigateTo('/profesor/mis-clases');
+    } else if (role === 'alumno') {
+    await navigateTo('/alumno/home');
+    } else {
+    await navigateTo('/dashboard');
+    }
 
-    alert(`Bienvenido, tu rol es: ${response.user.rol}`);
-    // Redirección dinámica basada en el rol que viene de la DB
-    navigateTo(`/${response.user.rol.toLowerCase()}`);
-    
 } catch (err) {
-    errorMessage.value = err.data?.message || 'Error al iniciar sesión';
+    console.error("Error en login:", err);
+    errorMessage.value = err.data?.message || 'Error al conectar con el servidor';
 } finally {
     loading.value = false;
 }
 };
 
-// Función para volver a la página anterior
 const goBack = () => {
 router.back();
 };
 </script>
 
 <style scoped>
+.login-container {
+max-width: 400px;
+margin: 2rem auto;
+padding: 2rem;
+border: 1px solid #eee;
+border-radius: 8px;
+}
+
+.form-group {
+margin-bottom: 1rem;
+display: flex;
+flex-direction: column;
+}
+
 .actions {
 display: flex;
 gap: 10px;
@@ -94,5 +113,11 @@ cursor: pointer;
 
 .btn-secondary:hover {
 background-color: #bbb;
+}
+
+.error {
+color: red;
+margin-top: 1rem;
+font-size: 0.9rem;
 }
 </style>
