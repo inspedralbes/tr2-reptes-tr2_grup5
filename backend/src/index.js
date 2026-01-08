@@ -8,6 +8,9 @@ const cors = require("cors");
 const adminRoutes = require("./routes/adminRoutes");
 const centreRoutes = require("./routes/centreRoutes");
 
+//--- IMPORTEM MIDDLEWARES ---
+const verifyToken = require("./middleware/authMiddleware");
+
 //--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
 const PORT = process.env.PORT || 1700;
@@ -16,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 //--- RUTES PRINCIPALS ---
-app.use("/api/admin", adminRoutes);
+app.use("/api/admin", verifyToken, adminRoutes);
 app.use("/api/centre", centreRoutes);
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
