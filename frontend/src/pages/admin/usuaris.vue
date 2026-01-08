@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="centre in centres" :key="centre.codi_centre">
+          <tr v-for="centre in centresList" :key="centre.codi_centre">
             <td>{{ centre.codi_centre }}</td>
             <td>{{ centre.nom_centre }}</td>
             <td>{{ centre.municipi }}</td>
@@ -66,7 +66,32 @@ header.setHeaderAdmin()
 
 const mostrarCentres = ref(true)
 
-const { data: centres, pending, error, refresh } = await useFetch('/api/admin/centres')
+// backend base (dev)
+const backendBase = 'http://localhost:1700'
+
+// fetch centres from backend and map to the minimal fields we need
+const { data: centres, pending, error, refresh } = await useFetch(`${backendBase}/api/admin/centres`)
+const centresList = computed(() => {
+  const arr = centres?.value ?? []
+  return arr.map(c => ({
+    codi_centre: (c.codi_centre ?? c.codi) || c.code || null,
+    nom_centre: (c.nom_centre ?? c.nom) || c.name || null,
+    municipi: (c.municipi ?? c.municipi) || c.city || null,
+    email_oficial: (c.email_oficial ?? c.email) || null
+  }))
+})
+
+// usuarios: minimal fallback (si backend protegido o inexistente no rompe la vista)
+let usuarios = ref([])
+try {
+  const { data: rawUsers } = await useFetch(`${backendBase}/api/admin/usuaris`)
+  usuarios.value = rawUsers?.value ?? []
+} catch (e) {
+  usuarios.value = []
+}
+
+const router = useRouter()
+const goBack = () => router.back()
 
 const toggleTable = () => {
   mostrarCentres.value = !mostrarCentres.value
