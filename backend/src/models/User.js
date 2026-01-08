@@ -5,6 +5,22 @@ const User = {
   findById: async (id) => {
     const [rows] = await db.query("SELECT * FROM usuaris WHERE id = ?", [id]);
     return rows[0];
+  },
+
+  // Buscar un usuari per email (Login)
+  findByEmail: async (email) => {
+    const [rows] = await db.query("SELECT * FROM usuaris WHERE email = ?", [email]);
+    return rows[0];
+  },
+
+  // Crear un nou usuari amb contrasenya hashejada (Registre)
+  create: async (userData) => {
+    const { email, password, rol } = userData;
+    const [result] = await db.query(
+      "INSERT INTO usuaris (email, password, rol, ultim_acces) VALUES (?, ?, ?, NOW())",
+      [email, password, rol]
+    );
+    return result.insertId;
   }
 };
 

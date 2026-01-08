@@ -7,6 +7,7 @@ const cors = require("cors");
 //--- IMPORTEM LES RUTES PER ROLS ---
 const adminRoutes = require("./routes/adminRoutes");
 const centreRoutes = require("./routes/centreRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 //--- IMPORTEM MIDDLEWARES ---
 const verifyToken = require("./middleware/authMiddleware");
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 //--- RUTES PRINCIPALS ---
+app.use("/api/auth", authRoutes);
 app.use("/api/admin", verifyToken, adminRoutes);
 app.use("/api/centre", centreRoutes);
 
