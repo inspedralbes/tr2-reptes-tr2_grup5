@@ -54,10 +54,14 @@ loading.value = true;
 errorMessage.value = '';
 
 try {
-    const response = await $fetch('/api/login', {
+    const response = await $fetch('http://localhost:1700/api/auth/login', {
     method: 'POST',
     body: form.value
     });
+
+    if (response.token) {
+      localStorage.setItem('authToken', response.token);
+    }
 
     alert(`Bienvenido, tu rol es: ${response.user.rol}`);
     // Redirección dinámica basada en el rol que viene de la DB
