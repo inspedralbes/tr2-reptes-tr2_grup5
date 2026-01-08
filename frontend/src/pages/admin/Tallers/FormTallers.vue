@@ -180,6 +180,9 @@ export default defineComponent({
 
         await $fetch('http://localhost:1700/api/admin/tallers', {
           method: 'POST',
+          headers: {
+            'Authorization': localStorage.getItem('authToken')
+          },
           body: payload
         })
 

@@ -54,21 +54,15 @@ loading.value = true;
 errorMessage.value = '';
 
 try {
-    const response = await $fetch('http://localhost:1700/api/login', {
+    const response = await $fetch('/api/login', {
     method: 'POST',
     body: form.value
     });
-    const role = response.user?.rol?.toLowerCase();
-    if (role === 'admin') {
-    await navigateTo('/admin/dashboard');
-    } else if (role === 'profe' || role === 'profesor') {
-    await navigateTo('/profesor/mis-clases');
-    } else if (role === 'alumno') {
-    await navigateTo('/alumno/home');
-    } else {
-    await navigateTo('/dashboard');
-    }
 
+    alert(`Bienvenido, tu rol es: ${response.user.rol}`);
+    // Redirección dinámica basada en el rol que viene de la DB
+    navigateTo(`/${response.user.rol.toLowerCase()}`);
+    
 } catch (err) {
     console.error("Error en login:", err);
     errorMessage.value = err.data?.message || 'Error al conectar con el servidor';
