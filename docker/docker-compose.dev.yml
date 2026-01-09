@@ -20,7 +20,7 @@ services:
       - /app/node_modules
       - /app/.nuxt
       - /app/.output
-    command: sh -c "npm install && npx nuxi cleanup && npm run dev -- --host 0.0.0.0 --port 3000"
+    command: sh -c "npm install --legacy-peer-deps && npm run postinstall && npx nuxi cleanup && npm run dev -- --host 0.0.0.0 --port 3000"
     networks:
       - dev-network
 

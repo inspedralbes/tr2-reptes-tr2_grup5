@@ -128,8 +128,8 @@ INSERT INTO peticio_detalls (peticio_id, taller_id, num_alumnes, es_preferencia_
 (1, 2, 2, 0);
 
 -- 8. TAULA: assignacions_tallers
-INSERT INTO assignacions_tallers (id, taller_id, trimestre, curs_academic, torn, estat) VALUES
-(1, 1, '2n', '2025-2026', 'Mati 1', 'ACTIU');
+INSERT INTO assignacions_tallers (id, taller_id, data_inici, data_fi, curs_academic) VALUES
+(1, 1, '2026-01-15', '2026-03-19', '2025-2026');
 
 -- 9. TAULA: alumnes
 INSERT INTO alumnes (id, idalu, nom, cognoms, centre_id, curs_actual) VALUES
