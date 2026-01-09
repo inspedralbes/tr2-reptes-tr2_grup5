@@ -19,6 +19,10 @@
 				<input v-model="form.adreca" type="text" maxlength="255" />
 			</label>
 
+            <label>Email oficial
+				<input v-model="form.email_oficial" type="email" maxlength="255" required />
+            </label>
+
 			<label>Municipi
 				<input v-model="form.municipi" type="text" maxlength="100" />
 			</label>
