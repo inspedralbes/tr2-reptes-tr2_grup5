@@ -1,173 +1,124 @@
 <template>
-  <div class="register-container">
-    <h1>Crear Compte</h1>
-    <form @submit.prevent="handleRegister">
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input 
-          v-model="form.email" 
-          type="email" 
-          id="email" 
-          placeholder="nou.usuari@exemple.cat" 
-          required 
-        />
-      </div>
+	<div class="page">
+		<h1>Sol·licitud de registre de Centre</h1>
 
-      <div class="form-group">
-        <label for="password">Contrasenya:</label>
-        <input 
-          v-model="form.password" 
-          type="password" 
-          id="password" 
-          placeholder="********" 
-          required 
-        />
-      </div>
+		<form @submit.prevent="submitForm" class="form">
+			<label>Codi centre
+				<input v-model="form.codi_centre" type="text" maxlength="50" required />
+			</label>
 
-      <div class="form-group">
-        <label for="confirmPassword">Confirmar Contrasenya:</label>
-        <input 
-          v-model="form.confirmPassword" 
-          type="password" 
-          id="confirmPassword" 
-          placeholder="********" 
-          required 
-        />
-      </div>
+			<label>Nom del centre
+				<input v-model="form.nom_centre" type="text" maxlength="255" required />
+			</label>
 
-      <div class="form-group">
-        <label for="rol">Rol:</label>
-        <select v-model="form.rol" id="rol">
-          <option value="CENTRE">Centre</option>
-          <option value="PROFESSOR">Professor</option>
-          <option value="ALUMNE">Alumne</option>
-          <option value="ADMIN">Administrador</option>
-        </select>
-      </div>
+			<label>Contrasenya (per al compte del centre)
+				<input v-model="form.password" type="password" minlength="6" required />
+			</label>
 
-      <div class="actions">
-        <button type="submit" :disabled="loading">
-          {{ loading ? 'Registrant...' : 'Registrar-se' }}
-        </button>
-        
-        <button type="button" class="btn-secondary" @click="goBack">
-          Cancel·lar
-        </button>
-      </div>
+			<label>Adreça
+				<input v-model="form.adreca" type="text" maxlength="255" />
+			</label>
 
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
-    </form>
-  </div>
+            <label>Email oficial
+				<input v-model="form.email_oficial" type="email" maxlength="255" required />
+            </label>
+
+			<label>Municipi
+				<input v-model="form.municipi" type="text" maxlength="100" />
+			</label>
+
+			<label>Telèfon
+				<input v-model="form.telefon" type="text" maxlength="20" />
+			</label>
+            <h1>Informació del coordinador</h1>
+			<label>Nom coordinador
+				<input v-model="form.nom_coordinador" type="text" maxlength="255" />
+			</label>
+
+			<label>Email coordinador
+				<input v-model="form.email_coordinador" type="email" maxlength="255" required />
+			</label>
+
+			<label>
+				<input v-model="form.es_primera_vegada" type="checkbox" /> Primera vegada?
+			</label>
+
+			<div class="actions">
+				<button type="submit" :disabled="loading">{{ loading ? 'Enviant...' : 'Enviar sol·licitud' }}</button>
+				<button type="button" @click="resetForm">Netejar</button>
+			</div>
+
+			<p v-if="message" class="message">{{ message }}</p>
+			<p v-if="error" class="error">{{ error }}</p>
+		</form>
+	</div>
 </template>
 
 <script setup>
-const router = useRouter();
+import { ref } from 'vue'
+
+const backendBase = 'http://localhost:1700'
 
 const form = ref({
-  email: '',
-  password: '',
-  confirmPassword: '',
-  rol: 'CENTRE'
-});
+	codi_centre: '',
+	nom_centre: '',
+	password: '',
+	adreca: '',
+	municipi: '',
+	telefon: '',
+	nom_coordinador: '',
+	email_coordinador: '',
+	es_primera_vegada: false,
+	estat: 'pendent',
+	data_creacio: null
+})
 
-const loading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const loading = ref(false)
+const message = ref('')
+const error = ref('')
 
-const handleRegister = async () => {
-  loading.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
+const resetForm = () => {
+	form.value = {
+		codi_centre: '', nom_centre: '', password: '', adreca: '', municipi: '', telefon: '', nom_coordinador: '', email_coordinador: '', es_primera_vegada: false, estat: 'pendent'
+	}
+	message.value = ''
+	error.value = ''
+}
 
-  if (form.value.password !== form.value.confirmPassword) {
-    errorMessage.value = "Les contrasenyes no coincideixen.";
-    loading.value = false;
-    return;
-  }
+const submitForm = async () => {
+	error.value = ''
+	message.value = ''
 
-  try {
-    const response = await $fetch('http://localhost:1700/api/auth/register', {
-      method: 'POST',
-      body: {
-        email: form.value.email,
-        password: form.value.password,
-        rol: form.value.rol
-      }
-    });
+	if (!form.value.codi_centre || !form.value.nom_centre || !form.value.password || !form.value.email_coordinador) {
+		error.value = 'Si us plau, omple els camps obligatoris (codi, nom, password, email).'
+		return
+	}
 
-    successMessage.value = "Usuari registrat correctament! Redirigint al login...";
-    setTimeout(() => {
-      router.push('/login');
-    }, 2000);
-    
-  } catch (err) {
-    errorMessage.value = err.data?.message || 'Error al registrar usuari.';
-  } finally {
-    loading.value = false;
-  }
-};
+	loading.value = true
+	try {
+		form.value.data_creacio = new Date().toISOString()
+		const payload = { ...form.value }
+		const res = await $fetch(`${backendBase}/api/solicituds/centres`, {
+			method: 'POST',
+			body: payload
+		})
 
-const goBack = () => {
-  router.back();
-};
+		message.value = res?.message || 'Sol·licitud enviada correctament.'
+		resetForm()
+	} catch (err) {
+		console.error('Error enviant sol·licitud:', err)
+		error.value = err?.data?.message || err?.message || 'Error en enviar la sol·licitud'
+	} finally {
+		loading.value = false
+	}
+}
 </script>
 
 <style scoped>
-.register-container {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-input, select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 1rem;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:disabled {
-  background-color: #ccc;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-}
-
-.error {
-  color: red;
-  margin-top: 1rem;
-}
-
-.success {
-  color: green;
-  margin-top: 1rem;
-}
+.page { max-width: 700px; margin: 2rem auto; padding: 1rem }
+label { display: block; margin-bottom: 0.75rem }
+input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: .5rem; box-sizing: border-box }
+.actions { margin-top: 1rem; display:flex; gap:8px }
+.message { color: green; margin-top: .5rem }
+.error { color: tomato; margin-top: .5rem }
 </style>
