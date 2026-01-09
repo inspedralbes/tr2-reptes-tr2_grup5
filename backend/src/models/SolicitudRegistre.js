@@ -106,6 +106,11 @@ const SolicitudRegistre = {
     findByCodiCentre: async (codi) => {
         const [rows] = await db.query("SELECT * FROM solicituds_registre WHERE codi_centre = ?", [codi]);
         return rows[0];
+    },
+
+    findByEmailCentre: async (email) => {
+        const [rows] = await db.query("SELECT * FROM solicituds_registre WHERE email_centre = ?", [email]);
+        return rows[0];
     }
 };
 
