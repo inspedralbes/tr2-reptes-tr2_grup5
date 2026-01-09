@@ -252,13 +252,4 @@ CREATE TABLE IF NOT EXISTS solicituds_registre (
     data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
-
--- 23. Dades inicials: Administrador
--- Password: admin123
-INSERT INTO usuaris (email, password, rol) VALUES 
-('admin@enginy.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN');
-
-INSERT INTO administradors (user_id, nom, cognoms, carrec) VALUES 
-(LAST_INSERT_ID(), 'Admin', 'Principal', 'Coordinador General');
-
 SET FOREIGN_KEY_CHECKS = 1;

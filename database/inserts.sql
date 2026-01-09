@@ -2,7 +2,7 @@ USE enginy_db;
 
 -- 1. TAULA: usuaris
 INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
-(1, 'admin@ceb.cat', 'admin123', 'ADMIN', NOW()),
+(1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()),
 (2, 'coordinador@escola.cat', 'centre123', 'CENTRE', NOW()),
 (3, 'profe.referent@escola.cat', 'profe123', 'PROFESSOR', NOW()),
 (4, 'alumne.test@alumne.cat', 'alumne123', 'ALUMNE', NOW());
