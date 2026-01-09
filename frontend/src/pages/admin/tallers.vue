@@ -49,10 +49,11 @@ const header = useHeaderStore()
 header.setHeaderAdmin()
 
 // Fem la petició al backend per obtenir els tallers (només des del client per evitar errors de Docker SSR)
+const token = useCookie('authToken');
 const { data: tallers, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/tallers', {
   server: false,
   headers: {
-    Authorization: typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    Authorization: token.value ? `Bearer ${token.value}` : ''
   }
 })
 </script>
