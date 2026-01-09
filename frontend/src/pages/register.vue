@@ -8,7 +8,18 @@
 			</label>
 
 			<label>Nom del centre
-				<input v-model="form.nom_centre" type="text" maxlength="255" required />
+				<select v-model="form.nom_centre" required>
+					<option value="" disabled>-- Selecciona un centre --</option>
+					<option>Institut Pedralbes</option>
+					<option>Institut Tecnològic de Barcelona</option>
+					<option>Institut TIC de Barcelona</option>
+					<option>Altres</option>
+				</select>
+			</label>
+
+			<!-- Si el usuario elige 'Altres' mostrar campo para introducir nombre manual -->
+			<label v-if="form.nom_centre === 'Altres'">Nom del centre (manual)
+				<input v-model="form.nom_centre_manual" type="text" maxlength="255" required />
 			</label>
 
 			<label>Contrasenya (per al compte del centre)
@@ -19,9 +30,9 @@
 				<input v-model="form.adreca" type="text" maxlength="255" />
 			</label>
 
-            <label>Email oficial
+			<label>Email oficial
 				<input v-model="form.email_oficial" type="email" maxlength="255" required />
-            </label>
+			</label>
 
 			<label>Municipi
 				<input v-model="form.municipi" type="text" maxlength="100" />
@@ -57,20 +68,19 @@
 <script setup>
 import { ref } from 'vue'
 
-const backendBase = 'http://localhost:1700'
-
 const form = ref({
 	codi_centre: '',
 	nom_centre: '',
+	nom_centre_manual: '',
 	password: '',
 	adreca: '',
 	municipi: '',
 	telefon: '',
 	nom_coordinador: '',
 	email_coordinador: '',
+	email_oficial: '',
 	es_primera_vegada: false,
-	estat: 'pendent',
-	data_creacio: null
+	estat: 'pendent'
 })
 
 const loading = ref(false)
@@ -79,7 +89,7 @@ const error = ref('')
 
 const resetForm = () => {
 	form.value = {
-		codi_centre: '', nom_centre: '', password: '', adreca: '', municipi: '', telefon: '', nom_coordinador: '', email_coordinador: '', es_primera_vegada: false, estat: 'pendent'
+		codi_centre: '', nom_centre: '', nom_centre_manual: '', password: '', adreca: '', municipi: '', telefon: '', nom_coordinador: '', email_coordinador: '', email_centre: '', es_primera_vegada: false, estat: 'pendent'
 	}
 	message.value = ''
 	error.value = ''
@@ -95,22 +105,38 @@ const submitForm = async () => {
 	}
 
 	loading.value = true
-	try {
-		form.value.data_creacio = new Date().toISOString()
-		const payload = { ...form.value }
-		const res = await $fetch(`${backendBase}/api/solicituds/centres`, {
-			method: 'POST',
-			body: payload
-		})
+		try {
+			// map frontend fields to backend model fields (match DB columns)
+			const payload = {
+				codi_centre: form.value.codi_centre,
+				nom_centre: form.value.nom_centre,
+				// if nom_centre is 'Altres' frontend could allow nom_centre_manual, leave null otherwise
+				nom_centre_manual: form.value.nom_centre_manual || null,
+				password: form.value.password,
+				adreca: form.value.adreca,
+				municipi: form.value.municipi,
+				telefon: form.value.telefon,
+				email_centre: form.value.email_oficial || null,
+				nom_coordinador: form.value.nom_coordinador,
+				email_coordinador: form.value.email_coordinador,
+				es_primera_vegada: !!form.value.es_primera_vegada
+				// nota: 'estat' y 'data_enviament' los gestiona la BD (valores por defecto)
+			}
 
-		message.value = res?.message || 'Sol·licitud enviada correctament.'
-		resetForm()
-	} catch (err) {
-		console.error('Error enviant sol·licitud:', err)
-		error.value = err?.data?.message || err?.message || 'Error en enviar la sol·licitud'
-	} finally {
-		loading.value = false
-	}
+			// Use relative path so Nuxt dev server can proxy / avoids CORS issues
+			const res = await $fetch('http://localhost:1700/api/solicituds-registre', {
+				method: 'POST',
+				body: payload
+			})
+
+			message.value = res?.message || 'Sol·licitud enviada correctament.'
+			resetForm()
+		} catch (err) {
+			console.error('Error enviant sol·licitud:', err)
+			error.value = err?.data?.message || err?.message || 'Error en enviar la sol·licitud'
+		} finally {
+			loading.value = false
+		}
 }
 </script>
 
