@@ -11,6 +11,7 @@ const authRoutes = require("./routes/authRoutes");
 
 //--- IMPORTEM MIDDLEWARES ---
 const verifyToken = require("./middleware/authMiddleware");
+const verifyRole = require("./middleware/roleMiddleware");
 
 //--- CONFIGUREM L'APLICACIÓ EXPRESS ---
 const app = express();
@@ -21,7 +22,7 @@ app.use(express.json());
 
 //--- RUTES PRINCIPALS ---
 app.use("/api/auth", authRoutes);
-app.use("/api/admin", verifyToken, adminRoutes);
+app.use("/api/admin", verifyToken, verifyRole(['ADMIN']), adminRoutes);
 app.use("/api/centre", centreRoutes);
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
