@@ -243,6 +243,7 @@ CREATE TABLE IF NOT EXISTS solicituds_registre (
     adreca VARCHAR(255),
     municipi VARCHAR(100),
     telefon VARCHAR(20),
+    email_centre VARCHAR(255),
     nom_coordinador VARCHAR(255),
     email_coordinador VARCHAR(255),
     es_primera_vegada TINYINT(1) DEFAULT 0,
