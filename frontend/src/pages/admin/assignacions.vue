@@ -37,7 +37,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-const backendBase = 'http://localhost:1700'
+
 
 const solicitudes = ref([])
 const loading = ref(true)
@@ -48,7 +48,17 @@ const actionMessage = ref('')
 const fetchSolicitudes = async () => {
 	loading.value = true
 	try {
-		const res = await $fetch(`${backendBase}/api/admin/solicituds/centres`)
+		const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : ''
+		if (!token) {
+			console.warn('No auth token found - redirecting to login')
+			loading.value = false
+			// redirect to login page so user can obtain a token
+			navigateTo('/login')
+			return
+		}
+		const res = await $fetch(`/api/solicituds-registre`, {
+			headers: { Authorization: `Bearer ${token}` }
+		})
 		// normalize response to array
 		if (Array.isArray(res)) {
 			solicitudes.value = res
@@ -61,6 +71,11 @@ const fetchSolicitudes = async () => {
 		}
 	} catch (err) {
 		console.error('Error fetching solicitudes', err)
+		// si el servidor devuelve 401/403, redirigimos al login
+		if (err?.response?.status === 401 || err?.response?.status === 403) {
+			actionMessage.value = 'Accés denegat. Si us plau, inicia sessió amb un usuari amb permisos d\'administrador.'
+			navigateTo('/login')
+		}
 		solicitudes.value = []
 	} finally {
 		loading.value = false
@@ -83,8 +98,10 @@ const updateEstado = async (id, estado) => {
 	actionLoading.value = true
 	actionMessage.value = ''
 	try {
-		const res = await $fetch(`${backendBase}/api/admin/solicituds/centres/${id}`, {
+		const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : ''
+		const res = await $fetch(`/api/solicituds-registre/${id}`, {
 			method: 'PUT',
+			headers: { Authorization: token ? `Bearer ${token}` : '' },
 			body: { estat: estado }
 		})
 		actionMessage.value = res?.message || 'Actualitzat'

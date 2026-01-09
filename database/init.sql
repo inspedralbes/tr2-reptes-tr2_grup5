@@ -262,7 +262,7 @@ CREATE TABLE IF NOT EXISTS solicituds_registre (
     email_coordinador VARCHAR(255),
     es_primera_vegada TINYINT(1) DEFAULT 0,
     estat ENUM('pendent', 'acceptada', 'rebutjada') DEFAULT 'pendent',
-    data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;
