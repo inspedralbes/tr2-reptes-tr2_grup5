@@ -11,12 +11,12 @@ const Centre = {
 
   // Crear un nou centre
   create: async (data) => {
-    const { 
-      nom, 
-      id_responsable, 
-      correu, 
-      ubicacio, 
-      es_primera_vegada 
+    const {
+      nom,
+      id_responsable,
+      correu,
+      ubicacio,
+      es_primera_vegada
     } = data;
 
     const sql = `
@@ -24,7 +24,7 @@ const Centre = {
       (codi_centre, nom_centre, adreca, municipi, telefon, email_oficial, nom_coordinador, es_primera_vegada, user_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    
+
     const [result] = await db.query(sql, [
       data.codi_centre || `TEMP-${Date.now()}`, // Fallback temporal per evitar error SQL
       data.nom_centre || data.nom,
@@ -36,7 +36,7 @@ const Centre = {
       data.es_primera_vegada || 0,
       data.user_id || data.id_responsable || null
     ]);
-    
+
     return result.insertId;
   },
 
@@ -68,7 +68,7 @@ const Centre = {
       data.user_id || data.id_responsable,
       id
     ]);
-    
+
     return result.affectedRows > 0;
   },
 
@@ -81,6 +81,12 @@ const Centre = {
   // Buscar un centre per ID
   findById: async (id) => {
     const [rows] = await db.query("SELECT * FROM centres WHERE id = ?", [id]);
+    return rows[0];
+  },
+
+  // Buscar un centre per User ID
+  findByUserId: async (user_id) => {
+    const [rows] = await db.query("SELECT * FROM centres WHERE user_id = ?", [user_id]);
     return rows[0];
   }
 };

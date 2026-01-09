@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS peticions (
     trimestre ENUM('2n', '3r'),
     disponibilitat_dimarts TINYINT(1) DEFAULT 0,
     data_creacio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    estat ENUM('PENDENT', 'ASSIGNADA') DEFAULT 'PENDENT',
+    estat ENUM('PENDENT', 'ASSIGNADA', 'REBUTJADA') DEFAULT 'PENDENT',
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -99,14 +99,27 @@ CREATE TABLE IF NOT EXISTS peticio_detalls (
 CREATE TABLE IF NOT EXISTS assignacions_tallers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     taller_id INT NOT NULL,
-    trimestre VARCHAR(10),
+    data_inici DATE,
+    data_fi DATE,
     curs_academic VARCHAR(20),
-    torn ENUM('Mati 1', 'Mati 2'),
-    estat ENUM('PENDENT', 'ACTIU', 'FINALITZAT') DEFAULT 'PENDENT',
     FOREIGN KEY (taller_id) REFERENCES tallers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 9. Taula: alumnes
+-- 9. Taula: peticions_tallers_assignats
+-- Aquesta taula gestiona quants alumnes de cada petició van a cada grup de taller (assignació).
+-- Permet que varis instituts comparteixin un mateix grup fins arribar al límit de places.
+CREATE TABLE IF NOT EXISTS peticions_tallers_assignats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    peticio_id INT NOT NULL,
+    taller_id INT NOT NULL,
+    assignacio_taller_id INT NOT NULL,
+    num_alumnes_assignats INT NOT NULL,
+    FOREIGN KEY (peticio_id) REFERENCES peticions(id) ON DELETE CASCADE,
+    FOREIGN KEY (taller_id) REFERENCES tallers(id) ON DELETE CASCADE,
+    FOREIGN KEY (assignacio_taller_id) REFERENCES assignacions_tallers(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 10. Taula: alumnes
 -- Base de datos de estudiantes participantes.
 CREATE TABLE IF NOT EXISTS alumnes (
     id INT AUTO_INCREMENT PRIMARY KEY,

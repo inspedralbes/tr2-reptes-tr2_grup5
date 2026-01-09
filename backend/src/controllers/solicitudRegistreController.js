@@ -1,4 +1,6 @@
 const SolicitudRegistre = require('../models/SolicitudRegistre');
+const User = require('../models/User');
+const Centre = require('../models/Centre');
 const bcrypt = require('bcryptjs');
 
 const solicitudRegistreController = {
@@ -29,15 +31,30 @@ const solicitudRegistreController = {
                 }
             }
 
-            // 3. Validar duplicats
-            const existingEmail = await SolicitudRegistre.findByEmailCoordinador(data.email_coordinador);
-            if (existingEmail) {
-                return res.status(400).json({ message: 'Ja existeix una sol·licitud amb aquest email de coordinador.' });
+
+            // 3.1 Comprovar Email del Coordinador (Login)
+            const requestWithEmail = await SolicitudRegistre.findByEmailCoordinador(data.email_coordinador);
+            const userWithEmail = await User.findByEmail(data.email_coordinador);
+
+            if (requestWithEmail || userWithEmail) {
+                return res.status(400).json({ message: 'Aquest email de coordinador ja està en ús o té una sol·licitud activa.' });
             }
 
-            const existingCodi = await SolicitudRegistre.findByCodiCentre(data.codi_centre);
-            if (existingCodi) {
-                return res.status(400).json({ message: 'Ja existeix una sol·licitud amb aquest codi de centre.' });
+            // 3.2 Comprovar Codi de Centre (Identificador oficial)
+            const requestWithCodi = await SolicitudRegistre.findByCodiCentre(data.codi_centre);
+            // Cal buscar també a la taula 'centres'. Com que no tenim un findByCodiCentre al model Centre, ho fem manual o usem getAll.
+            const [existingCentres] = await require('../config/db').query("SELECT id FROM centres WHERE codi_centre = ?", [data.codi_centre]);
+
+            if (requestWithCodi || existingCentres.length > 0) {
+                return res.status(400).json({ message: 'Aquest codi de centre ja està registrat o té una sol·licitud activa.' });
+            }
+
+            // 3.3 Comprovar Email del Centre (Oficial)
+            const requestWithEmailCentre = await SolicitudRegistre.findByEmailCentre(data.email_centre);
+            const [existingEmailsOficials] = await require('../config/db').query("SELECT id FROM centres WHERE email_oficial = ?", [data.email_centre]);
+
+            if (requestWithEmailCentre || existingEmailsOficials.length > 0) {
+                return res.status(400).json({ message: 'Aquest email de centre ja està registrat o té una sol·licitud activa.' });
             }
 
             // 4. Encriptar
@@ -123,7 +140,38 @@ const solicitudRegistreController = {
             const success = await SolicitudRegistre.update(id, updatedData);
 
             if (success) {
-                // NOTA: Aquí aniria la creació de centre/usuari si estat === 'acceptada'
+                // Si l'estat passa a 'acceptada', creem l'usuari i el centre
+                if (estat === 'acceptada' && existing.estat !== 'acceptada') {
+                    try {
+                        // 1. Crear l'usuari per al coordinador
+                        // Nota: La contrasenya ja està hashejada a la taula solicituds_registre
+                        const userId = await User.create({
+                            email: existing.email_coordinador,
+                            password: existing.password,
+                            rol: 'CENTRE'
+                        });
+
+                        // 2. Crear el centre vinculat a l'usuari
+                        // Si era "Altres", usem el nom manual. Si no, el de l'enum.
+                        const nomCentreFinal = existing.nom_centre === 'Altres' ? existing.nom_centre_manual : existing.nom_centre;
+
+                        await Centre.create({
+                            codi_centre: existing.codi_centre,
+                            nom_centre: nomCentreFinal,
+                            adreca: existing.adreca,
+                            municipi: existing.municipi,
+                            telefon: existing.telefon,
+                            email_oficial: existing.email_centre,
+                            nom_coordinador: existing.nom_coordinador,
+                            es_primera_vegada: existing.es_primera_vegada,
+                            user_id: userId
+                        });
+                    } catch (err) {
+                        console.error('Error al crear usuari o centre tras acceptar sol·licitud:', err);
+                        return res.status(500).json({ message: 'Sol·licitud marcada com acceptada però error al crear entitats.', error: err.message });
+                    }
+                }
+
                 res.json({ message: 'Estat actualitzat correctament', data: { estat } });
             } else {
                 res.status(400).json({ message: 'Error al actualitzar l\'estat' });
