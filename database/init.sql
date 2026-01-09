@@ -232,4 +232,38 @@ CREATE TABLE IF NOT EXISTS logs_auditoria (
     FOREIGN KEY (usuari_id) REFERENCES usuaris(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+
+-- 21. Taula: solicituds_registre
+-- Guarda la informació detallada enviada pel centre en el moment de demanar l'alta al programa.
+CREATE TABLE IF NOT EXISTS solicituds_registre (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codi_centre VARCHAR(50),
+    nom_centre_text VARCHAR(255),
+    password VARCHAR(255), -- Emmagatzemada com a Hash
+    adreca VARCHAR(255),
+    municipi VARCHAR(100),
+    telefon VARCHAR(20),
+    nom_coordinador VARCHAR(255),
+    email_coordinador VARCHAR(255),
+    es_primera_vegada TINYINT(1) DEFAULT 0,
+    estat ENUM('pendent', 'acceptada', 'rebutjada') DEFAULT 'pendent',
+    data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    centre_assignat_id INT NULL, -- Centre creat un cop acceptada
+    admin_revisor_id INT NULL, -- Administrador que ha gestionat la sol·licitud
+    FOREIGN KEY (centre_assignat_id) REFERENCES centres(id) ON DELETE SET NULL,
+    FOREIGN KEY (admin_revisor_id) REFERENCES administradors(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- 22. Taula: configuracio_camps_registre
+-- Permet definir preguntes addicionals que poden canviar cada trimestre.
+CREATE TABLE IF NOT EXISTS configuracio_camps_registre (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    etiqueta VARCHAR(255),
+    tipus_camp VARCHAR(50), -- 'text', 'number', 'select', 'radio', 'checkbox', 'multiselect'
+    opcions JSON,
+    es_obligatori TINYINT(1) DEFAULT 0,
+    ordre INT,
+    seccio VARCHAR(100)
+) ENGINE=InnoDB;
+
 SET FOREIGN_KEY_CHECKS = 1;
