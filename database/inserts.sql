@@ -3,9 +3,9 @@ USE enginy_db;
 -- 1. TAULA: usuaris
 INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
 (1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()),
-(2, 'coordinador@escola.cat', 'centre123', 'CENTRE', NOW()),
-(3, 'profe.referent@escola.cat', 'profe123', 'PROFESSOR', NOW()),
-(4, 'alumne.test@alumne.cat', 'alumne123', 'ALUMNE', NOW());
+(2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()),
+(3, 'profe.referent@escola.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
+(4, 'alumne.test@alumne.cat', '$2b$10$kYds5FWjSS8ctj5roiXKQuEY7kzidS07ySahvJy4', 'ALUMNE', NOW());
 
 -- 2. TAULA: administradors
 INSERT INTO administradors (user_id, nom, cognoms, carrec) VALUES
