@@ -4,15 +4,18 @@
 
 		<div v-if="loading">Carregant sol·licituds...</div>
 		<div v-else>
-			<ul class="list">
-				<li v-for="s in pendingSolicitudes" :key="s.id" @click="selectSolicitud(s)" :class="s.estat">
-					<div>
-						<strong>{{ s.nom_centre_manual ? s.nom_centre_manual : s.nom_centre }}</strong>
-						<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
-					</div>
-					<div class="status">{{ s.estat }}</div>
-				</li>
-			</ul>
+			<div>
+				<div v-if="pendingSolicitudes.length === 0" class="empty-message">No hay solicitudes pendientes</div>
+				<ul v-else class="list">
+					<li v-for="s in pendingSolicitudes" :key="s.id" @click="selectSolicitud(s)" :class="s.estat">
+						<div>
+							<strong>{{ s.nom_centre_manual ? s.nom_centre_manual : s.nom_centre }}</strong>
+							<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
+						</div>
+						<div class="status">{{ s.estat }}</div>
+					</li>
+				</ul>
+			</div>
 
 			<div v-if="selected" class="detail">
 				<h3>Detall: {{ selected.nom_centre }}</h3>
