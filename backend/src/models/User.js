@@ -22,6 +22,25 @@ const User = {
     );
     return result.insertId;
   }
+,
+  // Obtener todos los usuarios (sin password) y datos básicos del centre si existe
+  getAll: async () => {
+    const sql = `
+      SELECT
+        u.id AS id,
+        u.email AS email,
+        u.rol AS rol,
+        u.ultim_acces AS ultim_acces,
+        c.id AS centre_id,
+        c.codi_centre AS codi_centre,
+        c.nom_centre AS nom_centre
+      FROM usuaris u
+      LEFT JOIN centres c ON c.user_id = u.id
+      ORDER BY u.ultim_acces DESC
+    `;
+    const [rows] = await db.query(sql);
+    return rows;
+  }
 };
 
 module.exports = User;
