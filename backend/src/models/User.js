@@ -22,6 +22,12 @@ const User = {
     );
     return result.insertId;
   }
+,
+  // Obtener todos los usuarios (sin password)
+  getAll: async () => {
+    const [rows] = await db.query("SELECT id, email, rol FROM usuaris ORDER BY ultim_acces DESC");
+    return rows;
+  }
 };
 
 module.exports = User;

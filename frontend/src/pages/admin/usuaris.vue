@@ -69,8 +69,14 @@ const mostrarCentres = ref(true)
 // backend base (dev)
 const backendBase = 'http://localhost:1700'
 
+// obtener token del localStorage (si existe)
+const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : null
+
 // fetch centres from backend and map to the minimal fields we need
-const { data: centres, pending, error, refresh } = await useFetch(`${backendBase}/api/admin/centres`)
+const { data: centres, pending, error, refresh } = await useFetch(`${backendBase}/api/admin/centres`, {
+  server: false,
+  headers: token ? { Authorization: `Bearer ${token}` } : {}
+})
 const centresList = computed(() => {
   const arr = centres?.value ?? []
   return arr.map(c => ({
@@ -84,9 +90,14 @@ const centresList = computed(() => {
 // usuarios: minimal fallback (si backend protegido o inexistente no rompe la vista)
 let usuarios = ref([])
 try {
-  const { data: rawUsers } = await useFetch(`${backendBase}/api/admin/usuaris`)
-  usuarios.value = rawUsers?.value ?? []
+  const { data: rawUsers } = await useFetch(`${backendBase}/api/admin/usuaris`, {
+    server: false,
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  // rawUsers may be a ref-like object from useFetch
+  usuarios.value = rawUsers?.value ?? rawUsers ?? []
 } catch (e) {
+  console.error('Error fetching usuarios:', e)
   usuarios.value = []
 }
 
