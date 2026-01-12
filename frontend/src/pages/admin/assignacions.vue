@@ -89,6 +89,13 @@ const fetchSolicitudes = async () => {
 }
 
 const selectSolicitud = (s) => {
+	// If the same solicitud is clicked twice, close the detail (toggle)
+	if (selected.value && (selected.value.id === s.id)) {
+		selected.value = null
+		actionMessage.value = ''
+		return
+	}
+
 	try {
 		const copy = JSON.parse(JSON.stringify(s))
 		// format date for display
