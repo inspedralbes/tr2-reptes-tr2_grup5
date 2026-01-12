@@ -49,10 +49,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="user in usuarios" :key="user.email">
-            <td>{{ user.email }}</td>
-            <td><span class="badge">{{ user.rol }}</span></td>
-            <td>{{ user.ultim_acces || 'Mai' }}</td>
+          <tr v-for="(user, idx) in usuariosList" :key="user?.id ?? user?.email ?? idx">
+            <td>{{ user?.email ?? '—' }}</td>
+            <td><span class="badge">{{ user?.rol ?? '—' }}</span></td>
+            <td>{{ user?.ultim_acces || 'Mai' }}</td>
           </tr>
         </tbody>
       </table>
@@ -79,27 +79,42 @@ const { data: centres, pending, error, refresh } = await useFetch(`${backendBase
 })
 const centresList = computed(() => {
   const arr = centres?.value ?? []
-  return arr.map(c => ({
-    codi_centre: (c.codi_centre ?? c.codi) || c.code || null,
-    nom_centre: (c.nom_centre ?? c.nom) || c.name || null,
-    municipi: (c.municipi ?? c.municipi) || c.city || null,
-    email_oficial: (c.email_oficial ?? c.email) || null
-  }))
+  const result = []
+  for (let i = 0; i < arr.length; i++) {
+    const c = arr[i]
+    result.push({
+      codi_centre: (c.codi_centre ?? c.codi) || c.code || null,
+      nom_centre: (c.nom_centre ?? c.nom) || c.name || null,
+      municipi: (c.municipi ?? c.municipi) || c.city || null,
+      email_oficial: (c.email_oficial ?? c.email) || null
+    })
+  }
+  return result
 })
 
-// usuarios: minimal fallback (si backend protegido o inexistente no rompe la vista)
-let usuarios = ref([])
-try {
-  const { data: rawUsers } = await useFetch(`${backendBase}/api/admin/usuaris`, {
-    server: false,
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  })
-  // rawUsers may be a ref-like object from useFetch
-  usuarios.value = rawUsers?.value ?? rawUsers ?? []
-} catch (e) {
-  console.error('Error fetching usuarios:', e)
-  usuarios.value = []
-}
+// usuarios: fetch and computed list (mirrors centresList pattern)
+const { data: users, pending: pendingUsers, error: errorUsers } = await useFetch(`${backendBase}/api/admin/usuaris`, {
+  server: false,
+  headers: token ? { Authorization: `Bearer ${token}` } : {}
+})
+
+const usuariosList = computed(() => {
+  const arr = users?.value ?? []
+  const result = []
+  for (let i = 0; i < arr.length; i++) {
+    const u = arr[i]
+    // ensure object shape and provide fallbacks
+    if (!u || typeof u !== 'object') continue
+    result.push({
+      id: u.id ?? u.user_id ?? i,
+      email: u.email ?? u.mail ?? u.username ?? '—',
+      rol: u.rol ?? u.role ?? '—',
+      ultim_acces: u.ultim_acces ?? u.last_access ?? null,
+      nom_centre: u.nom_centre ?? null
+    })
+  }
+  return result
+})
 
 const router = useRouter()
 const goBack = () => router.back()
