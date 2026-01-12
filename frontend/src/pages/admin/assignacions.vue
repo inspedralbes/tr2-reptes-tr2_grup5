@@ -1,13 +1,15 @@
 <template>
 	<div class="page">
-		<h2>Sol·licituds de Centres</h2>
+		<h2>Sol·licituds de Centres <small v-if="pendingCount">({{ pendingCount }} pendents)</small></h2>
 
 		<div v-if="loading">Carregant sol·licituds...</div>
 		<div v-else>
 			<ul class="list">
-				<li v-for="s in solicitudes" :key="s.id" @click="selectSolicitud(s)" :class="s.estat">
-					<strong>{{ s.nom_centre }}</strong>
-					<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
+				<li v-for="s in pendingSolicitudes" :key="s.id" @click="selectSolicitud(s)" :class="s.estat">
+					<div>
+						<strong>{{ s.nom_centre_manual ? s.nom_centre_manual : s.nom_centre }}</strong>
+						<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
+					</div>
 					<div class="status">{{ s.estat }}</div>
 				</li>
 			</ul>
@@ -20,12 +22,12 @@
 				<p><strong>Telèfon:</strong> {{ selected.telefon || '—' }}</p>
 				<p><strong>Adreça:</strong> {{ selected.adreca || '—' }}</p>
 				<p><strong>Primera vegada:</strong> {{ selected.es_primera_vegada ? 'Sí' : 'No' }}</p>
-				<p><strong>Data creació:</strong> {{ selected.data_creacio || selected.created_at || '—' }}</p>
+				<p><strong>Data enviament:</strong> {{ selected.data_enviament_formatted || selected.data_creacio || '—' }}</p>
 				<p><strong>Estat:</strong> {{ selected.estat }}</p>
 
 				<div class="actions">
-					<button @click="updateEstado(selected.id, 'acceptada')" :disabled="actionLoading">Acceptar</button>
-					<button @click="updateEstado(selected.id, 'rebutjada')" :disabled="actionLoading">Rebutjar</button>
+					<button @click="updateEstado(selected.id, 'acceptada')" :disabled="actionLoading">{{ actionLoading ? 'Processant...' : 'Acceptar' }}</button>
+					<button @click="updateEstado(selected.id, 'rebutjada')" :disabled="actionLoading">{{ actionLoading ? 'Processant...' : 'Rebutjar' }}</button>
 					<button @click="closeDetail">Tancar</button>
 				</div>
 				<p v-if="actionMessage" class="msg">{{ actionMessage }}</p>
@@ -35,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 
 
@@ -44,6 +46,10 @@ const loading = ref(true)
 const selected = ref(null)
 const actionLoading = ref(false)
 const actionMessage = ref('')
+
+// Derived lists
+const pendingSolicitudes = computed(() => solicitudes.value.filter(s => (s.estat || '').toString().toLowerCase() === 'pendent'))
+const pendingCount = computed(() => pendingSolicitudes.value.length)
 
 const fetchSolicitudes = async () => {
 	loading.value = true
@@ -56,7 +62,7 @@ const fetchSolicitudes = async () => {
 			navigateTo('/login')
 			return
 		}
-		const res = await $fetch(`/api/solicituds-registre`, {
+		const res = await $fetch(`http://localhost:1700/api/solicituds-registre`, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 		// normalize response to array
@@ -83,8 +89,18 @@ const fetchSolicitudes = async () => {
 }
 
 const selectSolicitud = (s) => {
+	// If the same solicitud is clicked twice, close the detail (toggle)
+	if (selected.value && (selected.value.id === s.id)) {
+		selected.value = null
+		actionMessage.value = ''
+		return
+	}
+
 	try {
-		selected.value = JSON.parse(JSON.stringify(s))
+		const copy = JSON.parse(JSON.stringify(s))
+		// format date for display
+		copy.data_enviament_formatted = copy.data_enviament ? new Date(copy.data_enviament).toLocaleString() : (copy.data_creacio || '—')
+		selected.value = copy
 	} catch (e) {
 		selected.value = s
 	}
@@ -99,7 +115,7 @@ const updateEstado = async (id, estado) => {
 	actionMessage.value = ''
 	try {
 		const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : ''
-		const res = await $fetch(`/api/solicituds-registre/${id}`, {
+		const res = await $fetch(`http://localhost:1700/api/solicituds-registre/${id}`, {
 			method: 'PUT',
 			headers: { Authorization: token ? `Bearer ${token}` : '' },
 			body: { estat: estado }

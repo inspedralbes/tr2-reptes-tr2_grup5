@@ -3,13 +3,13 @@ const router = express.Router();
 const solicitudRegistreController = require("../controllers/solicitudRegistreController");
 const verifyToken = require("../middleware/authMiddleware");
 
-// POST (Public)
+//--- RUTES PER A SOL·LICITUDS DE REGISTRE ---
+// URL base: /api/solicituds-registre
 router.post("/", solicitudRegistreController.create);
-
-// ADMIN Routes (Protected)
 router.get("/", verifyToken, solicitudRegistreController.getAll);
 router.get("/:id", verifyToken, solicitudRegistreController.getById);
 router.put("/:id", verifyToken, solicitudRegistreController.update);
 router.delete("/:id", verifyToken, solicitudRegistreController.delete);
+
 
 module.exports = router;
