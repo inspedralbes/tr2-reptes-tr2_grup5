@@ -64,8 +64,18 @@ try {
     }
 
     alert(`Bienvenido, tu rol es: ${response.user.rol}`);
-    // Redirección dinámica basada en el rol que viene de la DB
-    navigateTo(`/${response.user.rol.toLowerCase()}`);
+    
+    // Mapeig de rols a la seva ruta corresponent (pluralitzada)
+    const roleRoutes = {
+      'ADMIN': '/admin',
+      'CENTRE': '/centres',
+      'PROFESSOR': '/professors',
+      'ALUMNE': '/alumnes'
+    };
+
+    const targetRoute = roleRoutes[response.user.rol] || '/';
+    navigateTo(targetRoute);
+
     
 } catch (err) {
     console.error("Error en login:", err);

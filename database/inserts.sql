@@ -5,7 +5,10 @@ INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
 (1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()),
 (2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()),
 (3, 'profe.referent@escola.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
-(4, 'alumne.test@alumne.cat', '$2b$10$kYds5FWjSS8ctj5roiXKQuEY7kzidS07ySahvJy4', 'ALUMNE', NOW());
+(4, 'alumne.test@alumne.cat', '$2b$10$kYds5FWjSS8ctj5roiXKQuEY7kzidS07ySahvJy4', 'ALUMNE', NOW()),
+(5, 'pere.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
+(6, 'anna.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW());
+
 
 -- 2. TAULA: administradors
 INSERT INTO administradors (user_id, nom, cognoms, carrec) VALUES
@@ -13,7 +16,8 @@ INSERT INTO administradors (user_id, nom, cognoms, carrec) VALUES
 
 -- 3. TAULA: centres
 INSERT INTO centres (user_id, codi_centre, nom_centre, adreca, municipi, telefon, email_oficial, nom_coordinador, es_primera_vegada) VALUES
-(NULL, '08000131', 'La Presentació', 'c. Pompeu Fabra, 2', 'Arenys de Mar', '937920241', 'a8000131@xtec.cat', 'Coordinador/a', 0),
+(2, '08000131', 'La Presentació', 'c. Pompeu Fabra, 2', 'Arenys de Mar', '937920241', 'a8000131@xtec.cat', 'Coordinador/a', 0),
+
 (NULL, '08000143', 'Santuari de la Mare de Déu del Reboll', 'c. del Reboll, 1', 'Arenys de Mar', '937920152', 'a8000143@xtec.cat', 'Coordinador/a', 0),
 (NULL, '08000155', 'Institut Els Tres Turons', 'Riera de la Torre, 45', 'Arenys de Mar', '937922262', 'a8000155@xtec.cat', 'Coordinador/a', 0),
 (NULL, '08000210', 'Institut Domènec Perramon', 'av. de les Escoles, s/n', 'Arenys de Munt', '937937415', 'a8000210@xtec.cat', 'Coordinador/a', 0),
@@ -108,7 +112,10 @@ INSERT INTO centres (user_id, codi_centre, nom_centre, adreca, municipi, telefon
 
 -- 4. TAULA: professors
 INSERT INTO professors (user_id, centre_id, nom, cognoms) VALUES
-(3, 1, 'Marta', 'Rovira');
+(3, 1, 'Marta', 'Rovira'),
+(5, 1, 'Pere', 'López'),
+(6, 1, 'Anna', 'Garcia');
+
 
 -- 5. TAULA: tallers
 INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio) VALUES

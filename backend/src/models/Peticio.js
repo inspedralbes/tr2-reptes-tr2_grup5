@@ -8,25 +8,29 @@ const Peticio = {
             await connection.beginTransaction();
 
             // 1. Inserir a la taula 'peticions'
-            const { centre_id, trimestre, disponibilitat_dimarts } = peticioData;
+            const { centre_id, trimestre, disponibilitat_dimarts, comentaris } = peticioData;
             const [peticioResult] = await connection.query(
-                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts) VALUES (?, ?, ?)",
-                [centre_id, trimestre, disponibilitat_dimarts ? 1 : 0]
+                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES (?, ?, ?, ?)",
+                [centre_id, trimestre, disponibilitat_dimarts, comentaris]
             );
 
             const peticio_id = peticioResult.insertId;
 
             // 2. Inserir els detalls a 'peticio_detalls'
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_alumnes, es_preferencia_referent) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_alumnes, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
-                    d.num_alumnes > 4 ? 4 : d.num_alumnes, // Màxim 4 alumnes segons BD
-                    d.es_preferencia_referent ? 1 : 0
+                    d.num_alumnes > 4 ? 4 : d.num_alumnes,
+                    d.es_preferencia_referent ? 1 : 0,
+                    d.docent_nom || null,
+                    d.docent_email || null
                 ]);
                 await connection.query(detallsSql, [values]);
             }
+
+
 
             await connection.commit();
             return peticio_id;

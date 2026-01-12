@@ -6,7 +6,7 @@ const peticionsController = {
     createPeticio: async (req, res) => {
         try {
             const user_id = req.user.id; // Obtingut del token JWT
-            const { trimestre, disponibilitat_dimarts, tallers } = req.body;
+            const { trimestre, disponibilitat_dimarts, comentaris, tallers } = req.body;
 
             // 1. Trobar el centre associat a l'usuari loguejat
             const centre = await Centre.findByUserId(user_id);
@@ -23,10 +23,12 @@ const peticionsController = {
             const peticioData = {
                 centre_id: centre.id,
                 trimestre,
-                disponibilitat_dimarts
+                disponibilitat_dimarts: disponibilitat_dimarts ? 1 : 0,
+                comentaris: comentaris || null
             };
 
             const peticioId = await Peticio.create(peticioData, tallers);
+
 
             res.status(201).json({
                 message: "Sol·licitud de tallers creada correctament.",
