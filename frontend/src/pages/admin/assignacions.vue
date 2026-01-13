@@ -128,11 +128,16 @@ const updateEstado = async (id, estado) => {
 			body: { estat: estado }
 		})
 		actionMessage.value = res?.message || 'Actualitzat'
-		// refresh list
-		await fetchSolicitudes()
-		// update selected item from list
-		const found = solicitudes.value.find(x => x.id === id) || null
-		selected.value = found ? JSON.parse(JSON.stringify(found)) : null
+			// refresh list
+			await fetchSolicitudes()
+			// if the user had this solicitud open, close it (it was accepted/rejected and should not remain)
+			if (selected.value && selected.value.id === id) {
+				selected.value = null
+			} else {
+				// otherwise update selected item from refreshed list (if exists)
+				const found = solicitudes.value.find(x => x.id === id) || null
+				selected.value = found ? JSON.parse(JSON.stringify(found)) : null
+			}
 	} catch (err) {
 		console.error('Error updating estado', err)
 		actionMessage.value = err?.data?.message || 'Error actualitzant'
