@@ -6,7 +6,6 @@ const router = express.Router();
 const tallersController = require("../controllers/admin/tallersController");
 const centresController = require("../controllers/admin/centresController");
 const checklistController = require("../controllers/admin/checklistConfigController");
-const enquestesController = require("../controllers/admin/enquestesController");
 const peticionsController = require("../controllers/admin/peticionsController");
 const usuarisController = require("../controllers/admin/usuarisController");
 
@@ -38,18 +37,6 @@ router.get("/checklist-config", checklistController.getAllChecklist);
 router.post("/checklist-config", checklistController.createChecklistStep);
 router.put("/checklist-config/:id", checklistController.updateChecklistStep);
 router.delete("/checklist-config/:id", checklistController.deleteChecklistStep);
-
-//--- RUTES PER A ENQUESTES ---
-// URL base: /api/admin/enquestes
-router.get("/enquestes", enquestesController.getAllEnquestes);
-router.post("/enquestes", enquestesController.createEnquesta);
-router.delete("/enquestes/:id", enquestesController.deleteEnquesta);
-
-//--- RUTES PER A PREGUNTES ---
-// URL base: /api/admin/enquestes/:id/preguntes (i /api/admin/preguntes/:id)
-router.get("/enquestes/:id/preguntes", enquestesController.getPreguntesByEnquesta);
-router.post("/enquestes/:id/preguntes", enquestesController.createPregunta);
-router.delete("/preguntes/:id", enquestesController.deletePregunta);
 
 // --- RUTA: llistar usuaris ---
 router.get("/usuaris", usuarisController.getAllUsers);

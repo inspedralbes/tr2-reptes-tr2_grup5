@@ -120,19 +120,6 @@ const Taller = {
     return rows[0];
   },
 
-  // Comptar alumnes assignats a aquest taller (en assignacions actives o pendents)
-  countAssignedStudents: async (tallerId) => {
-    const sql = `
-      SELECT COUNT(aa.alumne_id) as total
-      FROM assignacions_alumnes aa
-      JOIN assignacions_tallers at ON aa.assignacio_taller_id = at.id
-      WHERE at.taller_id = ? AND at.estat IN ('ACTIU', 'PENDENT')
-    `;
-
-    const [rows] = await db.query(sql, [tallerId]);
-    return rows[0].total;
-  },
-
   // Comprovar si té dependències (assignacions o peticions)
   hasDependencies: async (id) => {
     // 1. Peticions

@@ -58,14 +58,14 @@ const peticionsController = {
         try {
             const { peticio_id, taller_id, assignacio_taller_id } = req.body;
 
-            // 1. Obtenir les dades de la petició per saber quants alumnes demana
+            // 1. Obtenir les dades de la petició per saber quants participants demana
             const peticio = await Peticio.findById(peticio_id);
-            if (!peticio) return res.status(404).json({ message: "Peticion no trobada." });
+            if (!peticio) return res.status(404).json({ message: "Peticio no trobada." });
 
             const detall = peticio.detalls.find(d => d.taller_id == taller_id);
             if (!detall) return res.status(400).json({ message: "Aquest taller no forma part de la sol·licitud." });
 
-            const numAlumnesQueDemanen = detall.num_alumnes;
+            const numParticipantsQueDemanen = detall.num_participants;
 
             // 2. Comprovar capacitat del grup de taller (assignacio_taller)
             const grup = await AssignacioTaller.findById(assignacio_taller_id);
@@ -75,11 +75,11 @@ const peticionsController = {
             const placesLliures = grup.places_maximes - ocupacioActual;
 
             // 3. Validar si caben
-            if (numAlumnesQueDemanen > placesLliures) {
+            if (numParticipantsQueDemanen > placesLliures) {
                 return res.status(400).json({
                     message: "No hi ha places suficients en aquest grup.",
                     detalls: {
-                        demanades: numAlumnesQueDemanen,
+                        demanades: numParticipantsQueDemanen,
                         lliures: placesLliures,
                         ocupacio_actual: ocupacioActual,
                         maxim: grup.places_maximes
@@ -92,7 +92,7 @@ const peticionsController = {
                 peticio_id,
                 taller_id,
                 assignacio_taller_id,
-                num_alumnes: numAlumnesQueDemanen
+                num_participants: numParticipantsQueDemanen
             });
 
             res.json({ message: "Taller assignat correctament al grup. Places reservades." });

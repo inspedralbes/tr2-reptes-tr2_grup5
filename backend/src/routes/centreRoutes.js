@@ -1,7 +1,6 @@
 //--- DECLAREM ELS MÒDULS NECESSARIS ---
 const express = require("express");
 const router = express.Router();
-const alumnesController = require("../controllers/alumnes/alumnesController");
 
 
 //--- IMPORTEM MIDDLEWARE D'AUTENTICACIÓ ---
@@ -39,12 +38,6 @@ router.get("/professors", verifyToken, professoratController.getMeusProfessors);
 // URL base: /api/centre/peticions
 router.post("/peticions", verifyToken, peticionsController.createPeticio);
 router.get("/peticions", verifyToken, peticionsController.getMevesPeticions);
-
-//--- RUTES PER A GESTIONAR ALUMNES ---
-// URL base: /api/centre/alumnes
-router.post("/alumnes", verifyToken, alumnesController.createAlumne);
-
-
 
 module.exports = router;
 

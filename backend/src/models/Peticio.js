@@ -18,11 +18,11 @@ const Peticio = {
 
             // 2. Inserir els detalls a 'peticio_detalls'
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_alumnes, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
-                    d.num_alumnes > 4 ? 4 : d.num_alumnes,
+                    d.num_participants > 4 ? 4 : d.num_participants,
                     d.es_preferencia_referent ? 1 : 0,
                     d.docent_nom || null,
                     d.docent_email || null
@@ -45,7 +45,7 @@ const Peticio = {
     // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.taller_id, pd.num_alumnes, pd.es_preferencia_referent, t.titol as taller_titol
+      SELECT p.*, pd.taller_id, pd.num_participants, pd.es_preferencia_referent, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id

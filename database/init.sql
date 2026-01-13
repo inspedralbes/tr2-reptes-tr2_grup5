@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS usuaris (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    rol ENUM('ADMIN', 'CENTRE', 'PROFESSOR', 'ALUMNE') NOT NULL,
+    rol ENUM('ADMIN', 'CENTRE', 'PROFESSOR') NOT NULL,
     magic_token VARCHAR(255) NULL,
     ultim_acces DATETIME NULL
 ) ENGINE=InnoDB;
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS peticions (
 CREATE TABLE IF NOT EXISTS peticio_detalls (
     peticio_id INT NOT NULL,
     taller_id INT NOT NULL,
-    num_alumnes INT NOT NULL, -- Máximo 4
+    num_participants INT NOT NULL, -- Máximo 4
     es_preferencia_referent TINYINT(1) DEFAULT 0,
     docent_nom VARCHAR(255),
     docent_email VARCHAR(255),
@@ -111,38 +111,16 @@ CREATE TABLE IF NOT EXISTS assignacions_tallers (
 ) ENGINE=InnoDB;
 
 -- 9. Taula: peticions_tallers_assignats
--- Aquesta taula gestiona quants alumnes de cada petició van a cada grup de taller (assignació).
+-- Aquesta taula gestiona quants participants de cada petició van a cada grup de taller (assignació).
 -- Permet que varis instituts comparteixin un mateix grup fins arribar al límit de places.
 CREATE TABLE IF NOT EXISTS peticions_tallers_assignats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     peticio_id INT NOT NULL,
     taller_id INT NOT NULL,
     assignacio_taller_id INT NOT NULL,
-    num_alumnes_assignats INT NOT NULL,
+    num_places_assignades INT NOT NULL,
     FOREIGN KEY (peticio_id) REFERENCES peticions(id) ON DELETE CASCADE,
     FOREIGN KEY (taller_id) REFERENCES tallers(id) ON DELETE CASCADE,
-    FOREIGN KEY (assignacio_taller_id) REFERENCES assignacions_tallers(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 10. Taula: alumnes
--- Base de datos de estudiantes participantes.
-CREATE TABLE IF NOT EXISTS alumnes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    idalu VARCHAR(50) UNIQUE NOT NULL,
-    nom VARCHAR(100),
-    cognoms VARCHAR(100),
-    centre_id INT NOT NULL,
-    curs_actual VARCHAR(50),
-    FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 10. Taula: assignacions_alumnes
--- Relación entre alumnos y sus grupos de taller.
-CREATE TABLE IF NOT EXISTS assignacions_alumnes (
-    alumne_id INT NOT NULL,
-    assignacio_taller_id INT NOT NULL,
-    PRIMARY KEY (alumne_id, assignacio_taller_id),
-    FOREIGN KEY (alumne_id) REFERENCES alumnes(id) ON DELETE CASCADE,
     FOREIGN KEY (assignacio_taller_id) REFERENCES assignacions_tallers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -166,18 +144,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY (assignacio_taller_id) REFERENCES assignacions_tallers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 13. Taula: assistencia
--- Registro diario de presencia.
-CREATE TABLE IF NOT EXISTS assistencia (
-    sessio_id INT NOT NULL,
-    alumne_id INT NOT NULL,
-    estat ENUM('PRESENT', 'ABSENT', 'JUSTIFICAT', 'RETARD'),
-    PRIMARY KEY (sessio_id, alumne_id),
-    FOREIGN KEY (sessio_id) REFERENCES sessions(id) ON DELETE CASCADE,
-    FOREIGN KEY (alumne_id) REFERENCES alumnes(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 14. Taula: checklist_config
+-- 13. Taula: checklist_config
 -- Pasos de validación logística requeridos.
 CREATE TABLE IF NOT EXISTS checklist_config (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -185,7 +152,7 @@ CREATE TABLE IF NOT EXISTS checklist_config (
     obligatori TINYINT(1) DEFAULT 1
 ) ENGINE=InnoDB;
 
--- 15. Taula: checklist_respostes
+-- 14. Taula: checklist_respostes
 -- Cumplimiento de pasos del checklist por taller.
 CREATE TABLE IF NOT EXISTS checklist_respostes (
     assignacio_taller_id INT NOT NULL,
@@ -196,48 +163,7 @@ CREATE TABLE IF NOT EXISTS checklist_respostes (
     FOREIGN KEY (checklist_config_id) REFERENCES checklist_config(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 16. Taula: enquestes
--- Formularios de evaluación.
-CREATE TABLE IF NOT EXISTS enquestes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titol VARCHAR(255) NOT NULL,
-    destinatari ENUM('ALUMNE', 'PROFESSOR', 'CENTRE')
-) ENGINE=InnoDB;
-
--- 17. Taula: preguntes
--- Cuerpo de las encuestas y formato de respuesta.
-CREATE TABLE IF NOT EXISTS preguntes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    enquesta_id INT NOT NULL,
-    text_pregunta TEXT NOT NULL,
-    tipus ENUM('LIKERT_1_10', 'MULTIPLE', 'OBERTA'),
-    FOREIGN KEY (enquesta_id) REFERENCES enquestes(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 18. Taula: respostes
--- Datos reales recogidos en evaluaciones.
-CREATE TABLE IF NOT EXISTS respostes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    pregunta_id INT NOT NULL,
-    assignacio_taller_id INT NOT NULL,
-    usuari_id INT NULL,
-    valor_resposta TEXT,
-    FOREIGN KEY (pregunta_id) REFERENCES preguntes(id) ON DELETE CASCADE,
-    FOREIGN KEY (assignacio_taller_id) REFERENCES assignacions_tallers(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuari_id) REFERENCES usuaris(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
-
--- 19. Taula: documents
--- Gestión documental de menores.
-CREATE TABLE IF NOT EXISTS documents (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    alumne_id INT NOT NULL,
-    tipus ENUM('ACORD_PEDAGOGIC', 'MOBILITAT', 'DRETS_IMATGE'),
-    url_fitxer VARCHAR(512),
-    FOREIGN KEY (alumne_id) REFERENCES alumnes(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 20. Taula: logs_auditoria
+-- 15. Taula: logs_auditoria
 -- Trazabilidad y seguridad RGPD.
 CREATE TABLE IF NOT EXISTS logs_auditoria (
     id INT AUTO_INCREMENT PRIMARY KEY,

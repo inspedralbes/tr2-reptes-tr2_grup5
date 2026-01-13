@@ -15,7 +15,7 @@ const AssignacioTaller = {
     // Calcular quantes places estan ja ocupades en un grup concret
     getOcupacioActual: async (assignacio_taller_id) => {
         const [result] = await db.query(`
-            SELECT SUM(num_alumnes_assignats) as total_ocupat
+            SELECT SUM(num_places_assignades) as total_ocupat
             FROM peticions_tallers_assignats
             WHERE assignacio_taller_id = ?
         `, [assignacio_taller_id]);
@@ -25,16 +25,16 @@ const AssignacioTaller = {
 
     // Vincular una petició (o part d'ella) a un grup de taller
     realitzarAssignacio: async (data, connection = null) => {
-        const { peticio_id, taller_id, assignacio_taller_id, num_alumnes } = data;
+        const { peticio_id, taller_id, assignacio_taller_id, num_participants } = data;
         const executor = connection || db;
 
         const sql = `
             INSERT INTO peticions_tallers_assignats 
-            (peticio_id, taller_id, assignacio_taller_id, num_alumnes_assignats) 
+            (peticio_id, taller_id, assignacio_taller_id, num_places_assignades) 
             VALUES (?, ?, ?, ?)
         `;
 
-        const [result] = await executor.query(sql, [peticio_id, taller_id, assignacio_taller_id, num_alumnes]);
+        const [result] = await executor.query(sql, [peticio_id, taller_id, assignacio_taller_id, num_participants]);
         return result.insertId;
     },
 

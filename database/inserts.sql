@@ -5,7 +5,6 @@ INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
 (1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()),
 (2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()),
 (3, 'profe.referent@escola.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
-(4, 'alumne.test@alumne.cat', '$2b$10$kYds5FWjSS8ctj5roiXKQuEY7kzidS07ySahvJy4', 'ALUMNE', NOW()),
 (5, 'pere.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
 (6, 'anna.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW());
 
@@ -130,23 +129,13 @@ INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts, estat) 
 (1, 1, '2n', 1, 'ASSIGNADA');
 
 -- 7. TAULA: peticio_detalls
-INSERT INTO peticio_detalls (peticio_id, taller_id, num_alumnes, es_preferencia_referent) VALUES
+INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, es_preferencia_referent) VALUES
 (1, 1, 4, 1),
 (1, 2, 2, 0);
 
 -- 8. TAULA: assignacions_tallers
 INSERT INTO assignacions_tallers (id, taller_id, data_inici, data_fi, curs_academic) VALUES
 (1, 1, '2026-01-15', '2026-03-19', '2025-2026');
-
--- 9. TAULA: alumnes
-INSERT INTO alumnes (id, idalu, nom, cognoms, centre_id, curs_actual) VALUES
-(1, 'ALU001', 'Marc', 'Vila', 1, '3r ESO'),
-(2, 'ALU002', 'Laia', 'Sanz', 1, '4t ESO');
-
--- 10. TAULA: assignacions_alumnes
-INSERT INTO assignacions_alumnes (alumne_id, assignacio_taller_id) VALUES
-(1, 1),
-(2, 1);
 
 -- 11. TAULA: referents_assignats
 INSERT INTO referents_assignats (assignacio_taller_id, professor_id) VALUES
@@ -165,17 +154,3 @@ INSERT INTO checklist_config (titol_pas, obligatori) VALUES
 ('Confirmació de recepció de places', 1),
 ('Verificació d horaris quadrats amb professorat', 1),
 ('Contacte amb el professorat referent del taller', 0);
-
--- 16. TAULA: enquestes
-INSERT INTO enquestes (titol, destinatari) VALUES
-('Avaluació Final Alumne', 'ALUMNE'),
-('Avaluació Professor sobre Alumnat', 'PROFESSOR'),
-('Satisfacció del Centre', 'CENTRE');
-
--- 17. TAULA: preguntes
-INSERT INTO preguntes (enquesta_id, text_pregunta, tipus) VALUES
-(1, 'Valora la teva satisfacció general del taller del 1 al 10.', 'LIKERT_1_10'),
-(1, 'T ha ajudat el taller a decidir el teu itinerari futur?', 'OBERTA'),
-(2, 'Valora la puntualitat de l alumne.', 'LIKERT_1_10'),
-(2, 'Capacitat de treball en equipo observada.', 'LIKERT_1_10'),
-(3, 'L organització logística del Consorci ha estat correcta?', 'MULTIPLE');

@@ -30,7 +30,6 @@ export const useHeaderStore = defineStore('header', {
         title: 'Gestió de Centre',
         buttons: [
           { label: 'Inscripció', route: '/centres/peticions' },
-          { label: 'Alumnat/Docs', route: '/centres/alumnat' },
           { label: 'Assignacions', route: '/centres/assignacions' },
           { label: 'Professorat', route: '/centres/professorat' },
           { label: 'Sortir', route: '/' }
@@ -44,16 +43,6 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Assistència', route: '/professors/assistencia' },
           { label: 'Avaluacions', route: '/professors/avaluacions' },
           { label: 'Els meus Tallers', route: '/professors/tallers' },
-          { label: 'Sortir', route: '/' }
-        ]
-      })
-    },
-    setHeaderAlumnes() {
-      this.setHeader({
-        title: 'Portal Alumne',
-        buttons: [
-          { label: 'Enquesta', route: '/alumnes/enquesta' },
-          { label: 'Informació', route: '/alumnes/info' },
           { label: 'Sortir', route: '/' }
         ]
       })

@@ -5,7 +5,6 @@
       <button @click="goTo('admin')">Admin</button>
       <button @click="goTo('centres')">Centres</button>
       <button @click="goTo('professors')">Professors</button>
-      <button @click="goTo('alumnes')">Alumnes</button>
       <button @click="goTo('login')">Login</button>
     </div>
   </div>
@@ -19,7 +18,6 @@ const goTo = (role) => {
   if (role === 'admin') navigateTo('/admin/tallers')
   else if (role === 'centres') navigateTo('/centres/peticions')
   else if (role === 'professors') navigateTo('/professors/tallers')
-  else if (role === 'alumnes') navigateTo('/alumnes/info')
   else if (role === 'login') navigateTo('/login')
 }
 </script>

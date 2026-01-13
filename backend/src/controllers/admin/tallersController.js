@@ -30,15 +30,15 @@ const getAllTallers = async (req, res) => {
 
 // --- 2. POST: Crear un nou taller ---
 const createTaller = async (req, res) => {
-  const { 
-    titol, 
-    descripcio, 
-    sector, 
-    modalitat, 
-    trimestres_disponibles, 
-    places_maximes, 
-    adreca, 
-    ubicacio 
+  const {
+    titol,
+    descripcio,
+    sector,
+    modalitat,
+    trimestres_disponibles,
+    places_maximes,
+    adreca,
+    ubicacio
   } = req.body;
 
   // Comprovem camps obligatoris
@@ -48,7 +48,7 @@ const createTaller = async (req, res) => {
 
   // Validació sectors
   if (!SECTORS_VALID.includes(sector)) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       message: "Sector no vàlid. Triï un dels 11 sectors oficials.",
       sectors_disponibles: SECTORS_VALID
     });
@@ -66,30 +66,30 @@ const createTaller = async (req, res) => {
 
   try {
     const newId = await Taller.create({
-      titol, 
-      descripcio, 
-      sector, 
-      modalitat, 
-      trimestres_disponibles, 
-      places_maximes, 
-      adreca, 
+      titol,
+      descripcio,
+      sector,
+      modalitat,
+      trimestres_disponibles,
+      places_maximes,
+      adreca,
       ubicacio
     });
-    
+
     // AUDITORIA
     await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
+      usuari_id: req.user ? req.user.id : null,
       accio: 'CREATE',
       taula_afectada: 'tallers',
       valor_nou: { id: newId, titol, sector }
     });
 
-    res.status(201).json({ 
-      id: newId, 
+    res.status(201).json({
+      id: newId,
       titol,
       sector,
       modalitat,
-      message: "Taller creat correctament" 
+      message: "Taller creat correctament"
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -100,15 +100,15 @@ const createTaller = async (req, res) => {
 const updateTaller = async (req, res) => {
   const { id } = req.params;
   const newData = req.body;
-  const { 
-    sector, 
-    modalitat, 
+  const {
+    sector,
+    modalitat,
     places_maximes
   } = req.body;
 
   // Si s'actualitza el sector, validar-lo
   if (sector && !SECTORS_VALID.includes(sector)) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       message: "Sector no vàlid.",
       sectors_disponibles: SECTORS_VALID
     });
@@ -119,23 +119,10 @@ const updateTaller = async (req, res) => {
     return res.status(400).json({ message: "La modalitat ha de ser 'A', 'B' o 'C'" });
   }
 
-  // Validació de Capacitat amb lògica de negoci (no reduir per sota dels assignats)
+  // Validació de Capacitat amb lògica de negoci
   if (places_maximes !== undefined) {
     if (places_maximes < 1) {
       return res.status(400).json({ message: "Les places màximes han de ser com a mínim 1." });
-    }
-    
-    // Comprovar quants alumnes hi ha assignats actualment
-    try {
-      const assignedCount = await Taller.countAssignedStudents(id);
-      if (places_maximes < assignedCount) {
-        return res.status(409).json({ 
-          message: `No es pot reduir la capacitat a ${places_maximes} perquè hi ha ${assignedCount} alumnes ja assignats.` 
-        });
-      }
-    } catch (countError) {
-      console.error("Error validant capacitat:", countError);
-      return res.status(500).json({ error: "Error verificant la capacitat del taller." });
     }
   }
 
@@ -173,14 +160,14 @@ const deleteTaller = async (req, res) => {
 
     // 1. Comprovar si té dependències (fills)
     const hasDeps = await Taller.hasDependencies(id);
-    
+
     if (hasDeps) {
       // Si té dependències, NO es pot borrar físicament. 
       // Així que en lloc de cridar a delete(), cridem a archive().
-      
+
       const archived = await Taller.archive(id);
       if (!archived) return res.status(404).json({ message: "No s'ha trobat el taller." });
-      
+
       // AUDITORIA: ARCHIVE
       await Log.create({
         usuari_id: req.user ? req.user.id : null,
@@ -190,9 +177,9 @@ const deleteTaller = async (req, res) => {
         valor_nou: { actiu: 0 }
       });
 
-      return res.json({ 
+      return res.json({
         message: "El taller té activitat associada. No s'ha esborrat, però s'ha canviat l'estat a 'Arxivat' (soft-delete).",
-        archived: true 
+        archived: true
       });
     }
 
@@ -205,7 +192,7 @@ const deleteTaller = async (req, res) => {
 
     // AUDITORIA: DELETE FÍSIC
     await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
+      usuari_id: req.user ? req.user.id : null,
       accio: 'DELETE',
       taula_afectada: 'tallers',
       valor_anterior: oldData
@@ -217,9 +204,9 @@ const deleteTaller = async (req, res) => {
   }
 };
 
-module.exports = { 
-  getAllTallers,  
-  createTaller, 
-  updateTaller, 
-  deleteTaller 
+module.exports = {
+  getAllTallers,
+  createTaller,
+  updateTaller,
+  deleteTaller
 };

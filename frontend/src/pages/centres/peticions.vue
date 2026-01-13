@@ -77,8 +77,8 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Num. Alumnes (max 4)</label>
-                <input type="number" v-model="t.num_alumnes" min="1" max="4" required>
+                <label>Num. Participants (max 4)</label>
+                <input type="number" v-model="t.num_participants" min="1" max="4" required>
               </div>
               <div class="form-group">
                 <label>Docent Responsable</label>
@@ -168,7 +168,7 @@ const toggleTaller = (taller) => {
 const nextStep = () => {
   form.value.tallers = selectedTallers.value.map(t => ({
     taller_id: t.id,
-    num_alumnes: 1,
+    num_participants: 1,
     docent_nom: '',
     docent_email: '',
     es_preferencia_referent: false

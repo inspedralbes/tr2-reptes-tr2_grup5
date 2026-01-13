@@ -69,8 +69,7 @@ try {
     const roleRoutes = {
       'ADMIN': '/admin',
       'CENTRE': '/centres',
-      'PROFESSOR': '/professors',
-      'ALUMNE': '/alumnes'
+      'PROFESSOR': '/professors'
     };
 
     const targetRoute = roleRoutes[response.user.rol] || '/';
