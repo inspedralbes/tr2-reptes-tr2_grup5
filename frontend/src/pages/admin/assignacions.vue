@@ -7,32 +7,36 @@
 			<div>
 				<div v-if="pendingSolicitudes.length === 0" class="empty-message">No hay solicitudes pendientes</div>
 				<ul v-else class="list">
-					<li v-for="s in pendingSolicitudes" :key="s.id" @click="selectSolicitud(s)" :class="s.estat">
-						<div>
-							<strong>{{ s.nom_centre_manual ? s.nom_centre_manual : s.nom_centre }}</strong>
-							<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
+					<li v-for="s in pendingSolicitudes" :key="s.id" @click="selectSolicitud(s)" :class="['item', s.estat]">
+						<div class="item-left">
+							<div class="avatar">{{ (s.nom_centre_manual || s.nom_centre || '').charAt(0) || '?' }}</div>
+							<div class="info">
+								<strong class="name">{{ s.nom_centre_manual ? s.nom_centre_manual : s.nom_centre }}</strong>
+								<div class="meta">{{ s.email_coordinador }} · {{ s.telefon || '—' }}</div>
+							</div>
 						</div>
-						<div class="status">{{ s.estat }}</div>
+						<div class="item-right">
+							<div class="centre-name">{{ s.centre_display || s.nom_centre }}</div>
+							<div class="status-badge">{{ s.estat }}</div>
+							<div class="row-actions">
+								<button class="btn-accept" @click.stop="updateEstado(s.id, 'acceptada')" :disabled="actionLoading" title="Acceptar">Acceptar</button>
+								<button class="btn-reject" @click.stop="updateEstado(s.id, 'rebutjada')" :disabled="actionLoading" title="Rebutjar">Rebutjar</button>
+							</div>
+						</div>
 					</li>
 				</ul>
 			</div>
 
 			<div v-if="selected" class="detail">
 				<h3>Detall: {{ selected.nom_centre }}</h3>
-				<p><strong>Codi:</strong> {{ selected.codi_centre }}</p>
-				<p><strong>Nom:</strong> {{ selected.nom_centre }}</p>
-				<p><strong>Email coordinador:</strong> {{ selected.email_coordinador }}</p>
-				<p><strong>Telèfon:</strong> {{ selected.telefon || '—' }}</p>
-				<p><strong>Adreça:</strong> {{ selected.adreca || '—' }}</p>
-				<p><strong>Primera vegada:</strong> {{ selected.es_primera_vegada ? 'Sí' : 'No' }}</p>
-				<p><strong>Data enviament:</strong> {{ selected.data_enviament_formatted || selected.data_creacio || '—' }}</p>
-				<p><strong>Estat:</strong> {{ selected.estat }}</p>
-
-				<div class="actions">
-					<button @click="updateEstado(selected.id, 'acceptada')" :disabled="actionLoading">{{ actionLoading ? 'Processant...' : 'Acceptar' }}</button>
-					<button @click="updateEstado(selected.id, 'rebutjada')" :disabled="actionLoading">{{ actionLoading ? 'Processant...' : 'Rebutjar' }}</button>
-					<button @click="closeDetail">Tancar</button>
-				</div>
+				<div class="detail-row"><div class="detail-label">Codi</div><div class="detail-tag">{{ selected.codi_centre || '—' }}</div></div>
+				<div class="detail-row"><div class="detail-label">Nom</div><div class="detail-tag">{{ selected.nom_centre }}</div></div>
+				<div class="detail-row"><div class="detail-label">Email coordinador</div><div class="detail-tag">{{ selected.email_coordinador }}</div></div>
+				<div class="detail-row"><div class="detail-label">Telèfon</div><div class="detail-tag">{{ selected.telefon || '—' }}</div></div>
+				<div class="detail-row"><div class="detail-label">Adreça</div><div class="detail-tag">{{ selected.adreca || '—' }}</div></div>
+				<div class="detail-row"><div class="detail-label">Primera vegada</div><div class="detail-tag">{{ selected.es_primera_vegada ? 'Sí' : 'No' }}</div></div>
+				<div class="detail-row"><div class="detail-label">Data enviament</div><div class="detail-tag">{{ selected.data_enviament_formatted || selected.data_creacio || '—' }}</div></div>
+				<div class="detail-row"><div class="detail-label">Estat</div><div class="detail-tag status-badge">{{ selected.estat }}</div></div>
 				<p v-if="actionMessage" class="msg">{{ actionMessage }}</p>
 			</div>
 		</div>
@@ -141,14 +145,47 @@ onMounted(fetchSolicitudes)
 </script>
 
 <style scoped>
-.list { list-style:none; padding:0 }
-.list li { padding:10px; border-bottom:1px solid #eee; cursor:pointer; display:flex; justify-content:space-between }
-.list li.pendent { background:#fff }
-.list li.acceptada { background:#e6ffea }
-.list li.rebutjada { background:#ffecec }
-.meta { color:#666; font-size:0.9em }
-.status { font-weight:bold }
-.detail { margin-top:1rem; padding:1rem; border:1px solid #ddd; background:#fafafa }
+.list { list-style:none; padding:0; margin:0 }
+.list .item {
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	padding:14px 16px;
+	border-radius:8px;
+	background: #fff;
+	margin-bottom:12px;
+	box-shadow: 0 1px 0 rgba(15,30,70,0.04);
+	border: 1px solid #eef4fb;
+	cursor:pointer;
+}
+
+.item-left { display:flex; align-items:center; gap:12px }
+.avatar {
+	width:40px; height:40px; border-radius:50%;
+	display:flex; align-items:center; justify-content:center;
+	background: linear-gradient(180deg,#e9f2ff,#cfe6ff);
+	color:#134a8a; font-weight:700;
+}
+.info .name { color:#203a63; display:block }
+.meta { color:#7a869a; font-size:0.9em }
+
+.item-right { display:flex; align-items:center; gap:16px }
+.centre-name { color:#55617a; font-size:0.95em }
+.status-badge { background:#e9f8ee; color:#1f8a4a; padding:6px 10px; border-radius:12px; font-weight:600 }
+.row-actions { display:flex; gap:8px; align-items:center }
+.btn-accept { background:#2ecc71; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer }
+.btn-reject { background:#ff6b6b; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer }
+.row-actions .btn-icon { background:transparent; border:none; color:#d33; cursor:pointer; font-size:18px }
+
+.item.acceptada { border-left:4px solid #2ecc71 }
+.item.pendent { border-left:4px solid #f1c40f }
+.item.rebutjada { border-left:4px solid #e74c3c }
+
+.detail { margin-top:1rem; padding:1rem; border:1px solid #dde6f7; background:#fbfdff }
 .actions { margin-top:1rem; display:flex; gap:8px }
 .msg { margin-top:0.5rem; color:green }
+
+.detail-row { display:flex; align-items:center; gap:12px; margin:8px 0 }
+.detail-label { width:160px; color:#6d7a97; font-weight:700 }
+.detail-tag { background:#eef7ff; color:#2b63b6; padding:6px 10px; border-radius:12px; font-weight:600 }
 </style>
