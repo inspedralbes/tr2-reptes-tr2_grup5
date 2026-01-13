@@ -1,61 +1,66 @@
 <template>
   <div class="page">
-    <h2>Gestión de Datos</h2>
+    <h2 class="page-title">Usuaris/Centres</h2>
 
-    <div class="actions">
-      <NuxtLink to="/admin/centres/FormCentres">
-        <button class="btn-create">Crear centre</button>
-      </NuxtLink>
+    <div class="header-row">
+      <div class="tabs">
+        <button
+          :class="['tab', { active: mostrarCentres } ]"
+          @click="() => (mostrarCentres = true)">
+          Centres Educatius
+        </button>
+        <button
+          :class="['tab', { active: !mostrarCentres } ]"
+          @click="() => (mostrarCentres = false)">
+          Usuaris del Sistema
+        </button>
+      </div>
 
-      <button @click="toggleTable" class="btn-toggle">
-        Ver {{ mostrarCentres ? 'Usuarios' : 'Centros' }}
-      </button>
-
-      <button @click="goBack" class="btn-secondary">Volver</button>
+      <div class="search-area">
+        <input v-model="searchTerm" class="search" placeholder="Cercar centre..." />
+        <select v-model="statusFilter" class="filter">
+          <option value="all">Tots els estats</option>
+          <option value="actiu">Actiu</option>
+          <option value="pendent">Pendent</option>
+        </select>
+      </div>
     </div>
 
-    <hr />
+    <div class="content">
+      <div v-if="mostrarCentres" class="cards-grid">
+        <div v-for="centre in filteredCentres" :key="centre.codi_centre" class="card">
+          <div class="card-top">
+            <div class="codi">{{ centre.codi_centre }}</div>
+            <div class="status"> <!-- placeholder for status badge -->
+              <span class="badge small">Amb peticions</span>
+            </div>
+          </div>
+          <h4 class="card-title">{{ centre.nom_centre }}</h4>
+          <div class="card-body">
+            <div class="meta"><strong>{{ centre.contact_name ?? '—' }}</strong></div>
+            <div class="meta">{{ centre.email_oficial ?? '—' }}</div>
+            <div class="meta">{{ centre.municipi ?? '—' }}</div>
+          </div>
+        </div>
+        <div v-if="filteredCentres.length === 0" class="empty">No s'han trobat centres</div>
+      </div>
 
-    <div v-if="mostrarCentres" class="table-container">
-      <h3>Llistat de Centres</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Codi</th>
-            <th>Nom</th>
-            <th>Municipi</th>
-            <th>Email Oficial</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="centre in centresList" :key="centre.codi_centre">
-            <td>{{ centre.codi_centre }}</td>
-            <td>{{ centre.nom_centre }}</td>
-            <td>{{ centre.municipi }}</td>
-            <td>{{ centre.email_oficial }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-else class="table-container">
-      <h3>Llistat d'Usuaris</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Rol</th>
-            <th>Últim Accés</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(user, idx) in usuariosList" :key="user?.id ?? user?.email ?? idx">
-            <td>{{ user?.email ?? '—' }}</td>
-            <td><span class="badge">{{ user?.rol ?? '—' }}</span></td>
-            <td>{{ user?.ultim_acces || 'Mai' }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="cards-grid users-grid">
+        <div v-for="(user, idx) in filteredUsuarios" :key="user?.id ?? user?.email ?? idx" class="card user-card">
+          <div class="card-top">
+            <div class="codi">{{ user?.id ?? '' }}</div>
+            <div class="status">
+              <span class="badge small">{{ user?.nom_centre ?? 'Sense centre' }}</span>
+            </div>
+          </div>
+          <h4 class="card-title">{{ user?.email ?? '—' }}</h4>
+          <div class="card-body">
+            <div class="meta">Rol: <strong>{{ user?.rol ?? '—' }}</strong></div>
+            <div class="meta">Últim accés: {{ user?.ultim_acces || 'Mai' }}</div>
+          </div>
+        </div>
+        <div v-if="filteredUsuarios.length === 0" class="empty">No s'han trobat usuaris</div>
+      </div>
     </div>
   </div>
 </template>
@@ -119,51 +124,196 @@ const usuariosList = computed(() => {
 const router = useRouter()
 const goBack = () => router.back()
 
+// search and filter state
+const searchTerm = ref('')
+const statusFilter = ref('all')
+
+const filteredCentres = computed(() => {
+  const list = centresList.value || []
+  const q = (searchTerm.value || '').toLowerCase().trim()
+  const status = statusFilter.value
+  const out = []
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i]
+    if (!c) continue
+    if (q) {
+      const hay = ((c.nom_centre || '') + ' ' + (c.codi_centre || '')).toLowerCase()
+      if (!hay.includes(q)) continue
+    }
+    if (status !== 'all') {
+      // simple placeholder behavior: if status filter set to 'actiu' require email_oficial
+      if (status === 'actiu' && !c.email_oficial) continue
+      if (status === 'pendent' && c.email_oficial) continue
+    }
+    out.push(c)
+  }
+  return out
+})
+
+const filteredUsuarios = computed(() => {
+  const list = usuariosList.value || []
+  const q = (searchTerm.value || '').toLowerCase().trim()
+  const out = []
+  for (let i = 0; i < list.length; i++) {
+    const u = list[i]
+    if (!u) continue
+    if (q) {
+      const hay = ((u.email || '') + ' ' + (u.nom_centre || '')).toLowerCase()
+      if (!hay.includes(q)) continue
+    }
+    out.push(u)
+  }
+  return out
+})
+
 const toggleTable = () => {
   mostrarCentres.value = !mostrarCentres.value
 }
 </script>
 
 <style scoped>
-.actions {
-  margin-bottom: 20px;
+.page {
+  padding: 20px 24px;
+}
+
+.page-title {
+  margin: 0 0 18px 0;
+  font-size: 22px;
+  color: #203a63;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: #3b5ca8;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: #ffffff;
+  border-color: #d8e6ff;
+  box-shadow: 0 2px 0 rgba(59,92,168,0.12) inset;
+}
+
+.search-area {
   display: flex;
   gap: 10px;
+  align-items: center;
+}
+
+.search {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e6eef9;
+  min-width: 320px;
+}
+
+.filter {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e6eef9;
+  background: white;
+}
+
+.content {
+  margin-top: 8px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #edf5ff;
+  box-shadow: 0 2px 8px rgba(20,40,80,0.03);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.codi {
+  font-size: 11px;
+  color: #7e8aa6;
+}
+
+.card-title {
+  margin: 8px 0 6px 0;
+  font-size: 18px;
+  color: #203a63;
+}
+
+.card-body .meta {
+  font-size: 13px;
+  color: #55617a;
+  margin-bottom: 6px;
+}
+
+.empty {
+  color: #7b869a;
+  padding: 24px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
 }
 
 th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  padding: 12px 10px;
   text-align: left;
+  border-bottom: 1px solid #f1f4f8;
 }
 
 th {
-  background-color: #f4f4f4;
+  color: #6d7a97;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .badge {
-  background: #e0e0e0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  background: #eef7ff;
+  color: #2b63b6;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
 }
 
-.btn-toggle {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
 }
 
-.btn-create {
-  padding: 8px 16px;
-  cursor: pointer;
+.user-card {
+  min-height: 120px;
+}
+
+.badge.small {
+  padding: 4px 8px;
+  font-size: 11px;
 }
 </style>
