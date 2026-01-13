@@ -29,6 +29,8 @@
         {{ loading ? 'Conectando...' : 'Entrar' }}
         </button>
         
+        <NuxtLink to="/register" class="btn-secondary">Registra't</NuxtLink>
+
         <button type="button" class="btn-secondary" @click="goBack">
         Volver atrás
         </button>
