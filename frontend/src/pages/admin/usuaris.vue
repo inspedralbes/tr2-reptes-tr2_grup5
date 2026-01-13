@@ -18,11 +18,6 @@
 
       <div class="search-area">
         <input v-model="searchTerm" class="search" placeholder="Cercar centre..." />
-        <select v-model="statusFilter" class="filter">
-          <option value="all">Tots els estats</option>
-          <option value="actiu">Actiu</option>
-          <option value="pendent">Pendent</option>
-        </select>
       </div>
     </div>
 
@@ -124,14 +119,12 @@ const usuariosList = computed(() => {
 const router = useRouter()
 const goBack = () => router.back()
 
-// search and filter state
+// search state
 const searchTerm = ref('')
-const statusFilter = ref('all')
 
 const filteredCentres = computed(() => {
   const list = centresList.value || []
   const q = (searchTerm.value || '').toLowerCase().trim()
-  const status = statusFilter.value
   const out = []
   for (let i = 0; i < list.length; i++) {
     const c = list[i]
@@ -139,11 +132,6 @@ const filteredCentres = computed(() => {
     if (q) {
       const hay = ((c.nom_centre || '') + ' ' + (c.codi_centre || '')).toLowerCase()
       if (!hay.includes(q)) continue
-    }
-    if (status !== 'all') {
-      // simple placeholder behavior: if status filter set to 'actiu' require email_oficial
-      if (status === 'actiu' && !c.email_oficial) continue
-      if (status === 'pendent' && c.email_oficial) continue
     }
     out.push(c)
   }
@@ -224,11 +212,25 @@ const toggleTable = () => {
   min-width: 320px;
 }
 
-.filter {
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #e6eef9;
+.card {
   background: white;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #edf5ff;
+  box-shadow: 0 2px 8px rgba(20,40,80,0.03);
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  background: linear-gradient(180deg, #2b63b6, #4a8fe6);
 }
 
 .content {
@@ -261,9 +263,9 @@ const toggleTable = () => {
 }
 
 .card-title {
-  margin: 8px 0 6px 0;
+  margin: 8px 0 6px 12px; /* spacing because of left stripe */
   font-size: 18px;
-  color: #203a63;
+  color: #1e4f9a;
 }
 
 .card-body .meta {
