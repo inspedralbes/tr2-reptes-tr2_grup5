@@ -141,10 +141,73 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-.page { max-width: 700px; margin: 2rem auto; padding: 1rem }
-label { display: block; margin-bottom: 0.75rem }
-input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: .5rem; box-sizing: border-box }
-.actions { margin-top: 1rem; display:flex; gap:8px }
-.message { color: green; margin-top: .5rem }
-.error { color: tomato; margin-top: .5rem }
+.page {
+	max-width: 760px;
+	margin: 2.4rem auto;
+	padding: 22px 20px 20px 26px;
+	border-radius: 10px;
+	background: #fff;
+	border: 1px solid #e9f2ff;
+	box-shadow: 0 6px 20px rgba(15,30,70,0.06);
+	position: relative;
+}
+
+.page::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 8px;
+	border-top-left-radius: 10px;
+	border-bottom-left-radius: 10px;
+	background: linear-gradient(180deg, #2b63b6, #4a8fe6);
+}
+
+h1 { margin: 0 0 14px 12px; color: #1e4f9a }
+
+form.form { display:block }
+
+label { display: block; margin-bottom: 0.75rem; color:#55617a; font-weight:600 }
+
+input[type="text"], input[type="email"], input[type="password"], select {
+	width: 100%;
+	padding: 10px 12px;
+	box-sizing: border-box;
+	border-radius: 8px;
+	border: 1px solid #e6eef9;
+	background: #fbfdff;
+	margin-top: 6px;
+}
+
+input[type="checkbox"] { transform: translateY(2px) }
+
+.actions { margin-top: 1.2rem; display:flex; gap:10px }
+
+button[type="submit"] {
+	background: #2b63b6;
+	color: white;
+	border: none;
+	padding: 10px 14px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.actions button[type="button"] {
+	background: transparent;
+	color: #55617a;
+	border: 1px solid #e6eef9;
+	padding: 10px 12px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.message { color: #2b8a4a; margin-top: .6rem }
+.error { color: #d33; margin-top: .6rem }
+
+/* Responsive */
+@media (max-width: 640px) {
+	.page { margin: 1.2rem; padding: 16px }
+	.page::before { width:6px }
+}
 </style>
