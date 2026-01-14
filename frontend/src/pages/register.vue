@@ -57,6 +57,7 @@
 			<div class="actions">
 				<button type="submit" :disabled="loading">{{ loading ? 'Enviant...' : 'Enviar sol·licitud' }}</button>
 				<button type="button" @click="resetForm">Netejar</button>
+				<button type="button" @click="goBack">Tornar</button>
 			</div>
 
 			<p v-if="message" class="message">{{ message }}</p>
@@ -94,7 +95,9 @@ const resetForm = () => {
 	message.value = ''
 	error.value = ''
 }
-
+const goBack = () => {
+	history.back()
+}
 const submitForm = async () => {
 	error.value = ''
 	message.value = ''
