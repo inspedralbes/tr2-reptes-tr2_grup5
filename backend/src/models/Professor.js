@@ -21,7 +21,7 @@ const Professor = {
             const [userResult] = await connection.query(`
                 INSERT INTO usuaris (email, password, rol)
                 VALUES (?, ?, ?)
-            `, [email, '123456', 'PROFESSOR']); 
+            `, [email, '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR']); 
 
             const newUserId = userResult.insertId;
             const [profResult] = await connection.query(`
