@@ -1,10 +1,16 @@
 const Peticio = require("../../models/Peticio");
 const AssignacioTaller = require("../../models/AssignacioTaller");
+const Log = require("../../models/Log");
 
 const peticionsController = {
     // Obtenir totes les peticions amb filtres
     getAll: async (req, res) => {
         try {
+            // Validació PERMISOS ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per veure totes les peticions." });
+            }
+
             const { taller_id, centre_id, modalitat, trimestre, estat } = req.query;
             const filters = { taller_id, centre_id, modalitat, trimestre, estat };
 
@@ -19,6 +25,11 @@ const peticionsController = {
     // Obtenir una petició per ID
     getById: async (req, res) => {
         try {
+            // Validació PERMISOS ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per veure aquesta sol·licitud." });
+            }
+
             const { id } = req.params;
             const peticio = await Peticio.findById(id);
             if (!peticio) {
@@ -34,6 +45,11 @@ const peticionsController = {
     // Actualitzar l'estat d'una petició
     updateEstat: async (req, res) => {
         try {
+            // 1. Validar PERMISOS ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per modificar l'estat de les sol·licituds." });
+            }
+
             const { id } = req.params;
             const { estat } = req.body;
 
@@ -41,8 +57,23 @@ const peticionsController = {
                 return res.status(400).json({ message: "Estat no vàlid. Ha de ser 'PENDENT', 'ASSIGNADA' o 'REBUTJADA'." });
             }
 
+            // Recuperem l'estat anterior per a l'auditoria
+            const peticioAntiga = await Peticio.findById(id);
+            if (!peticioAntiga) {
+                return res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
+            }
+
             const success = await Peticio.updateEstat(id, estat);
             if (success) {
+                // 2. REGISTRAR AUDITORIA
+                await Log.create({
+                    usuari_id: req.user.id,
+                    accio: 'UPDATE_STATUS',
+                    taula_afectada: 'peticions',
+                    valor_anterior: { estat: peticioAntiga.estat },
+                    valor_nou: { estat: estat, peticio_id: id }
+                });
+
                 res.json({ message: "Estat actualitzat correctament." });
             } else {
                 res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
@@ -56,6 +87,11 @@ const peticionsController = {
     // --- NOVA LÒGICA D'ASSIGNACIÓ AMB CONTROL DE PLACES ---
     assignarTallerAInstitut: async (req, res) => {
         try {
+            // 1. Validar PERMISOS ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per realitzar assignacions." });
+            }
+
             const { peticio_id, taller_id, assignacio_taller_id } = req.body;
 
             // 1. Obtenir les dades de la petició per saber quants participants demana
@@ -90,6 +126,19 @@ const peticionsController = {
                 num_participants: numParticipantsQueDemanen
             });
 
+            // --- REGISTRAR AUDITORIA D'ASSIGNACIÓ ---
+            await Log.create({
+                usuari_id: req.user.id,
+                accio: 'ASSIGN_TALLER',
+                taula_afectada: 'peticions_tallers_assignats',
+                valor_nou: {
+                    peticio_id,
+                    taller_id,
+                    assignacio_taller_id,
+                    participants: numParticipantsQueDemanen
+                }
+            });
+
             // 4. Control de Professors Referents (Màxim 2 per grup)
             let referentMessage = "";
             if (detall.es_preferencia_referent == 1) {
@@ -122,9 +171,22 @@ const peticionsController = {
     // Eliminar una petició
     delete: async (req, res) => {
         try {
+            // Validació PERMISOS ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per eliminar sol·licituds." });
+            }
+
             const { id } = req.params;
             const success = await Peticio.delete(id);
             if (success) {
+                // REGISTRAR AUDITORIA
+                await Log.create({
+                    usuari_id: req.user.id,
+                    accio: 'DELETE_PETICIO',
+                    taula_afectada: 'peticions',
+                    valor_anterior: { id }
+                });
+
                 res.json({ message: "Sol·licitud eliminada correctament." });
             } else {
                 res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
