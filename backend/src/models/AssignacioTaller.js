@@ -83,6 +83,15 @@ const AssignacioTaller = {
         `, [taller_id, taller_id]);
 
         return result[0].places_totals_lliures || 0;
+    },
+
+    // Compta quants professors referents té un grup (màxim 2)
+    getReferentsCount: async (assignacio_taller_id) => {
+        const [result] = await db.query(
+            "SELECT COUNT(*) as count FROM referents_assignats WHERE assignacio_taller_id = ?",
+            [assignacio_taller_id]
+        );
+        return result[0].count;
     }
 };
 

@@ -90,11 +90,28 @@ const peticionsController = {
                 num_participants: numParticipantsQueDemanen
             });
 
-            // 4. Neteja automàtica: Rebutjar peticions que ja no caben
+            // 4. Control de Professors Referents (Màxim 2 per grup)
+            let referentMessage = "";
+            if (detall.es_preferencia_referent == 1) {
+                const numReferentsActuals = await AssignacioTaller.getReferentsCount(assignacio_taller_id);
+
+                if (numReferentsActuals >= 2) {
+                    // Si ja hi ha 2, anul·lem la preferència d'aquesta petició
+                    await Peticio.anullarPreferenciaReferent(peticio_id, taller_id);
+                    referentMessage = " (La preferència de referent s'ha anul·lat perquè el grup ja té 2 professors assignats)";
+                } else {
+                    // Aquí en un futur es podria vincular oficialment el professor a la taula 'referents_assignats'
+                    referentMessage = " (Professor manté la preferència de referent)";
+                }
+            }
+
+            // 5. Neteja automàtica: Rebutjar peticions que ja no caben
             const placesLliuresTotals = await AssignacioTaller.getPlacesLliuresTotals(taller_id);
             await Peticio.rebutjarPerMancaDePlaces(taller_id, placesLliuresTotals);
 
-            res.json({ message: "Taller assignat correctament al grup. Places reservades i peticions sense espai rebutjades automàticament." });
+            res.json({
+                message: `Taller assignat correctament al grup. Places reservades${referentMessage}.`
+            });
 
         } catch (error) {
             console.error("Error en l'assignació:", error);

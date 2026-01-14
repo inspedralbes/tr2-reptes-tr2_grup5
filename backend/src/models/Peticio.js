@@ -152,6 +152,15 @@ const Peticio = {
         `;
         const [result] = await db.query(sql, [taller_id, places_disponibles]);
         return result.affectedRows;
+    },
+
+    // ADMIN: Anul·lar la preferència de referent d'un detall concret
+    anullarPreferenciaReferent: async (peticio_id, taller_id) => {
+        const [result] = await db.query(
+            "UPDATE peticio_detalls SET es_preferencia_referent = 0 WHERE peticio_id = ? AND taller_id = ?",
+            [peticio_id, taller_id]
+        );
+        return result.affectedRows > 0;
     }
 };
 
