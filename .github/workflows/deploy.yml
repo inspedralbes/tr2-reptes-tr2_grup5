@@ -1,0 +1,34 @@
+name: Deploy Synapse Total
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }} # Canviat de 'key' a 'password' perquè teniu contrasenya
+          script: |
+            cd /var/www/html/Synapse || exit
+            git pull origin main
+
+            # Crear el archivo .env automáticamente con los secretos de GitHub
+            echo "DB_PORT=${{ secrets.DB_PORT }}" > .env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+            echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
+            echo "PORT_FRONTEND=${{ secrets.PORT_FRONTEND }}" >> .env
+            echo "PORT_BACKEND=${{ secrets.PORT_BACKEND }}" >> .env
+            echo "PORT_NGINX=${{ secrets.PORT_NGINX }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "NODE_ENV=production" >> .env
+
+            # Levantar Docker (tu comando de confianza)
+            docker compose -f docker-compose.prod.yml up --build -d
