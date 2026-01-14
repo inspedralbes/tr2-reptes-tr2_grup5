@@ -67,27 +67,22 @@ const peticionsController = {
 
             const numParticipantsQueDemanen = detall.num_participants;
 
-            // 2. Comprovar capacitat del grup de taller (assignacio_taller)
-            const grup = await AssignacioTaller.findById(assignacio_taller_id);
-            if (!grup) return res.status(404).json({ message: "Grup de taller no trobat." });
+            // 2. Comprovar capacitat utilitzant el nou mètode del model
+            const capacitat = await AssignacioTaller.teCapacitatSuficient(assignacio_taller_id, numParticipantsQueDemanen);
 
-            const ocupacioActual = await AssignacioTaller.getOcupacioActual(assignacio_taller_id);
-            const placesLliures = grup.places_maximes - ocupacioActual;
-
-            // 3. Validar si caben
-            if (numParticipantsQueDemanen > placesLliures) {
+            if (!capacitat.valid) {
                 return res.status(400).json({
-                    message: "No hi ha places suficients en aquest grup.",
+                    message: capacitat.message || "No hi ha places suficients en aquest grup.",
                     detalls: {
                         demanades: numParticipantsQueDemanen,
-                        lliures: placesLliures,
-                        ocupacio_actual: ocupacioActual,
-                        maxim: grup.places_maximes
+                        lliures: capacitat.lliures,
+                        ocupacio_actual: capacitat.ocupat,
+                        maxim: capacitat.maxim
                     }
                 });
             }
 
-            // 4. Tot correcte -> Realitzar l'assignació
+            // 3. Tot correcte -> Realitzar l'assignació
             await AssignacioTaller.realitzarAssignacio({
                 peticio_id,
                 taller_id,
@@ -95,7 +90,11 @@ const peticionsController = {
                 num_participants: numParticipantsQueDemanen
             });
 
-            res.json({ message: "Taller assignat correctament al grup. Places reservades." });
+            // 4. Neteja automàtica: Rebutjar peticions que ja no caben
+            const placesLliuresTotals = await AssignacioTaller.getPlacesLliuresTotals(taller_id);
+            await Peticio.rebutjarPerMancaDePlaces(taller_id, placesLliuresTotals);
+
+            res.json({ message: "Taller assignat correctament al grup. Places reservades i peticions sense espai rebutjades automàticament." });
 
         } catch (error) {
             console.error("Error en l'assignació:", error);

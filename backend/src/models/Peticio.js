@@ -138,6 +138,20 @@ const Peticio = {
     delete: async (id) => {
         const [result] = await db.query("DELETE FROM peticions WHERE id = ?", [id]);
         return result.affectedRows > 0;
+    },
+
+    // ADMIN: Rebutjar automàticament peticions que ja no caben
+    rebutjarPerMancaDePlaces: async (taller_id, places_disponibles) => {
+        const sql = `
+            UPDATE peticions p
+            JOIN peticio_detalls pd ON p.id = pd.peticio_id
+            SET p.estat = 'REBUTJADA'
+            WHERE pd.taller_id = ? 
+              AND p.estat = 'PENDENT' 
+              AND pd.num_participants > ?
+        `;
+        const [result] = await db.query(sql, [taller_id, places_disponibles]);
+        return result.affectedRows;
     }
 };
 

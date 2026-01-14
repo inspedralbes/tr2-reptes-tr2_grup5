@@ -42,6 +42,47 @@ const AssignacioTaller = {
     getGrupsPerTaller: async (taller_id) => {
         const [rows] = await db.query("SELECT * FROM assignacions_tallers WHERE taller_id = ?", [taller_id]);
         return rows;
+    },
+
+    teCapacitatSuficient: async (assignacio_taller_id, num_nous_participants) => {
+        const [grup] = await db.query(`
+            SELECT a.id, t.places_maximes, 
+                   (SELECT COALESCE(SUM(num_places_assignades), 0) 
+                    FROM peticions_tallers_assignats 
+                    WHERE assignacio_taller_id = a.id) as ocupat
+            FROM assignacions_tallers a
+            JOIN tallers t ON a.taller_id = t.id
+            WHERE a.id = ?
+        `, [assignacio_taller_id]);
+
+        if (!grup) return { valid: false, message: "Grup no trobat" };
+
+        const lliures = grup.places_maximes - grup.ocupat;
+        const valid = num_nous_participants <= lliures;
+
+        return {
+            valid,
+            lliures,
+            ocupat: grup.ocupat,
+            maxim: grup.places_maximes
+        };
+    },
+
+    // Calcula les places lliures totals sumant tots els grups d'un taller
+    getPlacesLliuresTotals: async (taller_id) => {
+        const [result] = await db.query(`
+            SELECT 
+                (SELECT SUM(t.places_maximes) 
+                 FROM assignacions_tallers a 
+                 JOIN tallers t ON a.taller_id = t.id 
+                 WHERE a.taller_id = ?) -
+                (SELECT COALESCE(SUM(num_places_assignades), 0) 
+                 FROM peticions_tallers_assignats 
+                 WHERE taller_id = ?) 
+            as places_totals_lliures
+        `, [taller_id, taller_id]);
+
+        return result[0].places_totals_lliures || 0;
     }
 };
 
