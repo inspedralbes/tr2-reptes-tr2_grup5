@@ -13,22 +13,30 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }} # Canviat de 'key' a 'password' perquè teniu contrasenya
+          key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/html/Synapse || exit
+            
+            # Limpiamos cambios locales para evitar errores de Git
+            git reset --hard origin/main
             git pull origin main
 
-            # Crear el archivo .env automáticamente con los secretos de GitHub
-            echo "DB_PORT=${{ secrets.DB_PORT }}" > .env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-            echo "DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
-            echo "PORT_FRONTEND=${{ secrets.PORT_FRONTEND }}" >> .env
-            echo "PORT_BACKEND=${{ secrets.PORT_BACKEND }}" >> .env
-            echo "PORT_NGINX=${{ secrets.PORT_NGINX }}" >> .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "NODE_ENV=production" >> .env
+            # Usamos los SECRETS de GitHub para crear el .env dentro de la carpeta docker
+            cat <<EOF > docker/.env
+            PORT_NGINX=${{ secrets.PORT_NGINX }}
+            DB_HOST=database
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+            NODE_ENV=production
+            PORT=${{ secrets.PORT_BACKEND }}
+            PORT_BACKEND=${{ secrets.PORT_BACKEND }}
+            PORT_FRONTEND=${{ secrets.PORT_FRONTEND }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            EOF
 
-            # Levantar Docker (tu comando de confianza)
-            docker compose -f docker-compose.prod.yml up --build -d
+            # Entramos en la carpeta donde está el docker-compose y lanzamos
+            cd docker
+            docker compose -f docker-compose.prod.yml up --build -d --remove-orphans
