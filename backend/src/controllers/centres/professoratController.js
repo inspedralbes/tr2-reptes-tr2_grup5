@@ -30,15 +30,6 @@ const professoratController = {
             if (!centre) {
                 return res.status(404).json({ message: "Centre no trobat." });
             }
-
-            
-            const result = await Professor.create({ nom, cognoms, email, centre_id: centre.id });
-            res.status(201).json({
-                id: result.professorId, 
-                nom,
-                cognoms,
-                email
-            });
             res.status(201).json({
                 id: result.professorId, 
                 nom,
