@@ -67,7 +67,7 @@ header.setHeaderAdmin()
 const mostrarCentres = ref(true)
 
 // backend base (dev)
-const backendBase = 'http://localhost:1700'
+const backendBase = ''
 
 // obtener token del localStorage (si existe)
 const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : null

@@ -56,7 +56,7 @@ loading.value = true;
 errorMessage.value = '';
 
 try {
-    const response = await $fetch('http://localhost:1700/api/auth/login', {
+    const response = await $fetch('/api/auth/login', {
     method: 'POST',
     body: form.value
     });
