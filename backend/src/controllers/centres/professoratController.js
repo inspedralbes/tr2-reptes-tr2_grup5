@@ -5,38 +5,49 @@ const professoratController = {
     getMeusProfessors: async (req, res) => {
         try {
             const user_id = req.user.id;
-
             const centre = await Centre.findByUserId(user_id);
+            
             if (!centre) {
                 return res.status(404).json({ message: "Centre no trobat per a aquest usuari." });
             }
 
             const professors = await Professor.getByCentreId(centre.id);
-            res.json(professors);
+            return res.json(professors);
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: "Error al obtenir els professors del centre." });
+            return res.status(500).json({ message: "Error al obtenir els professors del centre." });
         }
     },
 
-    
     createProf: async (req, res) => {
         try {
-            const user_id_admin = req.user.id; 
+            const user_id = req.user.id; 
             const { nom, cognoms, email } = req.body;
 
-            
-            const centre = await Centre.findByUserId(user_id_admin);
+            // 1. Busquem el centre
+            const centre = await Centre.findByUserId(user_id);
             if (!centre) {
                 return res.status(404).json({ message: "Centre no trobat." });
             }
-            res.status(201).json({
+
+            // 2. Executem la creació (Doble INSERT a la BD)
+            // Ens assegurem que la variable 'result' estigui ben definida
+            const result = await Professor.create({ 
+                nom, 
+                cognoms, 
+                email, 
+                centre_id: centre.id 
+            });
+
+            // 3. Enviem la resposta fent servir 'result.professorId' que retorna el teu model
+            return res.status(201).json({
                 id: result.professorId, 
-                nom,
-                cognoms,
-                email,
+                nom: nom,
+                cognoms: cognoms,
+                email: email,
                 centre_id: centre.id
             });
+
         } catch (error) {
             console.error("Error al controlador professoratController:", error);
             
@@ -46,7 +57,7 @@ const professoratController = {
                 });
             }
 
-            res.status(500).json({ message: "Error intern al crear el professor." });
+            return res.status(500).json({ message: "Error intern al crear el professor." });
         }
     }
 };
