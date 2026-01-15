@@ -21,7 +21,7 @@ services:
       context: ../backend
       dockerfile: docker/Dockerfile
     env_file:
-      - ../.env
+      - .env
     command: npm run start:prod
     environment:
       NODE_ENV: ${NODE_ENV}
