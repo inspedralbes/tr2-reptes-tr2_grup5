@@ -1,4 +1,4 @@
-name: Deploy Synapse Total
+name: Deploy Tr2g5 Total
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
-            cd /var/www/html/Synapse || exit
+            cd /var/www/html/Tr2g5 || exit
             
             # Limpiamos cambios locales para evitar errores de Git
             git reset --hard origin/main
