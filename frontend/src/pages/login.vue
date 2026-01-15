@@ -42,6 +42,9 @@
 </template>
 
 <script setup>
+definePageMeta({
+  layout: 'false'
+})
 const router = useRouter();
 
 const form = ref({

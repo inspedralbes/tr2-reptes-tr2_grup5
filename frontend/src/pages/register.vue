@@ -67,6 +67,9 @@
 </template>
 
 <script setup>
+definePageMeta({
+	layout: 'false'
+})
 import { ref } from 'vue'
 
 const form = ref({
