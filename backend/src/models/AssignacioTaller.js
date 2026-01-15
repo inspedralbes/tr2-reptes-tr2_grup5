@@ -42,6 +42,26 @@ const AssignacioTaller = {
     getGrupsPerTaller: async (taller_id) => {
         const [rows] = await db.query("SELECT * FROM assignacions_tallers WHERE taller_id = ?", [taller_id]);
         return rows;
+    },
+    // Llistar les assignacions confirmades d'un centre
+    getAssignacionsByCentreId: async (centre_id) => {
+        const [rows] = await db.query(`
+            SELECT 
+                pta.id as assignacio_id,
+                t.titol as taller_titol,
+                pta.num_places_assignades,
+                at.data_inici,
+                at.data_fi,
+                at.curs_academic,
+                p.estat as estat_peticio
+            FROM peticions_tallers_assignats pta
+            JOIN peticions p ON pta.peticio_id = p.id
+            JOIN tallers t ON pta.taller_id = t.id
+            JOIN assignacions_tallers at ON pta.assignacio_taller_id = at.id
+            WHERE p.centre_id = ?
+            ORDER BY at.data_inici DESC
+        `, [centre_id]);
+        return rows;
     }
 };
 
