@@ -138,6 +138,29 @@ const Peticio = {
     delete: async (id) => {
         const [result] = await db.query("DELETE FROM peticions WHERE id = ?", [id]);
         return result.affectedRows > 0;
+    },
+
+    // ADMIN: Rebutjar automàticament peticions que ja no caben
+    rebutjarPerMancaDePlaces: async (taller_id, places_disponibles) => {
+        const sql = `
+            UPDATE peticions p
+            JOIN peticio_detalls pd ON p.id = pd.peticio_id
+            SET p.estat = 'REBUTJADA'
+            WHERE pd.taller_id = ? 
+              AND p.estat = 'PENDENT' 
+              AND pd.num_participants > ?
+        `;
+        const [result] = await db.query(sql, [taller_id, places_disponibles]);
+        return result.affectedRows;
+    },
+
+    // ADMIN: Anul·lar la preferència de referent d'un detall concret
+    anullarPreferenciaReferent: async (peticio_id, taller_id) => {
+        const [result] = await db.query(
+            "UPDATE peticio_detalls SET es_preferencia_referent = 0 WHERE peticio_id = ? AND taller_id = ?",
+            [peticio_id, taller_id]
+        );
+        return result.affectedRows > 0;
     }
 };
 
