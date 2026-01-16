@@ -70,7 +70,14 @@ const peticionsController = {
             // Si es vol ASSIGNAR, cal assignacio_taller_id i comprovar capacitat
             if (estat === 'ASSIGNADA') {
                 if (!assignacio_taller_id) {
-                    return res.status(400).json({ message: "Cal proporcionar 'assignacio_taller_id' per assignar aquest taller a un grup." });
+                    // Si no s'ha proporcionat assignacio_taller_id, retornem els grups disponibles perquè el front pugui demanar selecció
+                    try {
+                        const grups = await AssignacioTaller.getGrupsPerTaller(tallerId);
+                        return res.status(200).json({ message: "Cal seleccionar un grup per poder assignar aquest taller.", need_assignacio: true, grups });
+                    } catch (err) {
+                        console.error('Error obtenint grups per taller:', err);
+                        return res.status(500).json({ message: 'Error obtenint grups disponibles.' });
+                    }
                 }
 
                 const numParticipants = detall.num_participants;
