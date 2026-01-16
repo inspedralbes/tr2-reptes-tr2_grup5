@@ -45,7 +45,8 @@ const load = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await fetch('/api/centres/assignacions')
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:1700'
+    const res = await fetch(`${API_BASE}/api/centres/assignacions`)
     if (!res.ok) {
       const txt = await res.text()
       throw new Error(`${res.status} ${res.statusText} - ${txt}`)
