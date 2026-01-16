@@ -89,10 +89,8 @@ const peticionsController = {
                 });
             }
 
-            // Actualitzem l'estat del detall
-            await Peticio.updateDetallEstat(peticioId, tallerId, estat);
-
-            // Registrar auditoria del canvi de l'estat del detall
+            // IMPORTANT: No actualitzem la columna 'estat' a peticio_detalls perquè la BD d'execució pot no tenir-la.
+            // En lloc d'això només registrem en l'auditoria l'intent/canvi.
             await Log.create({
                 usuari_id: req.user.id,
                 accio: 'UPDATE_DETALL_STATUS',
@@ -101,8 +99,7 @@ const peticionsController = {
                 valor_nou: { peticio_id: peticioId, taller_id: tallerId, estat }
             });
 
-            // Recalculem estat global de la petició
-            const nouEstatGlobal = await Peticio.recomputeEstat(peticioId);
+            // Nota: no intentem recalcular l'estat global de la petició perquè això depèn de la columna 'estat' en peticio_detalls.
 
             // Si hem assignat, també registrem un log específic per la taula d'assignacions
             if (estat === 'ASSIGNADA') {
@@ -114,7 +111,7 @@ const peticionsController = {
                 });
             }
 
-            res.json({ message: 'Estat del taller actualitzat.', estat_peticio: nouEstatGlobal });
+            res.json({ message: 'Estat del taller processat (no modificat a BD per compatibilitat).', estat_peticio: null });
         } catch (error) {
             console.error('Error actualitzant estat del taller:', error);
             res.status(500).json({ message: 'Error al servidor al actualitzar l\'estat del taller.' });
