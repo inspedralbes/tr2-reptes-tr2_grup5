@@ -42,6 +42,85 @@ const peticionsController = {
         }
     },
 
+    // Actualitzar l'estat d'un taller específic dins d'una petició
+    updateTallerEstat: async (req, res) => {
+        try {
+            // Permisos ADMIN
+            if (req.user.rol !== 'ADMIN') {
+                return res.status(403).json({ message: "No tens permisos per modificar l'estat dels tallers." });
+            }
+
+            const { peticioId, tallerId } = req.params;
+            const { estat, assignacio_taller_id } = req.body;
+
+            if (!['PENDENT', 'ASSIGNADA', 'REBUTJADA'].includes(estat)) {
+                return res.status(400).json({ message: "Estat no vàlid. Ha de ser 'PENDENT', 'ASSIGNADA' o 'REBUTJADA'." });
+            }
+
+            // Recuperem la petició i el detall
+            const peticio = await Peticio.findById(peticioId);
+            if (!peticio) return res.status(404).json({ message: "Peticio no trobada." });
+
+            const detall = peticio.detalls.find(d => d.taller_id == tallerId);
+            if (!detall) return res.status(404).json({ message: "Aquest taller no forma part de la sol·licitud." });
+
+            // Guardem l'estat anterior per l'auditoria
+            const estatAnterior = detall.estat || 'PENDENT';
+
+            // Si es vol ASSIGNAR, cal assignacio_taller_id i comprovar capacitat
+            if (estat === 'ASSIGNADA') {
+                if (!assignacio_taller_id) {
+                    return res.status(400).json({ message: "Cal proporcionar 'assignacio_taller_id' per assignar aquest taller a un grup." });
+                }
+
+                const numParticipants = detall.num_participants;
+
+                const capacitat = await AssignacioTaller.teCapacitatSuficient(assignacio_taller_id, numParticipants);
+                if (!capacitat.valid) {
+                    return res.status(400).json({ message: capacitat.message || 'No hi ha places suficients en aquest grup.', detalls: { demanades: numParticipants, lliures: capacitat.lliures } });
+                }
+
+                // Realitzem la inserció a peticions_tallers_assignats
+                await AssignacioTaller.realitzarAssignacio({
+                    peticio_id: peticioId,
+                    taller_id: tallerId,
+                    assignacio_taller_id: assignacio_taller_id,
+                    num_participants: numParticipants
+                });
+            }
+
+            // Actualitzem l'estat del detall
+            await Peticio.updateDetallEstat(peticioId, tallerId, estat);
+
+            // Registrar auditoria del canvi de l'estat del detall
+            await Log.create({
+                usuari_id: req.user.id,
+                accio: 'UPDATE_DETALL_STATUS',
+                taula_afectada: 'peticio_detalls',
+                valor_anterior: { peticio_id: peticioId, taller_id: tallerId, estat: estatAnterior },
+                valor_nou: { peticio_id: peticioId, taller_id: tallerId, estat }
+            });
+
+            // Recalculem estat global de la petició
+            const nouEstatGlobal = await Peticio.recomputeEstat(peticioId);
+
+            // Si hem assignat, també registrem un log específic per la taula d'assignacions
+            if (estat === 'ASSIGNADA') {
+                await Log.create({
+                    usuari_id: req.user.id,
+                    accio: 'ASSIGN_TALLER_SINGLE',
+                    taula_afectada: 'peticions_tallers_assignats',
+                    valor_nou: { peticio_id: peticioId, taller_id: tallerId, assignacio_taller_id }
+                });
+            }
+
+            res.json({ message: 'Estat del taller actualitzat.', estat_peticio: nouEstatGlobal });
+        } catch (error) {
+            console.error('Error actualitzant estat del taller:', error);
+            res.status(500).json({ message: 'Error al servidor al actualitzar l\'estat del taller.' });
+        }
+    },
+
     // Actualitzar l'estat d'una petició
     updateEstat: async (req, res) => {
         try {
@@ -165,6 +244,19 @@ const peticionsController = {
         } catch (error) {
             console.error("Error en l'assignació:", error);
             res.status(500).json({ message: "Error al servidor al realitzar l'assignació." });
+        }
+    },
+
+    // Obtenir els grups disponibles per a un taller (assignacions)
+    getGrupsPerTaller: async (req, res) => {
+        try {
+            if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tens permisos.' });
+            const { tallerId } = req.params;
+            const grups = await AssignacioTaller.getGrupsPerTaller(tallerId);
+            res.json(grups);
+        } catch (error) {
+            console.error('Error obtenint grups per taller:', error);
+            res.status(500).json({ message: 'Error al servidor.' });
         }
     },
 

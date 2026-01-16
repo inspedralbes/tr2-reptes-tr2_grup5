@@ -162,6 +162,39 @@ const Peticio = {
         );
         return result.affectedRows > 0;
     }
+,
+    // ADMIN: Actualitzar l'estat d'un detall (taller) dins d'una petició
+    updateDetallEstat: async (peticio_id, taller_id, estat) => {
+        const [result] = await db.query(
+            "UPDATE peticio_detalls SET estat = ? WHERE peticio_id = ? AND taller_id = ?",
+            [estat, peticio_id, taller_id]
+        );
+        return result.affectedRows > 0;
+    },
+
+    // ADMIN: Recalcular i actualitzar l'estat global de la petició segons els detalls
+    recomputeEstat: async (peticio_id) => {
+        // Comptem quants detalls estan en cada estat
+        const [rows] = await db.query(
+            `SELECT 
+                SUM(CASE WHEN COALESCE(estat,'PENDENT') = 'PENDENT' THEN 1 ELSE 0 END) as pendents,
+                SUM(CASE WHEN estat = 'ASSIGNADA' THEN 1 ELSE 0 END) as assignades,
+                SUM(CASE WHEN estat = 'REBUTJADA' THEN 1 ELSE 0 END) as rebutjades
+             FROM peticio_detalls WHERE peticio_id = ?`,
+            [peticio_id]
+        );
+
+        const stats = rows[0];
+        let nouEstat = 'PENDENT';
+        if (stats.pendents == 0 && stats.assignades > 0) {
+            nouEstat = 'ASSIGNADA';
+        } else if (stats.pendents == 0 && stats.assignades == 0 && stats.rebutjades > 0) {
+            nouEstat = 'REBUTJADA';
+        }
+
+        await db.query("UPDATE peticions SET estat = ? WHERE id = ?", [nouEstat, peticio_id]);
+        return nouEstat;
+    }
 };
 
 module.exports = Peticio;

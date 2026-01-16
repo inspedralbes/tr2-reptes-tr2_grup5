@@ -28,7 +28,11 @@ router.delete("/centres/:id", centresController.deleteCentre);
 router.get("/peticions", peticionsController.getAll);
 router.get("/peticions/:id", peticionsController.getById);
 router.put("/peticions/:id/estat", peticionsController.updateEstat);
+// Actualitzar l'estat d'un taller individual dins d'una petició
+router.put("/peticions/:peticioId/tallers/:tallerId/estat", peticionsController.updateTallerEstat);
 router.post("/peticions/assignar", peticionsController.assignarTallerAInstitut);
+// Obtenir grups (assignacions) disponibles per un taller — útil per seleccionar assignacio_taller_id
+router.get("/peticions/tallers/:tallerId/grups", peticionsController.getGrupsPerTaller);
 router.delete("/peticions/:id", peticionsController.delete);
 
 //--- RUTES PER CONFIGURACIÓ CHECKLIST ---
