@@ -65,7 +65,12 @@ try {
     });
 
     if (response.token) {
-      localStorage.setItem('authToken', response.token);
+      // Configuració de la cookie segura
+      const tokenCookie = useCookie('authToken', {
+        maxAge: 60 * 60 * 24, // 1 dia
+        secure: false, // En desenvolupament (http) millor false, en prod true
+      });
+      tokenCookie.value = response.token;
     }
 
     alert(`Bienvenido, tu rol es: ${response.user.rol}`);
