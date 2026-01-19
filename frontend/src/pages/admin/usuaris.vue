@@ -69,8 +69,9 @@ const mostrarCentres = ref(true)
 // backend base (dev)
 const backendBase = ''
 
-// obtener token del localStorage (si existe)
-const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : null
+// obtener token via cookie
+const tokenCookie = useCookie('authToken')
+const token = tokenCookie.value
 
 // fetch centres from backend and map to the minimal fields we need
 const { data: centres, pending, error, refresh } = await useFetch(`${backendBase}/api/admin/centres`, {
