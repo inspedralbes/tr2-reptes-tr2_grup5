@@ -101,10 +101,11 @@ const actionLoading = ref(false)
 const expandedRows = ref([])
 
 // Fetching peticions
+const tokenCookie = useCookie('authToken')
 const { data: peticions, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/peticions', {
   server: false,
   headers: {
-    Authorization: typeof localStorage !== 'undefined' ? `Bearer ${localStorage.getItem('authToken')}` : ''
+    Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
   }
 })
 
@@ -134,7 +135,7 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
 
   actionLoading.value = true
   try {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    const token = tokenCookie.value
     await $fetch(`http://localhost:1700/api/admin/peticions/${peticioId}/tallers/${tallerId}/estat`, {
       method: 'PUT',
       headers: { Authorization: token ? `Bearer ${token}` : '' },
