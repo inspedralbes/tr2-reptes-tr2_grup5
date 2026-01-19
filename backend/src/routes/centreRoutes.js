@@ -32,7 +32,7 @@ router.get("/tallers", tallersController.getAllTallersDisponibles);
 //--- RUTES PER A PROFESSORAT ---
 // URL base: /api/centre/professors
 router.get("/professors", verifyToken, professoratController.getMeusProfessors);
-
+router.post('/professors', verifyToken, professoratController.createProf);
 
 //--- RUTES PER A SOL·LICITUDS DE TALLERS ---
 // URL base: /api/centre/peticions

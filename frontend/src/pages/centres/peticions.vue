@@ -88,6 +88,14 @@
                     {{ prof.nom }} {{ prof.cognoms }}
                   </option>
                 </select>
+                <button @click="activeDocentFormIndex = index">Afegir Docent</button>
+                <h4>Nou Docent</h4>
+                <div v-if="activeDocentFormIndex === index" class="docent-form">
+                  <input type="text" v-model="newDocent.nom" placeholder="Nom" required>
+                  <input type="text" v-model="newDocent.cognoms" placeholder="Cognoms" required>
+                  <input type="email" v-model="newDocent.email" placeholder="Email" required>
+                  <button @click="handleSaveDocent(index)">Desar Docent</button>
+                </div>
               </div>
             </div>
             <div class="form-row">
@@ -127,6 +135,42 @@ const selectedTallers = ref([]);
 const submitting = ref(false);
 const message = ref('');
 const messageType = ref('');
+const activeDocentFormIndex = ref(null);
+
+const newDocent = ref({
+  nom: '',
+  cognoms: '',
+  email: ''
+});
+
+const handleSaveDocent = async (tallerIndex) => {
+  if (!newDocent.value.nom || !newDocent.value.email){
+    alert ("El nom i el mail són obligatoris");
+    return;
+  };
+
+  try{
+    const token = localStorage.getItem('authToken');
+    const payload = {
+      ...newDocent.value,
+      centre_id: centre.value.id
+    };
+    const savedProf = await $fetch('http://localhost:1700/api/centre/professors', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: payload
+    });
+    professors.value.push (savedProf);
+    newDocent.value = {
+      nom: '',
+      cognoms: '',
+      email: ''
+    };
+    activeDocentFormIndex.value = null;
+  } catch (error) {
+    console.error('Error guardant el docent:', error);
+  }
+};
 
 const form = ref({
   trimestre: '',
