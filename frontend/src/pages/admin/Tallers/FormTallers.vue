@@ -181,7 +181,7 @@ export default defineComponent({
         await $fetch('/api/admin/tallers', {
           method: 'POST',
           headers: {
-            'Authorization': localStorage.getItem('authToken')
+            'Authorization': 'Bearer ' + useCookie('authToken').value
           },
           body: payload
         })

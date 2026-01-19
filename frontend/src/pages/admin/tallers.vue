@@ -60,11 +60,11 @@
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
-// Fem la petició al backend per obtenir els tallers (només des del client per evitar errors de Docker SSR)
+// Fem la petició al backend per obtenir els tallers (només des del client)
 const { data: tallers, pending, error, refresh } = await useFetch('/api/admin/tallers', {
   server: false,
   headers: {
-    Authorization: typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    Authorization: token.value ? `Bearer ${token.value}` : ''
   }
 })
 </script>
