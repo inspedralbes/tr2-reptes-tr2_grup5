@@ -97,6 +97,7 @@ const professors = ref([])
 const loading = ref(false)
 const editingId = ref(null)
 const showModal = ref(false)
+const tokenCookie = useCookie('authToken')
 const searchQuery = ref('')
 
 const form = ref({ nom: '', cognoms: '', email: '' })
@@ -111,7 +112,7 @@ const filteredProfessors = computed(() => {
 
 const fetchProfessors = async () => {
   try {
-    const token = localStorage.getItem('authToken')
+    const token = tokenCookie.value
     professors.value = await $fetch('http://localhost:1700/api/centre/professors', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -121,7 +122,7 @@ const fetchProfessors = async () => {
 const handleSave = async () => {
   loading.value = true
   try {
-    const token = localStorage.getItem('authToken')
+    const token = tokenCookie.value
     const method = editingId.value ? 'PUT' : 'POST'
     const url = 'http://localhost:1700/api/centre/professors'
     const finalUrl = editingId.value ? `${url}/${editingId.value}` : url
@@ -134,7 +135,7 @@ const handleSave = async () => {
 const handleDelete = async (id) => {
   if (!confirm('Eliminar docent?')) return
   try {
-    const token = localStorage.getItem('authToken')
+    const token = tokenCookie.value
     await $fetch(`http://localhost:1700/api/centre/professors/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }})
     fetchProfessors()
   } catch (e) { console.error(e) }

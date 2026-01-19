@@ -61,7 +61,10 @@ const pendingCount = computed(() => pendingSolicitudes.value.length)
 const fetchSolicitudes = async () => {
 	loading.value = true
 	try {
-		const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : ''
+		// Use cookie instead of localStorage to match login logic
+		const tokenCookie = useCookie('authToken')
+		const token = tokenCookie.value
+		
 		if (!token) {
 			console.warn('No auth token found - redirecting to login')
 			loading.value = false
@@ -121,7 +124,8 @@ const updateEstado = async (id, estado) => {
 	actionLoading.value = true
 	actionMessage.value = ''
 	try {
-		const token = (typeof localStorage !== 'undefined') ? localStorage.getItem('authToken') : ''
+		const tokenCookie = useCookie('authToken')
+		const token = tokenCookie.value
 		const res = await $fetch(`/api/solicituds-registre/${id}`, {
 			method: 'PUT',
 			headers: { Authorization: token ? `Bearer ${token}` : '' },

@@ -128,6 +128,7 @@
 import { ref, onMounted } from 'vue';
 
 const currentStep = ref(1);
+const tokenCookie = useCookie('authToken');
 const tallers = ref([]);
 const professors = ref([]);
 const centre = ref(null);
@@ -150,7 +151,7 @@ const handleSaveDocent = async (tallerIndex) => {
   };
 
   try{
-    const token = localStorage.getItem('authToken');
+    const token = tokenCookie.value;
     const payload = {
       ...newDocent.value,
       centre_id: centre.value.id
@@ -181,7 +182,7 @@ const form = ref({
 
 const fetchData = async () => {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = tokenCookie.value;
     const headers = { 'Authorization': `Bearer ${token}` };
     
     const [resTallers, resProfs, resCentre] = await Promise.all([
@@ -232,8 +233,8 @@ const updateDocentEmail = (tallerFormObj) => {
 const handleSubmit = async () => {
   submitting.value = true;
   try {
-    const token = localStorage.getItem('authToken');
-    await $fetch('/api/centre/peticions', {
+    const token = tokenCookie.value;
+    await $fetch('http://localhost:1700/api/centre/peticions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: form.value
