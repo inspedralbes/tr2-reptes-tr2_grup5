@@ -102,7 +102,7 @@ const expandedRows = ref([])
 
 // Fetching peticions
 const tokenCookie = useCookie('authToken')
-const { data: peticions, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/peticions', {
+const { data: peticions, pending, error, refresh } = await useFetch('/api/admin/peticions', {
   server: false,
   headers: {
     Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
