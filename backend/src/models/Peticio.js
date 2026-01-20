@@ -44,7 +44,7 @@ const Peticio = {
     // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
+      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id

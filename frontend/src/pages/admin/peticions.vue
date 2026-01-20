@@ -1,9 +1,21 @@
 <template>
   <div class="page">
-    <h2>Gestió de Peticions de Tallers</h2>
+    <div class="header-section">
+      <h2>Gestió de Peticions de Tallers</h2>
+      <button class="btn-refresh" @click="refresh" :disabled="pending">
+        {{ pending ? 'Actualitzant...' : 'Refrescar Dades' }}
+      </button>
+    </div>
 
-    <div v-if="pending" class="loading">Carregant peticions...</div>
-    <div v-else-if="error" class="error">Error carregant les peticions: {{ error.message }}</div>
+    <div v-if="pending && !peticions.length" class="loading">
+      <div class="spinner"></div>
+      Carregant peticions...
+    </div>
+    
+    <div v-else-if="error" class="error">
+      <span class="error-icon">⚠️</span>
+      Error carregant les peticions: {{ error.message }}
+    </div>
 
     <div v-else class="table-container">
       <table v-if="peticions && peticions.length > 0">
@@ -12,55 +24,70 @@
             <th class="expand-col"></th>
             <th>Centre</th>
             <th>Trimestre</th>
-            <th class="tallers-count">Tallers</th>
-            <th>Estat General</th>
+            <th class="tallers-count">Tallers Sol·licitats</th>
+            <th>Estat</th>
             <th class="actions-header">Accions</th>
           </tr>
         </thead>
         <tbody v-for="peticio in peticions" :key="peticio.id">
-          <tr class="main-row" @click="toggleRow(peticio.id)">
+          <tr class="main-row" @click="toggleRow(peticio.id)" :class="{ 'is-expanded': expandedRows.includes(peticio.id) }">
             <td class="expand-col">
               <span :class="['arrow', expandedRows.includes(peticio.id) ? 'down' : 'right']">▶</span>
             </td>
             <td>
-              <strong>{{ peticio.nom_centre }}</strong>
-              <div class="meta">{{ formatDate(peticio.data_creacio) }}</div>
+              <div class="centre-name">{{ peticio.nom_centre }}</div>
+              <div class="meta">Sol·licitat el {{ formatDate(peticio.data_creacio) }}</div>
             </td>
-            <td>{{ peticio.trimestre }}</td>
-            <td class="tallers-count">{{ peticio.detalls?.length || 0 }} talleres</td>
+            <td><span class="trimestre-tag">{{ peticio.trimestre }}</span></td>
+            <td class="tallers-count">
+              <span class="count-pill">{{ peticio.detalls?.length || 0 }}</span>
+            </td>
             <td>
               <span :class="['status-badge', (peticio.estat || 'PENDENT').toLowerCase()]">
                 {{ peticio.estat || 'PENDENT' }}
               </span>
             </td>
             <td class="actions-cell">
-              <button class="btn-toggle" @click.stop="toggleRow(peticio.id)">
-                {{ expandedRows.includes(peticio.id) ? 'Amagar' : 'Veure Tallers' }}
+              <button class="btn-toggle">
+                {{ expandedRows.includes(peticio.id) ? 'Amagar' : 'Veure detalls' }}
               </button>
             </td>
           </tr>
           
-          <!-- FILA DESPLEGABLE -->
           <transition name="fade">
             <tr v-if="expandedRows.includes(peticio.id)" class="details-row">
               <td colspan="6">
                 <div class="details-content">
                   <div class="details-header">
-                    <h4>Tallers Sol·licitats</h4>
-                    <p v-if="peticio.comentaris" class="comentaris"><strong>Comentaris:</strong> {{ peticio.comentaris }}</p>
+                    <h4>Tallers en ordre de prioritat</h4>
+                    <p v-if="peticio.comentaris" class="comentaris">
+                      <strong>💡 Comentaris del centre:</strong> {{ peticio.comentaris }}
+                    </p>
                   </div>
                   
                   <div class="tallers-grid">
                     <div v-for="t in peticio.detalls" :key="t.taller_id" class="taller-card">
-                      <div class="taller-info">
-                        <span class="badge">{{ t.modalitat }}</span>
-                        <span class="taller-title">{{ t.titol }}</span>
-                        <div class="taller-meta">
-                          <span>{{ t.num_participants }} part.</span>
-                          <span v-if="t.es_preferencia_referent" class="ref-badge">Preferència Referent</span>
+                      <div class="priority-section" :class="'prio-level-' + t.prioritat">
+                        <span class="prio-label">PRIORITAT</span>
+                        <span class="prio-num">{{ t.prioritat || '-' }}</span>
+                      </div>
+
+                      <div class="taller-main-info">
+                        <div class="taller-top">
+                          <span class="modalitat-badge">{{ t.modalitat }}</span>
+                          <span class="taller-title">{{ t.titol }}</span>
                         </div>
-                        <div v-if="t.docent_nom" class="docent-info">
-                          Docent: {{ t.docent_nom }}
+                        
+                        <div class="taller-details">
+                          <div class="detail-item">
+                            <strong>Participants:</strong> {{ t.num_participants }}
+                          </div>
+                          <div v-if="t.es_preferencia_referent" class="ref-tag">
+                            ⭐ Preferència Referent
+                          </div>
+                          <div v-if="t.docent_nom" class="docent-info">
+                            <strong>Docent:</strong> {{ t.docent_nom }} <small>({{ t.docent_email }})</small>
+                          </div>
                         </div>
                       </div>
                       
@@ -70,10 +97,10 @@
                         </span>
                         
                         <div v-if="(t.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
-                          <button class="btn-accept-mini" @click="updateTallerStatus(peticio.id, t.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
+                          <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(peticio.id, t.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
                             ✓
                           </button>
-                          <button class="btn-reject-mini" @click="updateTallerStatus(peticio.id, t.taller_id, 'REBUTJADA')" :disabled="actionLoading">
+                          <button class="btn-action reject" title="Rebutjar Taller" @click="updateTallerStatus(peticio.id, t.taller_id, 'REBUTJADA')" :disabled="actionLoading">
                             ✕
                           </button>
                         </div>
@@ -86,7 +113,9 @@
           </transition>
         </tbody>
       </table>
-      <p v-else class="no-data">No hi ha peticions de tallers enregistrades.</p>
+      <div v-else class="no-data">
+        <p>No hi ha peticions de tallers enregistrades.</p>
+      </div>
     </div>
   </div>
 </template>
@@ -104,7 +133,7 @@ const peticions = ref([])
 const pending = ref(true)
 const error = ref(null)
 
-// Fetching peticions
+// Funció per obtenir les peticions (el backend ja les ordena per prioritat ASC)
 const fetchPeticions = async () => {
   pending.value = true
   error.value = null
@@ -131,8 +160,9 @@ onMounted(() => {
 })
 
 const toggleRow = (id) => {
-  if (expandedRows.value.includes(id)) {
-    expandedRows.value = expandedRows.value.filter(rowId => rowId !== id)
+  const index = expandedRows.value.indexOf(id)
+  if (index > -1) {
+    expandedRows.value.splice(index, 1)
   } else {
     expandedRows.value.push(id)
   }
@@ -141,16 +171,14 @@ const toggleRow = (id) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('ca-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
+    day: '2-digit', month: '2-digit', year: 'numeric'
   })
 }
 
 const updateTallerStatus = async (peticioId, tallerId, estat) => {
   const confirmMsg = estat === 'ASSIGNADA' 
-    ? 'Estàs segur que vols marcar aquest taller com a ASSIGNAT?' 
-    : 'Estàs segur que vols REBUTJAR aquest taller?'
+    ? 'Vols marcar aquest taller com a ASSIGNAT?' 
+    : 'Vols REBUTJAR aquesta sol·licitud?'
     
   if (!confirm(confirmMsg)) return
 
@@ -164,8 +192,8 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
     })
     await refresh()
   } catch (err) {
-    console.error('Error actualitzant estat del taller:', err)
-    alert('Error al actualitzar l\'estat del taller.')
+    console.error('Error actualitzant estat:', err)
+    alert('No s\'ha pogut actualitzar l\'estat.')
   } finally {
     actionLoading.value = false
   }
@@ -173,66 +201,140 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
 </script>
 
 <style scoped>
-.page { padding: 20px; }
-h2 { color: #203a63; margin-bottom: 24px; font-weight: 800; }
+.page { padding: 30px; max-width: 1200px; margin: 0 auto; }
 
+.header-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 30px; 
+}
+
+h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
+
+.btn-refresh {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-refresh:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+/* Taula Principal */
 .table-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(15,30,70,0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
   overflow: hidden;
 }
 
 table { width: 100%; border-collapse: collapse; }
-th { background: #f8fafc; color: #64748b; text-align: left; padding: 16px; font-weight: 700; font-size: 0.85em; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
-td { padding: 16px; border-bottom: 1px solid #f1f5f9; }
-
-.expand-col { width: 40px; text-align: center; color: #94a3b8; font-size: 0.7em; }
-.arrow { display: inline-block; transition: transform 0.2s; }
-.arrow.down { transform: rotate(90deg); color: #3b82f6; }
+th { 
+  background: #f8fafc; 
+  padding: 16px; 
+  text-align: left; 
+  color: #64748b; 
+  font-size: 0.75rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+}
 
 .main-row { cursor: pointer; transition: background 0.2s; }
-.main-row:hover { background: #f8fafc; }
+.main-row:hover { background: #f1f5f9; }
+.main-row.is-expanded { background: #f8fafc; }
 
-.meta { color: #94a3b8; font-size: 0.85em; }
+td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 
-.tallers-count { color: #64748b; font-weight: 600; }
+.centre-name { font-weight: 700; color: #334155; font-size: 1rem; }
+.meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+.trimestre-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+.count-pill { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
 
-.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: 800; letter-spacing: 0.05em; }
-.status-badge.small { padding: 2px 8px; font-size: 0.7em; }
+/* Status Badges */
+.status-badge { 
+  padding: 5px 12px; 
+  border-radius: 12px; 
+  font-size: 0.7rem; 
+  font-weight: 800; 
+  text-transform: uppercase;
+}
 .status-badge.pendent { background: #fef3c7; color: #92400e; }
-.status-badge.assignada { background: #dcfce7; color: #166534; }
-.status-badge.rebutjada { background: #fee2e2; color: #991b1b; }
+.status-badge.assignada { background: #dcfce7; color: #15803d; }
+.status-badge.rebutjada { background: #fee2e2; color: #b91c1c; }
 
-.btn-toggle { background: #eff6ff; color: #2563eb; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.85em; cursor: pointer; transition: all 0.2s; }
-.btn-toggle:hover { background: #dbeafe; }
-
-/* DETALLES DESPLEGABLES */
+/* Grid de Tallers (Desplegable) */
 .details-row { background: #f8fafc; }
-.details-content { padding: 24px; border-left: 4px solid #3b82f6; }
-.details-header { margin-bottom: 20px; }
-.details-header h4 { margin: 0 0 8px 0; color: #1e293b; font-weight: 800; }
-.comentaris { font-size: 0.9em; color: #64748b; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.details-content { padding: 30px; border-left: 5px solid #3b82f6; }
+.details-header h4 { margin: 0 0 15px 0; color: #1e293b; font-weight: 800; font-size: 1.1rem; }
 
-.tallers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-.taller-card { background: white; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.tallers-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
 
-.taller-info { flex: 1; }
-.taller-title { font-weight: 700; color: #334155; display: block; margin-top: 4px; }
-.badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75em; }
-.taller-meta { font-size: 0.85em; color: #94a3b8; margin-top: 4px; display: flex; gap: 8px; align-items: center; }
-.ref-badge { background: #ecfdf5; color: #059669; padding: 1px 4px; border-radius: 4px; font-size: 0.7em; font-weight: 800; }
-.docent-info { margin-top: 8px; font-size: 0.8em; color: #64748b; }
+.taller-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  transition: transform 0.2s;
+}
 
-.taller-status-actions { text-align: right; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-.taller-btn-group { display: flex; gap: 6px; }
-.btn-accept-mini { background: #10b981; color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: opacity 0.2s; }
-.btn-reject-mini { background: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: opacity 0.2s; }
-.btn-accept-mini:hover, .btn-reject-mini:hover { opacity: 0.8; }
-.btn-accept-mini:disabled, .btn-reject-mini:disabled { opacity: 0.3; cursor: not-allowed; }
+/* Secció Prioritat */
+.priority-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  border-right: 2px solid #f1f5f9;
+  margin-right: 20px;
+  padding-right: 10px;
+}
+.prio-label { font-size: 0.6rem; font-weight: 800; color: #94a3b8; }
+.prio-num { font-size: 1.6rem; font-weight: 900; color: #1e293b; line-height: 1; }
 
-.loading, .error, .no-data { text-align: center; padding: 60px; color: #94a3b8; font-weight: 600; }
-.error { color: #ef4444; }
+.prio-level-1 .prio-num { color: #3b82f6; } /* Color blau per prioritat 1 */
+
+.taller-main-info { flex: 1; }
+.taller-title { font-weight: 700; color: #334155; font-size: 1.05rem; }
+.modalitat-badge { 
+  font-size: 0.65rem; 
+  font-weight: 800; 
+  background: #f1f5f9; 
+  color: #64748b; 
+  padding: 2px 6px; 
+  border-radius: 4px; 
+  margin-right: 8px;
+}
+
+.taller-details { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: #64748b; }
+.ref-tag { color: #059669; font-weight: 700; }
+
+/* Botons d'acció */
+.taller-status-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.taller-btn-group { display: flex; gap: 8px; }
+
+.btn-action {
+  width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: transform 0.1s;
+}
+.btn-action.approve { background: #10b981; }
+.btn-action.reject { background: #ef4444; }
+.btn-action:hover { transform: scale(1.1); }
+.btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Estats de càrrega */
+.loading { text-align: center; padding: 100px; color: #64748b; }
+.spinner { 
+  width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; 
+  border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; 
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
