@@ -120,29 +120,11 @@ const Taller = {
     return rows[0];
   },
 
-  // Comprovar si té dependències (assignacions o peticions)
+  // Comprovar si té dependències (peticions)
   hasDependencies: async (id) => {
     // 1. Peticions
     const [peticions] = await db.query("SELECT COUNT(*) as c FROM peticio_detalls WHERE taller_id = ?", [id]);
-    if (peticions[0].c > 0) return true;
-
-    // 2. Assignacions
-    const [assignacions] = await db.query("SELECT COUNT(*) as c FROM assignacions_tallers WHERE taller_id = ?", [id]);
-    if (assignacions[0].c > 0) return true;
-
-    return false;
-  },
-
-  // Obtenir informació del taller a partir de l'ID d'assignació
-  getByAssignacioId: async (assignacioId) => {
-    const sql = `
-      SELECT t.* 
-      FROM tallers t
-      JOIN assignacions_tallers at ON t.id = at.taller_id
-      WHERE at.id = ?
-    `;
-    const [rows] = await db.query(sql, [assignacioId]);
-    return rows[0];
+    return peticions[0].c > 0;
   }
 };
 

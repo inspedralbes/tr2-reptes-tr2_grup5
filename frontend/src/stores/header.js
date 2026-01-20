@@ -17,6 +17,7 @@ export const useHeaderStore = defineStore('header', {
         title: 'Administració CEB',
         buttons: [
           { label: 'Catàleg', route: '/admin/tallers' },
+          { label: 'Peticions', route: '/admin/peticions' },
           { label: 'Assignacions', route: '/admin/assignacions' },
           { label: 'Usuaris/Centres', route: '/admin/usuaris' },
           { label: 'Estadístiques', route: '/admin/estadistiques' },

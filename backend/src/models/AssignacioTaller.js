@@ -1,97 +1,66 @@
 const db = require("../config/db");
 
 const AssignacioTaller = {
-    // Buscar una assignació específica (el grup físic del taller)
-    findById: async (id) => {
-        const [rows] = await db.query(`
-            SELECT a.*, t.titol, t.places_maximes 
-            FROM assignacions_tallers a
-            JOIN tallers t ON a.taller_id = t.id
-            WHERE a.id = ?
-        `, [id]);
-        return rows[0];
-    },
-
-    // Calcular quantes places estan ja ocupades en un grup concret
-    getOcupacioActual: async (assignacio_taller_id) => {
+    // Obtenir l'ocupació d'un taller en un trimestre concret
+    getOcupacioTallerTrimestre: async (taller_id, trimestre) => {
         const [result] = await db.query(`
-            SELECT SUM(num_places_assignades) as total_ocupat
-            FROM peticions_tallers_assignats
-            WHERE assignacio_taller_id = ?
-        `, [assignacio_taller_id]);
+            SELECT SUM(pd.num_participants) as total_ocupat
+            FROM peticio_detalls pd
+            JOIN peticions p ON pd.peticio_id = p.id
+            WHERE pd.taller_id = ? AND p.trimestre = ? AND pd.estat = 'ASSIGNADA'
+        `, [taller_id, trimestre]);
 
         return result[0].total_ocupat || 0;
     },
 
-    // Vincular una petició (o part d'ella) a un grup de taller
-    realitzarAssignacio: async (data, connection = null) => {
-        const { peticio_id, taller_id, assignacio_taller_id, num_participants } = data;
-        const executor = connection || db;
+    // Comprovar si hi ha capacitat al taller per a un trimestre
+    teCapacitatSuficient: async (taller_id, trimestre, num_nous_participants) => {
+        const [taller] = await db.query("SELECT id, places_maximes FROM tallers WHERE id = ?", [taller_id]);
+        if (!taller[0]) return { valid: false, message: "Taller no trobat" };
 
-        const sql = `
-            INSERT INTO peticions_tallers_assignats 
-            (peticio_id, taller_id, assignacio_taller_id, num_places_assignades) 
-            VALUES (?, ?, ?, ?)
-        `;
-
-        const [result] = await executor.query(sql, [peticio_id, taller_id, assignacio_taller_id, num_participants]);
-        return result.insertId;
-    },
-
-    // Llistar tots els grups de taller per a un taller concret
-    getGrupsPerTaller: async (taller_id) => {
-        const [rows] = await db.query("SELECT * FROM assignacions_tallers WHERE taller_id = ?", [taller_id]);
-        return rows;
-    },
-
-    teCapacitatSuficient: async (assignacio_taller_id, num_nous_participants) => {
-        const [grup] = await db.query(`
-            SELECT a.id, t.places_maximes, 
-                   (SELECT COALESCE(SUM(num_places_assignades), 0) 
-                    FROM peticions_tallers_assignats 
-                    WHERE assignacio_taller_id = a.id) as ocupat
-            FROM assignacions_tallers a
-            JOIN tallers t ON a.taller_id = t.id
-            WHERE a.id = ?
-        `, [assignacio_taller_id]);
-
-        if (!grup) return { valid: false, message: "Grup no trobat" };
-
-        const lliures = grup.places_maximes - grup.ocupat;
+        const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
+        const lliures = taller[0].places_maximes - ocupat;
         const valid = num_nous_participants <= lliures;
 
         return {
             valid,
             lliures,
-            ocupat: grup.ocupat,
-            maxim: grup.places_maximes
+            ocupat,
+            maxim: taller[0].places_maximes
         };
     },
 
-    // Calcula les places lliures totals sumant tots els grups d'un taller
-    getPlacesLliuresTotals: async (taller_id) => {
-        const [result] = await db.query(`
-            SELECT 
-                (SELECT SUM(t.places_maximes) 
-                 FROM assignacions_tallers a 
-                 JOIN tallers t ON a.taller_id = t.id 
-                 WHERE a.taller_id = ?) -
-                (SELECT COALESCE(SUM(num_places_assignades), 0) 
-                 FROM peticions_tallers_assignats 
-                 WHERE taller_id = ?) 
-            as places_totals_lliures
-        `, [taller_id, taller_id]);
+    // Places lliures totals d'un taller en un trimestre
+    getPlacesLliuresTotals: async (taller_id, trimestre) => {
+        const [taller] = await db.query("SELECT places_maximes FROM tallers WHERE id = ?", [taller_id]);
+        if (!taller[0]) return 0;
 
-        return result[0].places_totals_lliures || 0;
+        const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
+        return taller[0].places_maximes - ocupat;
     },
 
-    // Compta quants professors referents té un grup (màxim 2)
-    getReferentsCount: async (assignacio_taller_id) => {
+
+    // Compta quants professors referents té una assignació
+    getReferentsCount: async (peticio_detall_id) => {
         const [result] = await db.query(
-            "SELECT COUNT(*) as count FROM referents_assignats WHERE assignacio_taller_id = ?",
-            [assignacio_taller_id]
+            "SELECT COUNT(*) as count FROM referents_assignats WHERE peticio_detall_id = ?",
+            [peticio_detall_id]
         );
         return result[0].count;
+    },
+
+    // Obtenir totes les assignacions (detalls acceptats) d'un centre
+    getByCentreId: async (centre_id) => {
+        const [rows] = await db.query(`
+            SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
+                   p.trimestre, p.data_creacio, t.titol, t.modalitat, t.ubicacio
+            FROM peticio_detalls pd
+            JOIN peticions p ON pd.peticio_id = p.id
+            JOIN tallers t ON pd.taller_id = t.id
+            WHERE p.centre_id = ? AND pd.estat = 'ASSIGNADA'
+            ORDER BY p.data_creacio DESC
+        `, [centre_id]);
+        return rows;
     }
 };
 

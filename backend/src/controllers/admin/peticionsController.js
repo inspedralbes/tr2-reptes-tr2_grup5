@@ -1,12 +1,12 @@
 const Peticio = require("../../models/Peticio");
 const AssignacioTaller = require("../../models/AssignacioTaller");
 const Log = require("../../models/Log");
+const db = require("../../config/db");
 
 const peticionsController = {
     // Obtenir totes les peticions amb filtres
     getAll: async (req, res) => {
         try {
-            // Validació PERMISOS ADMIN
             if (req.user.rol !== 'ADMIN') {
                 return res.status(403).json({ message: "No tens permisos per veure totes les peticions." });
             }
@@ -25,7 +25,6 @@ const peticionsController = {
     // Obtenir una petició per ID
     getById: async (req, res) => {
         try {
-            // Validació PERMISOS ADMIN
             if (req.user.rol !== 'ADMIN') {
                 return res.status(403).json({ message: "No tens permisos per veure aquesta sol·licitud." });
             }
@@ -42,151 +41,153 @@ const peticionsController = {
         }
     },
 
-    // Actualitzar l'estat d'una petició
-    updateEstat: async (req, res) => {
+    // Actualitzar l'estat d'un TALLER concret dins d'una petició
+    updateTallerEstat: async (req, res) => {
         try {
-            // 1. Validar PERMISOS ADMIN
             if (req.user.rol !== 'ADMIN') {
-                return res.status(403).json({ message: "No tens permisos per modificar l'estat de les sol·licituds." });
+                return res.status(403).json({ message: "No tens permisos." });
             }
 
-            const { id } = req.params;
+            const { id, taller_id } = req.params;
             const { estat } = req.body;
 
             if (!['PENDENT', 'ASSIGNADA', 'REBUTJADA'].includes(estat)) {
-                return res.status(400).json({ message: "Estat no vàlid. Ha de ser 'PENDENT', 'ASSIGNADA' o 'REBUTJADA'." });
+                return res.status(400).json({ message: "Estat no vàlid." });
             }
 
-            // Recuperem l'estat anterior per a l'auditoria
-            const peticioAntiga = await Peticio.findById(id);
-            if (!peticioAntiga) {
-                return res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
-            }
-
-            const success = await Peticio.updateEstat(id, estat);
+            const success = await Peticio.updateEstat(id, taller_id, estat);
             if (success) {
-                // 2. REGISTRAR AUDITORIA
                 await Log.create({
                     usuari_id: req.user.id,
-                    accio: 'UPDATE_STATUS',
-                    taula_afectada: 'peticions',
-                    valor_anterior: { estat: peticioAntiga.estat },
-                    valor_nou: { estat: estat, peticio_id: id }
+                    accio: 'UPDATE_TALLER_STATUS',
+                    taula_afectada: 'peticio_detalls',
+                    valor_nou: { id, taller_id, estat }
                 });
-
-                res.json({ message: "Estat actualitzat correctament." });
+                res.json({ message: "Estat del taller actualitzat correctament." });
             } else {
-                res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
+                res.status(404).json({ message: "No s'ha trobat el detall." });
             }
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: "Error al actualitzar la sol·licitud." });
+            res.status(500).json({ message: "Error al actualitzar l'estat." });
         }
     },
 
-    // --- NOVA LÒGICA D'ASSIGNACIÓ AMB CONTROL DE PLACES ---
-    assignarTallerAInstitut: async (req, res) => {
+    // Controlador d'Acceptació (Directament al Taller)
+    assign: async (req, res) => {
         try {
-            // 1. Validar PERMISOS ADMIN
             if (req.user.rol !== 'ADMIN') {
                 return res.status(403).json({ message: "No tens permisos per realitzar assignacions." });
             }
 
-            const { peticio_id, taller_id, assignacio_taller_id } = req.body;
+            const { peticio_id, taller_id } = req.body;
 
-            // 1. Obtenir les dades de la petició per saber quants participants demana
             const peticio = await Peticio.findById(peticio_id);
-            if (!peticio) return res.status(404).json({ message: "Peticio no trobada." });
+            if (!peticio) {
+                return res.status(404).json({ message: "Peticio no trobada." });
+            }
 
             const detall = peticio.detalls.find(d => d.taller_id == taller_id);
-            if (!detall) return res.status(400).json({ message: "Aquest taller no forma part de la sol·licitud." });
+            if (!detall) {
+                return res.status(400).json({ message: "Aquest taller no forma part de la sol·licitud." });
+            }
 
-            const numParticipantsQueDemanen = detall.num_participants;
+            const numParticipants = detall.num_participants;
+            const trimestre = peticio.trimestre;
 
-            // 2. Comprovar capacitat utilitzant el nou mètode del model
-            const capacitat = await AssignacioTaller.teCapacitatSuficient(assignacio_taller_id, numParticipantsQueDemanen);
-
+            // 1. Comprovar capacitat
+            const capacitat = await AssignacioTaller.teCapacitatSuficient(taller_id, trimestre, numParticipants);
             if (!capacitat.valid) {
                 return res.status(400).json({
-                    message: capacitat.message || "No hi ha places suficients en aquest grup.",
-                    detalls: {
-                        demanades: numParticipantsQueDemanen,
-                        lliures: capacitat.lliures,
-                        ocupacio_actual: capacitat.ocupat,
-                        maxim: capacitat.maxim
-                    }
+                    message: "No hi ha places suficients en aquest taller per al trimestre triat.",
+                    detalls: { lliures: capacitat.lliures }
                 });
             }
 
-            // 3. Tot correcte -> Realitzar l'assignació
-            await AssignacioTaller.realitzarAssignacio({
-                peticio_id,
-                taller_id,
-                assignacio_taller_id,
-                num_participants: numParticipantsQueDemanen
-            });
+            // 2. Marcar com ASSIGNADA
+            await Peticio.updateEstat(peticio_id, taller_id, 'ASSIGNADA');
 
-            // --- REGISTRAR AUDITORIA D'ASSIGNACIÓ ---
-            await Log.create({
-                usuari_id: req.user.id,
-                accio: 'ASSIGN_TALLER',
-                taula_afectada: 'peticions_tallers_assignats',
-                valor_nou: {
-                    peticio_id,
-                    taller_id,
-                    assignacio_taller_id,
-                    participants: numParticipantsQueDemanen
-                }
-            });
+            // 3. Gestió de Referents
+            if (detall.es_preferencia_referent == 1 && detall.docent_email) {
+                const numReferents = await AssignacioTaller.getReferentsCount(detall.id);
+                if (numReferents < 2) {
+                    const [prof] = await db.query(`
+                        SELECT p.id FROM professors p 
+                        JOIN usuaris u ON p.user_id = u.id 
+                        WHERE u.email = ?
+                    `, [detall.docent_email]);
 
-            // 4. Control de Professors Referents (Màxim 2 per grup)
-            let referentMessage = "";
-            if (detall.es_preferencia_referent == 1) {
-                const numReferentsActuals = await AssignacioTaller.getReferentsCount(assignacio_taller_id);
-
-                if (numReferentsActuals >= 2) {
-                    // Si ja hi ha 2, anul·lem la preferència d'aquesta petició
-                    await Peticio.anullarPreferenciaReferent(peticio_id, taller_id);
-                    referentMessage = " (La preferència de referent s'ha anul·lat perquè el grup ja té 2 professors assignats)";
-                } else {
-                    // Aquí en un futur es podria vincular oficialment el professor a la taula 'referents_assignats'
-                    referentMessage = " (Professor manté la preferència de referent)";
+                    if (prof[0]) {
+                        await db.query(
+                            "INSERT IGNORE INTO referents_assignats (peticio_detall_id, professor_id) VALUES (?, ?)",
+                            [detall.id, prof[0].id]
+                        );
+                    }
                 }
             }
 
-            // 5. Neteja automàtica: Rebutjar peticions que ja no caben
-            const placesLliuresTotals = await AssignacioTaller.getPlacesLliuresTotals(taller_id);
-            await Peticio.rebutjarPerMancaDePlaces(taller_id, placesLliuresTotals);
-
-            res.json({
-                message: `Taller assignat correctament al grup. Places reservades${referentMessage}.`
+            // 4. Auditoria
+            await Log.create({
+                usuari_id: req.user.id,
+                accio: 'ASSIGN_TALLER',
+                taula_afectada: 'peticio_detalls',
+                valor_nou: { peticio_id, taller_id, trimestre }
             });
+
+            // 5. Neteja automàtica
+            const lliures = await AssignacioTaller.getPlacesLliuresTotals(taller_id, trimestre);
+            await Peticio.rebutjarPerMancaDePlaces(taller_id, trimestre, lliures);
+
+            res.json({ message: "Taller assignat correctament." });
 
         } catch (error) {
             console.error("Error en l'assignació:", error);
-            res.status(500).json({ message: "Error al servidor al realitzar l'assignació." });
+            res.status(500).json({ message: "Error al servidor." });
         }
     },
 
-    // Eliminar una petició
+    // Obtenir detalls d'una assignació (per ID de detall de petició)
+    getAssignmentDetails: async (req, res) => {
+        try {
+            const { id } = req.params; // és detall_id
+
+            if (req.user.rol === 'CENTRE') {
+                const [hasAccess] = await db.query(`
+                    SELECT 1 FROM peticio_detalls pd
+                    JOIN peticions p ON pd.peticio_id = p.id
+                    JOIN centres c ON p.centre_id = c.id
+                    WHERE pd.id = ? AND c.user_id = ?
+                `, [id, req.user.id]);
+
+                if (!hasAccess[0]) {
+                    return res.status(403).json({ message: "No tens permís per veure aquest taller." });
+                }
+            }
+
+            const details = await AssignacioTaller.getAssignmentDetails(id);
+            res.json(details);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Error al obtenir els detalls." });
+        }
+    },
+
+    // Eliminar una petició sencera
     delete: async (req, res) => {
         try {
-            // Validació PERMISOS ADMIN
             if (req.user.rol !== 'ADMIN') {
-                return res.status(403).json({ message: "No tens permisos per eliminar sol·licituds." });
+                return res.status(403).json({ message: "No tens permisos." });
             }
 
             const { id } = req.params;
             const success = await Peticio.delete(id);
             if (success) {
-                // REGISTRAR AUDITORIA
                 await Log.create({
                     usuari_id: req.user.id,
                     accio: 'DELETE_PETICIO',
                     taula_afectada: 'peticions',
                     valor_anterior: { id }
                 });
-
                 res.json({ message: "Sol·licitud eliminada correctament." });
             } else {
                 res.status(404).json({ message: "No s'ha trobat la sol·licitud." });
