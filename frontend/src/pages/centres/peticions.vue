@@ -100,10 +100,20 @@
             </div>
             <div class="form-row">
               <div class="form-group checkbox-group">
-                <label>
-                  <input type="checkbox" v-model="t.es_preferencia_referent">
-                  És preferència referent
-                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Prioritat (1-10)</label>
+                <input 
+                  type="number" 
+                  v-model.number="t.prioritat" 
+                  min="1" 
+                  max="10" 
+                  placeholder="1 = Mínima, 10 = Màxima"
+                  required
+                >
+                <small class="help-text">1: Mínima, 10: Màxima</small>
               </div>
             </div>
 
@@ -216,6 +226,7 @@ const nextStep = () => {
     num_participants: 1,
     docent_nom: '',
     docent_email: '',
+    prioritat: 1,
     es_preferencia_referent: false
   }));
   currentStep.value = 2;
