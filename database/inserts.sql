@@ -27,12 +27,12 @@ INSERT INTO professors (id, user_id, centre_id, nom, cognoms) VALUES
 
 
 -- 5. TAULA: tallers
-INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio) VALUES
-('Robòtica i IA', 'Disseny i programació de sistemes autònoms.', 'Manufacturer', 'A', '1r, 2n, 3r', 12, 'C/ Tecnologia 12', 'Laboratori 1'),
-('Cuina Creativa', 'Taller de gastronomia i restauració.', 'Agroalimentari', 'C', '2n, 3r', 15, 'Mercat de Sants', 'Cuina Central'),
-('Energia Solar', 'Muntatge i manteniment de plaques fotovoltaiques.', 'Energètic', 'B', '2n', 10, 'Instal·lacions del centre', 'Taller Extern'),
-('Mecànica de Vehicles', 'Manteniment bàsic de motors elèctrics.', 'Manufacturer', 'A', '1r, 3r', 12, 'C/ Motor 5', 'Taller 4'),
-('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 'C/ Estil 22', 'Aula de Disseny');
+INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio) VALUES
+('Robòtica i IA', 'Disseny i programació de sistemes autònoms.', 'Manufacturer', 'A', '1r, 2n, 3r', 12, 12, 'C/ Tecnologia 12', 'Laboratori 1'),
+('Cuina Creativa', 'Taller de gastronomia i restauració.', 'Agroalimentari', 'C', '2n, 3r', 15, 15, 'Mercat de Sants', 'Cuina Central'),
+('Energia Solar', 'Muntatge i manteniment de plaques fotovoltaiques.', 'Energètic', 'B', '2n', 10, 10, 'Instal·lacions del centre', 'Taller Extern'),
+('Mecànica de Vehicles', 'Manteniment bàsic de motors elèctrics.', 'Manufacturer', 'A', '1r, 3r', 12, 12, 'C/ Motor 5', 'Taller 4'),
+('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 12, 'C/ Estil 22', 'Aula de Disseny');
 
 -- 6. TAULA: peticions
 INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES

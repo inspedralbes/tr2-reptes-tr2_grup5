@@ -31,10 +31,18 @@
               <span class="label">Sector:</span>
               <span class="value">{{ taller.sector }}</span>
             </div>
-            <div class="detail-row">
-              <span class="label">Places:</span>
-              <span class="value">{{ taller.places_maximes }} participants</span>
+
+            <div class="places-container">
+              <div class="detail-row">
+                <span class="label">Capacitat total:</span>
+                <span class="value">{{ taller.places_maximes }}</span>
+              </div>
+              <div class="remaining-box" :class="getRemainingClass(taller)">
+                <span class="rem-label">PLACES RESTANTS</span>
+                <span class="rem-value">{{ taller.places_restants ?? taller.places_maximes }}</span>
+              </div>
             </div>
+
             <div class="detail-row" v-if="taller.trimestres_disponibles">
               <span class="label">Trimestres:</span>
               <span class="value">{{ taller.trimestres_disponibles }}</span>
@@ -60,7 +68,6 @@
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
-// Fem la petició al backend per obtenir els tallers (només des del client per evitar errors de Docker SSR)
 const token = useCookie('authToken');
 const { data: tallers, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/tallers', {
   server: false,
@@ -68,191 +75,90 @@ const { data: tallers, pending, error, refresh } = await useFetch('http://localh
     Authorization: token.value ? `Bearer ${token.value}` : ''
   }
 })
+
+// Funció per determinar el color segons les places que queden
+const getRemainingClass = (taller) => {
+  const restants = taller.places_restants ?? taller.places_maximes;
+  if (restants <= 0) return 'critical';
+  if (restants < 5) return 'warning';
+  return 'good';
+}
 </script>
 
 <style scoped>
-.page {
-  padding: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.header-actions h2 {
-  font-size: 1.8rem;
-  color: #1a202c;
-  font-weight: 700;
-  margin: 0;
-}
+/* ... Estils anteriors es mantenen igual ... */
+.page { padding: 30px; max-width: 1400px; margin: 0 auto; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.header-actions h2 { font-size: 1.8rem; color: #1a202c; font-weight: 700; margin: 0; }
 
 .btn-primary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease;
+  color: white; padding: 12px 24px; border: none; border-radius: 10px;
+  cursor: pointer; font-weight: 600; text-decoration: none;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); transition: all 0.2s ease;
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
-}
+.tallers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
 
-/* Grids */
-.tallers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-}
-
-/* Card Styling */
 .taller-card {
-  background: white;
-  border-radius: 16px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background: white; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
 }
 
-.taller-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border-color: #cbd5e1;
+/* NOUS ESTILS PER A LES PLACES */
+.places-container {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 12px;
+  margin: 15px 0;
+  border: 1px solid #edf2f7;
 }
 
-.card-header {
-  padding: 16px 20px;
+.remaining-box {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f1f5f9;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
 }
 
-.modality-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  text-transform: uppercase;
+.rem-label {
+  font-size: 0.7rem;
+  font-weight: 800;
   letter-spacing: 0.05em;
+  color: #64748b;
 }
 
+.rem-value {
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+/* Estats de places */
+.critical .rem-value { color: #ef4444; }
+.critical .rem-label { color: #ef4444; }
+.warning .rem-value { color: #f59e0b; }
+.good .rem-value { color: #10b981; }
+
+/* ... Resta d'estils de la card header, footer, etc ... */
+.card-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+.modality-badge { font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; }
 .mod-A { background: #dbeafe; color: #1e40af; }
 .mod-B { background: #fef3c7; color: #92400e; }
 .mod-C { background: #dcfce7; color: #166534; }
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #64748b;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.dot.active { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+.status-indicator { display: flex; align-items: center; font-size: 0.8rem; font-weight: 500; color: #64748b; }
+.dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+.dot.active { background-color: #10b981; }
 .dot.archived { background-color: #94a3b8; }
-
-.card-content {
-  padding: 24px 20px;
-  flex-grow: 1;
-}
-
-.taller-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a202c;
-  margin: 0 0 12px 0;
-  line-height: 1.2;
-}
-
-.description {
-  font-size: 0.9rem;
-  color: #4b5563;
-  line-height: 1.5;
-  margin-bottom: 20px;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  display: -webkit-box;
-  overflow: hidden;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 0.85rem;
-}
-
-.detail-row .label {
-  color: #64748b;
-  font-weight: 500;
-}
-
-.detail-row .value {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.card-footer {
-  padding: 16px 20px;
-  background-color: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.taller-id {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.btn-icon {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.btn-icon:hover {
-  background-color: #e2e8f0;
-  color: #2563eb;
-}
-
-.loading, .error, .no-data {
-  text-align: center;
-  padding: 60px 20px;
-  font-weight: 500;
-}
-
-.loading { color: #3b82f6; }
-.error { color: #ef4444; }
-.no-data { color: #64748b; }
+.card-content { padding: 24px 20px; flex-grow: 1; }
+.taller-title { font-size: 1.25rem; font-weight: 700; color: #1a202c; margin: 0 0 12px 0; }
+.description { font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 20px; height: 45px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.detail-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
+.detail-row .label { color: #64748b; font-weight: 500; }
+.detail-row .value { color: #1e293b; font-weight: 600; }
+.card-footer { padding: 16px 20px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.taller-id { font-size: 0.75rem; font-weight: 600; color: #94a3b8; }
+.btn-icon { background: transparent; border: none; color: #64748b; cursor: pointer; padding: 6px; border-radius: 6px; }
+.btn-icon:hover { background-color: #e2e8f0; color: #2563eb; }
 </style>

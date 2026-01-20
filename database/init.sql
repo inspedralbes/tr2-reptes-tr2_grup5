@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS tallers (
     modalitat ENUM('A', 'B', 'C'),
     trimestres_disponibles VARCHAR(50),
     places_maximes INT DEFAULT 12,
+    places_restants INT DEFAULT 12,
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
     actiu TINYINT(1) DEFAULT 1
