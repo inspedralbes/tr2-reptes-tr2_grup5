@@ -7,6 +7,7 @@ const SECTORS_VALID = [
   "Financer", "Immobiliari", "Professional"
 ];
 
+// Obtenir tots els tallers
 const getAllTallers = async (req, res) => {
   try {
     const filter = req.query.filter || 'active';
@@ -17,6 +18,23 @@ const getAllTallers = async (req, res) => {
   }
 };
 
+// --- NOVA FUNCIÓ: Obtenir un taller per ID (Necessària per a l'edició) ---
+const getTallerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const taller = await Taller.findById(id);
+    
+    if (!taller) {
+      return res.status(404).json({ message: "Taller no trobat" });
+    }
+    
+    res.json(taller);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Crear un nou taller
 const createTaller = async (req, res) => {
   const {
     titol, descripcio, sector, modalitat,
@@ -48,7 +66,6 @@ const createTaller = async (req, res) => {
       modalitat,
       trimestres_disponibles,
       places_maximes: capacitat,
-      // La resta de places s'inicialitza automàticament al model
       adreca,
       ubicacio
     });
@@ -66,6 +83,7 @@ const createTaller = async (req, res) => {
   }
 };
 
+// Actualitzar un taller existent
 const updateTaller = async (req, res) => {
   const { id } = req.params;
   const newData = req.body;
@@ -73,30 +91,33 @@ const updateTaller = async (req, res) => {
   try {
     const oldData = await Taller.findById(id);
     if (!oldData) return res.status(404).json({ message: "Taller no trobat" });
-
-    // Si l'administrador canvia les places màximes, hauríem de recalcular les restants?
-    // Per simplificar, aquí només actualitzem dades generals.
     
     const updated = await Taller.update(id, newData);
 
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null,
-      accio: 'UPDATE',
-      taula_afectada: 'tallers',
-      valor_anterior: oldData,
-      valor_nou: { id, ...newData }
-    });
-
-    res.json({ message: "Taller actualitzat correctament" });
+    if (updated) {
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null,
+        accio: 'UPDATE',
+        taula_afectada: 'tallers',
+        valor_anterior: oldData,
+        valor_nou: { id, ...newData }
+      });
+      res.json({ message: "Taller actualitzat correctament" });
+    } else {
+      res.status(400).json({ message: "No s'ha pogut actualitzar el taller" });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// Eliminar o arxivar un taller
 const deleteTaller = async (req, res) => {
   const { id } = req.params;
   try {
     const oldData = await Taller.findById(id);
+    if (!oldData) return res.status(404).json({ message: "Taller no trobat" });
+
     const hasDeps = await Taller.hasDependencies(id);
 
     if (hasDeps) {
@@ -107,7 +128,7 @@ const deleteTaller = async (req, res) => {
         taula_afectada: 'tallers',
         valor_nou: { id, actiu: 0 }
       });
-      return res.json({ message: "Taller arxivat correctament.", archived: true });
+      return res.json({ message: "Taller arxivat correctament (té peticions associades).", archived: true });
     }
 
     await Taller.delete(id);
@@ -123,4 +144,11 @@ const deleteTaller = async (req, res) => {
   }
 };
 
-module.exports = { getAllTallers, createTaller, updateTaller, deleteTaller };
+// Exportació de totes les funcions
+module.exports = { 
+  getAllTallers, 
+  getTallerById, // <--- Exportada correctament
+  createTaller, 
+  updateTaller, 
+  deleteTaller 
+};

@@ -12,6 +12,7 @@ const usuarisController = require("../controllers/admin/usuarisController");
 //--- RUTES PER A TALLERS ---
 // URL base: /api/admin/tallers
 router.get("/tallers", tallersController.getAllTallers);
+router.get("/tallers/:id", tallersController.getTallerById);
 router.post("/tallers", tallersController.createTaller);
 router.put("/tallers/:id", tallersController.updateTaller);
 router.delete("/tallers/:id", tallersController.deleteTaller);
