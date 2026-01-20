@@ -97,6 +97,7 @@ import { ref, onMounted } from 'vue'
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
+const tokenCookie = useCookie('authToken')
 const actionLoading = ref(false)
 const expandedRows = ref([])
 const peticions = ref([])
@@ -108,7 +109,7 @@ const fetchPeticions = async () => {
   pending.value = true
   error.value = null
   try {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    const token = tokenCookie.value
     const data = await $fetch('http://localhost:1700/api/admin/peticions', {
       headers: {
         Authorization: token ? `Bearer ${token}` : ''
