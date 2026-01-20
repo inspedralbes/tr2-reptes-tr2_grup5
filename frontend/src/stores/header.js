@@ -22,7 +22,6 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Usuaris/Centres', route: '/admin/usuaris' },
           { label: 'Estadístiques', route: '/admin/estadistiques' },
           { label: 'Auditoria', route: '/admin/auditoria' },
-          { label: 'Peticions', route: '/admin/peticions' },
           { label: 'Sortir', route: '/login' }
         ]
       })
