@@ -8,7 +8,7 @@ const Peticio = {
             await connection.beginTransaction();
 
             // 1. Inserir a la taula 'peticions'
-            const { centre_id, trimestre, disponibilitat_dimarts, comentaris } = peticioData;
+            const { centre_id, trimestre, disponibilitat_dimarts, comentaris} = peticioData;
             const [peticioResult] = await connection.query(
                 "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES (?, ?, ?, ?)",
                 [centre_id, trimestre, disponibilitat_dimarts, comentaris]
@@ -18,11 +18,12 @@ const Peticio = {
 
             // 2. Inserir els detalls a 'peticio_detalls'
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
                     d.num_participants > 4 ? 4 : d.num_participants,
+                    d.prioritat || 1,
                     d.es_preferencia_referent ? 1 : 0,
                     d.docent_nom || null,
                     d.docent_email || null
