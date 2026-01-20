@@ -76,11 +76,12 @@
 <script setup>
 const header = useHeaderStore()
 header.setHeaderCentres()
+const tokenCookie = useCookie('authToken');
 
 const { data: assignacions, pending, error, refresh } = await useFetch('http://localhost:1700/api/centre/assignacions', {
   server: false,
   headers: {
-    Authorization: typeof localStorage !== 'undefined' ? `Bearer ${localStorage.getItem('authToken')}` : ''
+    Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
   }
 })
 </script>

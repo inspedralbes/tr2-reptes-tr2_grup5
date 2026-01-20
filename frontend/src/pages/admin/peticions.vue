@@ -156,7 +156,7 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
 
   actionLoading.value = true
   try {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    const token = tokenCookie.value;
     await $fetch(`http://localhost:1700/api/admin/peticions/${peticioId}/tallers/${tallerId}/estat`, {
       method: 'PUT',
       headers: { Authorization: token ? `Bearer ${token}` : '' },
