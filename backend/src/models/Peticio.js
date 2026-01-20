@@ -30,8 +30,6 @@ const Peticio = {
                 await connection.query(detallsSql, [values]);
             }
 
-
-
             await connection.commit();
             return peticio_id;
         } catch (error) {
@@ -45,7 +43,7 @@ const Peticio = {
     // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.taller_id, pd.num_participants, pd.es_preferencia_referent, t.titol as taller_titol
+      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id
@@ -84,7 +82,7 @@ const Peticio = {
             params.push(filters.trimestre);
         }
         if (filters.estat) {
-            sql += " AND p.estat = ?";
+            sql += " AND pd.estat = ?";
             params.push(filters.estat);
         }
 
@@ -92,8 +90,6 @@ const Peticio = {
 
         const [rows] = await db.query(sql, params);
 
-        // Per cada petició, portem els seus detalls
-        // (Nota: Podriem fer-ho tot en una query, però per simplicitat ho fem així ara)
         const enrichedRows = await Promise.all(rows.map(async (p) => {
             const [detalls] = await db.query(`
                 SELECT pd.*, t.titol, t.modalitat 
@@ -128,39 +124,41 @@ const Peticio = {
         return { ...peticio[0], detalls };
     },
 
-    // ADMIN: Actualitzar estat
-    updateEstat: async (id, estat) => {
-        const [result] = await db.query("UPDATE peticions SET estat = ? WHERE id = ?", [estat, id]);
-        return result.affectedRows > 0;
-    },
 
-    // ADMIN: Eliminar petició
+    // ADMIN: Eliminar petició sencera
     delete: async (id) => {
         const [result] = await db.query("DELETE FROM peticions WHERE id = ?", [id]);
         return result.affectedRows > 0;
     },
 
-    // ADMIN: Rebutjar automàticament peticions que ja no caben
-    rebutjarPerMancaDePlaces: async (taller_id, places_disponibles) => {
-        const sql = `
-            UPDATE peticions p
-            JOIN peticio_detalls pd ON p.id = pd.peticio_id
-            SET p.estat = 'REBUTJADA'
-            WHERE pd.taller_id = ? 
-              AND p.estat = 'PENDENT' 
-              AND pd.num_participants > ?
-        `;
-        const [result] = await db.query(sql, [taller_id, places_disponibles]);
-        return result.affectedRows;
-    },
+    // ADMIN: Actualitzar l'estat d'un taller dins d'una petició
+    updateEstat: async (peticio_id, taller_id, estat) => {
+        // Validar que l'estat sigui vàlid
+        const estatsValids = ['PENDENT', 'ASSIGNADA', 'REBUTJADA'];
+        if (!estatsValids.includes(estat)) {
+            throw new Error(`Estat no vàlid: ${estat}. Ha de ser un de: ${estatsValids.join(', ')}`);
+        }
 
-    // ADMIN: Anul·lar la preferència de referent d'un detall concret
-    anullarPreferenciaReferent: async (peticio_id, taller_id) => {
         const [result] = await db.query(
-            "UPDATE peticio_detalls SET es_preferencia_referent = 0 WHERE peticio_id = ? AND taller_id = ?",
-            [peticio_id, taller_id]
+            "UPDATE peticio_detalls SET estat = ? WHERE peticio_id = ? AND taller_id = ?",
+            [estat, peticio_id, taller_id]
         );
         return result.affectedRows > 0;
+    },
+
+    // ADMIN: Rebutjar automàticament detalls que ja no caben en un trimestre
+    rebutjarPerMancaDePlaces: async (taller_id, trimestre, places_disponibles) => {
+        const sql = `
+            UPDATE peticio_detalls pd
+            JOIN peticions p ON pd.peticio_id = p.id
+            SET pd.estat = 'REBUTJADA'
+            WHERE pd.taller_id = ? 
+              AND p.trimestre = ?
+              AND pd.estat = 'PENDENT' 
+              AND pd.num_participants > ?
+        `;
+        const [result] = await db.query(sql, [taller_id, trimestre, places_disponibles]);
+        return result.affectedRows;
     }
 };
 

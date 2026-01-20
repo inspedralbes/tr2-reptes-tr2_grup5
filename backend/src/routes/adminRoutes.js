@@ -27,8 +27,8 @@ router.delete("/centres/:id", centresController.deleteCentre);
 // URL base: /api/admin/peticions
 router.get("/peticions", peticionsController.getAll);
 router.get("/peticions/:id", peticionsController.getById);
-router.put("/peticions/:id/estat", peticionsController.updateEstat);
-router.post("/peticions/assignar", peticionsController.assignarTallerAInstitut);
+router.put("/peticions/:id/tallers/:taller_id/estat", peticionsController.updateTallerEstat);
+router.post("/peticions/assignar", peticionsController.assign);
 router.delete("/peticions/:id", peticionsController.delete);
 
 //--- RUTES PER CONFIGURACIÓ CHECKLIST ---

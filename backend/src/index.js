@@ -10,6 +10,7 @@ const centreRoutes = require("./routes/centreRoutes");
 const authRoutes = require("./routes/authRoutes");
 const solicitudRegistreRoutes = require("./routes/solicitudRegistreRoutes");
 
+
 //--- IMPORTEM MIDDLEWARES ---
 const verifyToken = require("./middleware/authMiddleware");
 const verifyRole = require("./middleware/roleMiddleware");
@@ -26,6 +27,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", verifyToken, verifyRole(['ADMIN']), adminRoutes);
 app.use("/api/centre", centreRoutes);
 app.use("/api/solicituds-registre", solicitudRegistreRoutes);
+
+
 
 //--- RUTA ARREL PER COMPROVAR QUE L'API FUNCIONA ---
 app.get("/", (req, res) => {

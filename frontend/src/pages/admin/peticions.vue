@@ -29,8 +29,8 @@
             <td>{{ peticio.trimestre }}</td>
             <td class="tallers-count">{{ peticio.detalls?.length || 0 }} talleres</td>
             <td>
-              <span :class="['status-badge', peticio.estat.toLowerCase()]">
-                {{ peticio.estat }}
+              <span :class="['status-badge', (peticio.estat || 'PENDENT').toLowerCase()]">
+                {{ peticio.estat || 'PENDENT' }}
               </span>
             </td>
             <td class="actions-cell">
@@ -92,21 +92,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
 const actionLoading = ref(false)
 const expandedRows = ref([])
+const peticions = ref([])
+const pending = ref(true)
+const error = ref(null)
 
 // Fetching peticions
-const tokenCookie = useCookie('authToken')
-const { data: peticions, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/peticions', {
-  server: false,
-  headers: {
-    Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
+const fetchPeticions = async () => {
+  pending.value = true
+  error.value = null
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''
+    const data = await $fetch('http://localhost:1700/api/admin/peticions', {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : ''
+      }
+    })
+    peticions.value = data
+  } catch (err) {
+    console.error('Error fetching peticions:', err)
+    error.value = err
+  } finally {
+    pending.value = false
   }
+}
+
+const refresh = () => fetchPeticions()
+
+onMounted(() => {
+  fetchPeticions()
 })
 
 const toggleRow = (id) => {

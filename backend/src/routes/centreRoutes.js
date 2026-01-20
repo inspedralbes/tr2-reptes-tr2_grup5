@@ -28,6 +28,7 @@ router.get("/perfil", verifyToken, async (req, res) => {
 
 // URL base: /api/centre/tallers
 router.get("/tallers", tallersController.getAllTallersDisponibles);
+router.get("/assignacions", verifyToken, tallersController.getMevesAssignacions);
 
 //--- RUTES PER A PROFESSORAT ---
 // URL base: /api/centre/professors
