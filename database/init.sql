@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS peticions (
     trimestre ENUM('2n', '3r'),
     disponibilitat_dimarts TINYINT(1) DEFAULT 0,
     comentaris TEXT NULL,
+    prioritat INT CHECK (prioritat IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
     data_creacio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

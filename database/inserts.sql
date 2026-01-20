@@ -35,8 +35,8 @@ INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponible
 ('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 'C/ Estil 22', 'Aula de Disseny');
 
 -- 6. TAULA: peticions
-INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES
-(1, 1, '2n', 1, 'Comentari de prova inicial');
+INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts, comentaris, prioritat) VALUES
+(1, 1, '2n', 1, 'Comentari de prova inicial', 1);
 
 -- 7. TAULA: peticio_detalls
 INSERT INTO peticio_detalls (id, peticio_id, taller_id, num_participants, es_preferencia_referent, estat) VALUES
