@@ -4,7 +4,7 @@
       <h2>Els meus Tallers</h2> 
     </div>
 
-    <div v-if="pending" class="loading">Carregant tallers...</div>
+    <div v-if="pending" class="loading">Carregant tallers....</div>
     <div v-else-if="error" class="error">Error carregant els tallers: {{ error.message }}</div>
     
     <div v-else class="content-container">
