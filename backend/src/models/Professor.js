@@ -54,7 +54,7 @@ const Professor = {
     // Obtenir els tallers assignats a un professor (mitjançant l'email del docent a peticio_detalls)
     getAssignedTallers: async (email) => {
         const sql = `
-            SELECT t.*, pd.estat as estat_assignacio, p.trimestre, pd.id as detall_id, pd.docent_nom, pd.docent_email
+            SELECT t.*, pd.estat as estat_assignacio, p.trimestre, pd.id as detall_id, pd.docent_nom, pd.docent_email, pd.num_participants
             FROM peticio_detalls pd
             JOIN tallers t ON pd.taller_id = t.id
             JOIN peticions p ON pd.peticio_id = p.id
