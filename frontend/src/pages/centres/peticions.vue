@@ -156,7 +156,7 @@ const handleSaveDocent = async (tallerIndex) => {
       ...newDocent.value,
       centre_id: centre.value.id
     };
-    const savedProf = await $fetch('http://localhost:1700/api/centre/professors', {
+    const savedProf = await $fetch('/api/centre/professors', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: payload
@@ -186,9 +186,9 @@ const fetchData = async () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     
     const [resTallers, resProfs, resCentre] = await Promise.all([
-      $fetch('http://localhost:1700/api/centre/tallers', { headers }),
-      $fetch('http://localhost:1700/api/centre/professors', { headers }),
-      $fetch('http://localhost:1700/api/centre/perfil', { headers })
+      $fetch('/api/centre/tallers', { headers }),
+      $fetch('/api/centre/professors', { headers }),
+      $fetch('/api/centre/perfil', { headers })
     ]);
     
     tallers.value = resTallers;
@@ -234,7 +234,7 @@ const handleSubmit = async () => {
   submitting.value = true;
   try {
     const token = tokenCookie.value;
-    await $fetch('http://localhost:1700/api/centre/peticions', {
+    await $fetch('/api/centre/peticions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: form.value

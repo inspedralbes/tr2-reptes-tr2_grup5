@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copiamos dependencias primero para optimizar cache
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copiamos el resto del código
 COPY frontend/ ./

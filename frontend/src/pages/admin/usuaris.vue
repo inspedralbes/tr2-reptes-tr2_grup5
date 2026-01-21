@@ -67,7 +67,7 @@ header.setHeaderAdmin()
 const mostrarCentres = ref(true)
 
 // backend base (dev)
-const backendBase = 'http://localhost:1700'
+const backendBase = ''
 
 // obtener token via cookie
 const tokenCookie = useCookie('authToken')

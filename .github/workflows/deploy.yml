@@ -1,0 +1,42 @@
+name: Deploy Tr2g5 Total
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            cd /var/www/html/Tr2g5 || exit
+            
+            # Limpiamos cambios locales para evitar errores de Git
+            git reset --hard origin/main
+            git pull origin main
+
+            # Usamos los SECRETS de GitHub para crear el .env dentro de la carpeta docker
+            cat <<EOF > docker/.env
+            PORT_NGINX=${{ secrets.PORT_NGINX }}
+            DB_HOST=database
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+            NODE_ENV=production
+            PORT=${{ secrets.PORT_BACKEND }}
+            PORT_BACKEND=${{ secrets.PORT_BACKEND }}
+            PORT_FRONTEND=${{ secrets.PORT_FRONTEND }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            EOF
+
+            # Entramos en la carpeta donde está el docker-compose y lanzamos
+            cd docker
+            docker compose -f docker-compose.prod.yml up --build -d --remove-orphans

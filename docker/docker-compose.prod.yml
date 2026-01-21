@@ -3,12 +3,32 @@
 
 services:
 
+  database:
+    image: mysql:8.0
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../database/inserts.sql:/docker-entrypoint-initdb.d/inserts.sql
+      - db_prod_data:/var/lib/mysql
+    networks:
+      - prod-network
+    restart: unless-stopped
+
   nginx:
     build:
       context: ..
       dockerfile: docker/nginx.Dockerfile
     ports:
       - "${PORT_NGINX}:${PORT_NGINX}"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend
@@ -21,7 +41,7 @@ services:
       context: ../backend
       dockerfile: docker/Dockerfile
     env_file:
-      - ../.env
+      - .env
     command: npm run start:prod
     environment:
       NODE_ENV: ${NODE_ENV}
@@ -48,3 +68,6 @@ services:
 networks:
   prod-network:
     driver: bridge
+
+volumes:
+  db_prod_data:
