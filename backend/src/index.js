@@ -5,8 +5,10 @@ const express = require("express");
 const cors = require("cors");
 
 //--- IMPORTEM LES RUTES PER ROLS ---
+//--- IMPORTEM LES RUTES PER ROLS ---
 const adminRoutes = require("./routes/adminRoutes");
 const centreRoutes = require("./routes/centreRoutes");
+const professorRoutes = require("./routes/professorRoutes");
 const authRoutes = require("./routes/authRoutes");
 const solicitudRegistreRoutes = require("./routes/solicitudRegistreRoutes");
 
@@ -26,6 +28,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", verifyToken, verifyRole(['ADMIN']), adminRoutes);
 app.use("/api/centre", centreRoutes);
+app.use("/api/professors", professorRoutes);
 app.use("/api/solicituds-registre", solicitudRegistreRoutes);
 
 

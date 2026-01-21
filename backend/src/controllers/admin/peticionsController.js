@@ -108,7 +108,7 @@ const peticionsController = {
             await Peticio.updateEstat(peticio_id, taller_id, 'ASSIGNADA');
 
             // 3. Gestió de Referents
-            if (detall.es_preferencia_referent == 1 && detall.docent_email) {
+            if (detall.docent_email) {
                 const numReferents = await AssignacioTaller.getReferentsCount(detall.id);
                 if (numReferents < 2) {
                     const [prof] = await db.query(`
