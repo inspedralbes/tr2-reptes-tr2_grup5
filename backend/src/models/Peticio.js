@@ -8,17 +8,17 @@ const Peticio = {
             await connection.beginTransaction();
 
             // 1. Inserir a la taula 'peticions'
-            const { centre_id, trimestre, disponibilitat_dimarts, comentaris} = peticioData;
+            const { centre_id, trimestre, disponibilitat_dimarts } = peticioData;
             const [peticioResult] = await connection.query(
-                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES (?, ?, ?, ?)",
-                [centre_id, trimestre, disponibilitat_dimarts, comentaris]
+                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts) VALUES (?, ?, ?)",
+                [centre_id, trimestre, disponibilitat_dimarts]
             );
 
             const peticio_id = peticioResult.insertId;
 
             // 2. Inserir els detalls a 'peticio_detalls'
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
@@ -26,7 +26,8 @@ const Peticio = {
                     d.prioritat || 1,
                     d.es_preferencia_referent ? 1 : 0,
                     d.docent_nom || null,
-                    d.docent_email || null
+                    d.docent_email || null,
+                    d.comentaris || null
                 ]);
                 await connection.query(detallsSql, [values]);
             }
@@ -41,7 +42,7 @@ const Peticio = {
         }
     },
 
-    // Obtenir peticions d'un centre
+    // Obtenir peticions d'un centre //TODO: OBTENIR DETALLS SE PETICIONS D'UN CENTRE
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
       SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
@@ -49,12 +50,12 @@ const Peticio = {
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id
       WHERE p.centre_id = ?
-      ORDER BY p.data_creacio DESC
+      ORDER BY pd.prioritat ASC
     `, [centre_id]);
         return rows;
     },
 
-    // ADMIN: Obtenir totes les peticions amb filtres
+    // ADMIN: Obtenir totes les peticions amb filtres //TODO: OBTENIR TOTS ELS DETALLS DE PETICIONS
     getAllAdmin: async (filters = {}) => {
         let sql = `
             SELECT DISTINCT p.*, c.nom_centre
