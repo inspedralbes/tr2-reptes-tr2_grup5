@@ -8,6 +8,7 @@ const centresController = require("../controllers/admin/centresController");
 const checklistController = require("../controllers/admin/checklistConfigController");
 const peticionsController = require("../controllers/admin/peticionsController");
 const usuarisController = require("../controllers/admin/usuarisController");
+const logsController = require("../controllers/admin/logsController");
 
 //--- RUTES PER A TALLERS ---
 // URL base: /api/admin/tallers
@@ -40,6 +41,9 @@ router.delete("/checklist-config/:id", checklistController.deleteChecklistStep);
 
 // --- RUTA: llistar usuaris ---
 router.get("/usuaris", usuarisController.getAllUsers);
+
+// --- RUTA: llistar logs ---
+router.get("/logs", logsController.getAll);
 
 
 module.exports = router;
