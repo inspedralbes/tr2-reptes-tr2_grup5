@@ -113,7 +113,7 @@ const filteredProfessors = computed(() => {
 const fetchProfessors = async () => {
   try {
     const token = tokenCookie.value
-    professors.value = await $fetch('http://localhost:1700/api/centre/professors', {
+    professors.value = await $fetch('/api/centre/professors', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
   } catch (e) { console.error(e) }
@@ -124,7 +124,7 @@ const handleSave = async () => {
   try {
     const token = tokenCookie.value
     const method = editingId.value ? 'PUT' : 'POST'
-    const url = 'http://localhost:1700/api/centre/professors'
+    const url = '/api/centre/professors'
     const finalUrl = editingId.value ? `${url}/${editingId.value}` : url
     await $fetch(finalUrl, { method, headers: { 'Authorization': `Bearer ${token}` }, body: form.value })
     closeModal()
@@ -136,7 +136,7 @@ const handleDelete = async (id) => {
   if (!confirm('Eliminar docent?')) return
   try {
     const token = tokenCookie.value
-    await $fetch(`http://localhost:1700/api/centre/professors/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }})
+    await $fetch(`/api/centre/professors/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }})
     fetchProfessors()
   } catch (e) { console.error(e) }
 }

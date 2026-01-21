@@ -72,7 +72,7 @@ const fetchSolicitudes = async () => {
 			navigateTo('/login')
 			return
 		}
-		const res = await $fetch(`http://localhost:1700/api/solicituds-registre`, {
+		const res = await $fetch(`/api/solicituds-registre`, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 		// normalize response to array
@@ -126,7 +126,7 @@ const updateEstado = async (id, estado) => {
 	try {
 		const tokenCookie = useCookie('authToken')
 		const token = tokenCookie.value
-		const res = await $fetch(`http://localhost:1700/api/solicituds-registre/${id}`, {
+		const res = await $fetch(`/api/solicituds-registre/${id}`, {
 			method: 'PUT',
 			headers: { Authorization: token ? `Bearer ${token}` : '' },
 			body: { estat: estado }

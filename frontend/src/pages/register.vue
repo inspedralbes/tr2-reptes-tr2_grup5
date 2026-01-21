@@ -130,7 +130,7 @@ const submitForm = async () => {
 			}
 
 			// Use relative path so Nuxt dev server can proxy / avoids CORS issues
-			const res = await $fetch('http://localhost:1700/api/solicituds-registre', {
+			const res = await $fetch('/api/solicituds-registre', {
 				method: 'POST',
 				body: payload
 			})
