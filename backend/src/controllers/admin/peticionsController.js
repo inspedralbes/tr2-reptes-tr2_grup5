@@ -114,7 +114,7 @@ const peticionsController = {
             if (!detall) return res.status(400).json({ message: "Aquest taller no forma part de la sol·licitud." });
 
             const numParticipants = detall.num_participants;
-            const trimestre = peticio.trimestre;
+            const trimestre = detall.trimestre;
 
             // 1. Comprovar capacitat (usant AssignacioTaller com tenies)
             const capacitat = await AssignacioTaller.teCapacitatSuficient(taller_id, trimestre, numParticipants);
