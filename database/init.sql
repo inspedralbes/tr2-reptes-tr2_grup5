@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY (peticio_detall_id) REFERENCES peticio_detalls(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 12.1. Taula: assistencia_alumnes (Llista d'alumnes amb assistència)
+CREATE TABLE IF NOT EXISTS assistencia_alumnes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    peticio_detall_id INT NOT NULL,
+    nom VARCHAR(100),
+    cognoms VARCHAR(100),
+    email VARCHAR(255),
+    ha_assistit TINYINT(1) DEFAULT 1,
+    FOREIGN KEY (peticio_detall_id) REFERENCES peticio_detalls(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- 13. Taula: checklist_config
 CREATE TABLE IF NOT EXISTS checklist_config (
     id INT AUTO_INCREMENT PRIMARY KEY,
