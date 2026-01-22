@@ -1,11 +1,11 @@
 <template>
   <div class="page">
     <div class="header-actions">
-      <h2>Assistència - {{ taller?.titol }}</h2>
+      <h2>Gestió de Llista - {{ taller?.titol }}</h2>
       <div class="actions">
         <button class="btn-primary" @click="openModal" :disabled="!taller">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-          Afegir alumnes
+          Afegir Alumnes
         </button>
         <button class="btn-secondary" @click="router.back()">Tornar</button>
       </div>
@@ -15,16 +15,20 @@
     <div v-else-if="error" class="error">Error: {{ error.message }}</div>
 
     <div v-else class="content-container">
+      <div class="info-banner">
+        <p>Com a docent assignat, pots afegir alumnes a la llista. Aquesta llista serà visible per al professor referent per passar llista.</p>
+      </div>
+
       <!-- Llista d'alumnes ja registrats -->
       <div v-if="assistencia && assistencia.length > 0" class="students-list">
-        <h3>Alumnes Registrats</h3>
+        <h3>Alumnes a la Llista</h3>
         <table>
           <thead>
             <tr>
               <th>Nom</th>
               <th>Cognoms</th>
               <th>Email</th>
-              <th>Assistència</th>
+              <th>Accions</th>
             </tr>
           </thead>
           <tbody>
@@ -33,23 +37,23 @@
               <td>{{ student.cognoms }}</td>
               <td>{{ student.email }}</td>
               <td>
-                <span :class="student.ha_assistit ? 'badge-success' : 'badge-danger'">
-                  {{ student.ha_assistit ? 'Sí' : 'No' }}
-                </span>
+                <button class="btn-delete" @click="deleteStudent(student.id)" title="Eliminar de la llista">
+                   🗑️
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       <div v-else class="no-data">
-        <p>No hi ha alumnes registrats encara.</p>
+        <p>No hi ha alumnes a la llista. Afegeix-ne perquè el referent pugui passar assistència.</p>
       </div>
     </div>
 
     <!-- MODAL -->
     <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
-        <h3>Afegir Alumnes ({{ taller?.num_participants }} places)</h3>
+        <h3>Afegir Alumnes ({{ taller?.num_participants }} places totals)</h3>
         <form @submit.prevent="submitAssistencia">
           <div class="students-form-grid">
             <div v-for="(student, index) in studentsForm" :key="index" class="student-row">
@@ -63,18 +67,14 @@
               <div class="form-group">
                 <input v-model="student.email" type="email" placeholder="Email" required />
               </div>
-              <div class="form-group checkbox">
-                <label>
-                  <input type="checkbox" v-model="student.ha_assistit"> Assistència
-                </label>
-              </div>
+              <!-- Eliminat checkbox d'assistència inicial -->
             </div>
           </div>
           
           <div class="modal-actions">
             <button type="button" class="btn-secondary" @click="closeModal">Cancel·lar</button>
             <button type="submit" class="btn-primary" :disabled="submitting">
-              {{ submitting ? 'Guardant...' : 'Guardar Tot' }}
+              {{ submitting ? 'Enviant...' : 'Enviar Llista' }}
             </button>
           </div>
         </form>
@@ -89,16 +89,12 @@ const route = useRoute();
 const router = useRouter();
 const detalleId = route.params.id; 
 
-console.log("Detalle ID:", detalleId);
-
 const token = useCookie('authToken');
 const showModal = ref(false);
 const submitting = ref(false);
 const studentsForm = ref([]);
 
-// 1. Fetch taller info (per saber num_participants) + assistencia actual
-// Necessitem un endpoint que ens doni info del taller concret o reutilitzar getTallers i filtrar
-// Per simplificar, farem servir el getTallers i buscarem el que coincideixi amb l'ID
+// 1. Fetch taller info
 const { data: tallers } = await useFetch('http://localhost:1700/api/professors/tallers', {
   headers: { Authorization: `Bearer ${token.value}` }
 });
@@ -108,21 +104,30 @@ const taller = computed(() => {
   return tallers.value.find(t => t.detall_id == detalleId);
 });
 
-// 2. Fetch assistencia existent
-const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`http://localhost:1700/api/professors/assistencia/${detalleId}`, {
+// 2. Fetch llista existent (endpoint d'alumnes, no assistència)
+// Utilitzem getAlumnes que està permès per Docents
+const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
   headers: { Authorization: `Bearer ${token.value}` }
 });
 
 const openModal = () => {
   if (!taller.value) return;
   
-  // Inicialitzar el formulari amb tantes files com participants hi hagi
-  const count = taller.value.num_participants || 0;
-  studentsForm.value = Array.from({ length: count }, () => ({
+  const total = taller.value.num_participants || 0;
+  // Calculem quants en falten
+  const current = assistencia.value ? assistencia.value.length : 0;
+  const remaining = total - current;
+
+  if (remaining <= 0) {
+      alert("La llista està plena.");
+      return;
+  }
+  
+  studentsForm.value = Array.from({ length: remaining }, () => ({
     nom: '',
     cognoms: '',
     email: '',
-    ha_assistit: true
+    ha_assistit: true // Default intern
   }));
   
   showModal.value = true;
@@ -132,24 +137,37 @@ const closeModal = () => {
   showModal.value = false;
 };
 
+const deleteStudent = async (studentId) => {
+    if (!confirm("Segur que vols eliminar aquest alumne de la llista?")) return;
+    try {
+        await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes/${studentId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token.value}` }
+        });
+        refreshAssistencia();
+    } catch (e) {
+        alert("Error eliminant alumne: " + e.message);
+    }
+}
+
 const submitAssistencia = async () => {
   submitting.value = true;
   try {
-    await $fetch('http://localhost:1700/api/professors/assistencia', {
+    // Aquest endpoint és el correcte per Docents
+    await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
       body: {
-        peticio_detall_id: detalleId,
         alumnes: studentsForm.value
       }
     });
     
     await refreshAssistencia();
     closeModal();
-    alert('Alumnes guardats correctament!');
+    alert('Llista enviada correctament!');
   } catch (err) {
     console.error(err);
-    alert('Error guardant assistència');
+    alert('Error enviant la llista: ' + (err.data?.message || err.message));
   } finally {
     submitting.value = false;
   }
@@ -195,4 +213,26 @@ input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius
 .checkbox { display: flex; align-items: center; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+
+.info-banner {
+    background-color: #ebf8ff;
+    border-left: 4px solid #4299e1;
+    color: #2b6cb0;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.btn-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+.btn-delete:hover {
+    transform: scale(1.1);
+}
 </style>
