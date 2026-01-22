@@ -70,9 +70,8 @@ CREATE TABLE IF NOT EXISTS tallers (
 CREATE TABLE IF NOT EXISTS peticions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     centre_id INT NOT NULL,
-    trimestre ENUM('2n', '3r'),
+    trimestre ENUM('1r', '2n', '3r'),
     disponibilitat_dimarts TINYINT(1) DEFAULT 0,
-    comentaris TEXT NULL,
     data_creacio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -85,9 +84,10 @@ CREATE TABLE IF NOT EXISTS peticio_detalls (
     num_participants INT NOT NULL,
     prioritat INT CHECK (prioritat IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
     es_preferencia_referent TINYINT(1) DEFAULT 0,
-    docent_nom VARCHAR(255),
-    docent_email VARCHAR(255),
+    docent_nom VARCHAR(255) NOT NULL,
+    docent_email VARCHAR(255) NOT NULL,
     estat ENUM('PENDENT', 'ASSIGNADA', 'REBUTJADA') DEFAULT 'PENDENT',
+    descripcio TEXT,
     UNIQUE KEY (peticio_id, taller_id),
     FOREIGN KEY (peticio_id) REFERENCES peticions(id) ON DELETE CASCADE,
     FOREIGN KEY (taller_id) REFERENCES tallers(id) ON DELETE CASCADE

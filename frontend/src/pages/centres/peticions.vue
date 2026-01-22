@@ -52,6 +52,7 @@
               <label>Trimestre</label>
               <select v-model="form.trimestre" required>
                 <option value="" disabled>Selecciona un trimestre</option>
+                <option value="1r">1r Trimestre</option>
                 <option value="2n">2n Trimestre</option>
                 <option value="3r">3r Trimestre</option>
               </select>
@@ -62,10 +63,6 @@
                 Disponibilitat Dimarts
               </label>
             </div>
-          </div>
-          <div class="form-group">
-            <label>Comentaris (Transport, horaris, etc.)</label>
-            <textarea v-model="form.comentaris" rows="3" placeholder="Observacions..."></textarea>
           </div>
         </section>
 
@@ -100,6 +97,10 @@
             </div>
             <div class="form-row">
               <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="t.es_preferencia_referent">
+                  És preferència referent
+                </label>
               </div>
             </div>
             <div class="form-row">
@@ -116,7 +117,10 @@
                 <small class="help-text">1: Mínima, 10: Màxima</small>
               </div>
             </div>
-
+            <div class="form-group">
+              <label>Comentaris (Transport, horaris, etc.)</label>
+              <textarea v-model="t.comentaris" rows="3" placeholder="Observacions..."></textarea>
+            </div>
           </div>
         </section>
 
@@ -186,7 +190,6 @@ const handleSaveDocent = async (tallerIndex) => {
 const form = ref({
   trimestre: '',
   disponibilitat_dimarts: false,
-  comentaris: '',
   tallers: []
 });
 
@@ -227,7 +230,8 @@ const nextStep = () => {
     docent_nom: '',
     docent_email: '',
     prioritat: 1,
-    es_preferencia_referent: false
+    es_preferencia_referent: false,
+    comentaris: ''
   }));
   currentStep.value = 2;
 };
