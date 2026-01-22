@@ -8,7 +8,6 @@ INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
 (5, 'pere.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
 (6, 'anna.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW());
 
-
 -- 2. TAULA: administradors
 INSERT INTO administradors (user_id, nom, cognoms, carrec) VALUES
 (1, 'Admin', 'Sistema ENGINY', 'Tècnic de Gestió Educativa');
@@ -18,13 +17,11 @@ INSERT INTO centres (user_id, codi_centre, nom_centre, adreca, municipi, telefon
 (2, '08000131', 'La Presentació', 'c. Pompeu Fabra, 2', 'Arenys de Mar', '937920241', 'a8000131@xtec.cat', 'Coordinador/a', 0),
 (NULL, '08013110', 'Institut Pau Claris', 'pg. de Lluís Companys, 18', 'Barcelona', '932681555', 'a8013110@xtec.cat', 'Coordinador/a', 0);
 
-
 -- 4. TAULA: professors
 INSERT INTO professors (id, user_id, centre_id, nom, cognoms) VALUES
 (1, 3, 1, 'Marta', 'Rovira'),
 (2, 5, 1, 'Pere', 'López'),
 (3, 6, 1, 'Anna', 'Garcia');
-
 
 -- 5. TAULA: tallers
 INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio) VALUES
@@ -35,13 +32,13 @@ INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponible
 ('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 12, 'C/ Estil 22', 'Aula de Disseny');
 
 -- 6. TAULA: peticions
-INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES
-(1, 1, '2n', 1, 'Comentari de prova inicial');
+INSERT INTO peticions (id, centre_id, trimestre, disponibilitat_dimarts) VALUES
+(1, 1, '2n', 1);
 
--- 7. TAULA: peticio_detalls
-INSERT INTO peticio_detalls (id, peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, estat) VALUES
-(1, 1, 1, 4, 2, 1, 'ASSIGNADA'),
-(2, 1, 2, 2, 6, 0, 'PENDENT');
+-- 7. TAULA: peticio_detalls (CORREGIT: Afegit docent_nom i docent_email)
+INSERT INTO peticio_detalls (id, peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, estat) VALUES
+(1, 1, 1, 4, 2, 1, 'Marta Rovira', 'profe.referent@escola.cat', 'ASSIGNADA'),
+(2, 1, 2, 2, 6, 0, 'Pere López', 'pere.prof@la-presentacio.cat', 'PENDENT');
 
 -- 11. TAULA: referents_assignats
 INSERT INTO referents_assignats (peticio_detall_id, professor_id) VALUES
