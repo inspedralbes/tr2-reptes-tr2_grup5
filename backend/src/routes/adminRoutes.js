@@ -24,6 +24,7 @@ router.get("/centres", centresController.getAllCentres);
 router.post("/centres", centresController.createCentre);
 router.put("/centres/:id", centresController.updateCentre);
 router.delete("/centres/:id", centresController.deleteCentre);
+router.get("/centres/:id", centresController.getCentreById);
 
 //--- RUTES PER A SOL·LICITUDS DE TALLERS (Peticions) ---
 // URL base: /api/admin/peticions

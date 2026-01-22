@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" :class="{ 'page-exit': isExiting }">
     <h2 class="page-title">Usuaris/Centres</h2>
 
     <div class="header-row">
@@ -27,8 +27,7 @@
           v-for="centre in filteredCentres" 
           :key="centre.id" 
           class="card"
-          :class="{ 'is-expanded': expandedId === centre.id }"
-          @click="toggleExpand(centre.id)"
+          @click="handleNavigation(centre.id)"
         >
           <div class="card-top">
             <div class="codi">{{ centre.codi_centre || 'SENSE CODI' }}</div>
@@ -44,18 +43,7 @@
             <div class="meta"><strong>{{ centre.municipi ?? '—' }}</strong></div>
             <div class="meta">{{ centre.email_oficial ?? '—' }}</div>
           </div>
-
-          <div v-if="expandedId === centre.id" class="card-details" @click.stop>
-            <div class="details-divider"></div>
-            <p class="details-title">Tallers Assignats:</p>
-            <ul v-if="centre.tallers && centre.tallers.length > 0" class="details-list">
-              <li v-for="taller in centre.tallers" :key="taller.id">
-                <span class="dot"></span> 
-                <span class="taller-text">{{ taller.titol }}</span>
-              </li>
-            </ul>
-            <p v-else class="no-tallers">No hi ha tallers assignats.</p>
-          </div>
+          <div class="card-hint">Veure detalls →</div>
         </div>
         <div v-if="filteredCentres.length === 0" class="empty">No s'han trobat centres</div>
       </div>
@@ -85,15 +73,22 @@ header.setHeaderAdmin()
 
 const mostrarCentres = ref(true)
 const searchTerm = ref('')
-const expandedId = ref(null) 
-
-// Usamos el ID único de la base de datos para que solo se abra UNA tarjeta
-const toggleExpand = (id) => {
-  expandedId.value = expandedId.value === id ? null : id
-}
+const isExiting = ref(false) // Estado para la transición de salida
 
 const backendBase = 'http://localhost:1700'
 const token = useCookie('authToken').value
+
+// EVENT LISTENER DE NAVEGACIÓN
+const handleNavigation = async (id) => {
+  // Efecto visual antes de cambiar
+  isExiting.value = true
+  
+  // Pequeña espera para feedback visual
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  // Navegación programática a la página de detalle
+  navigateTo(`/admin/itemDetail/${id}`)
+}
 
 // Fetch Centres
 const { data: centres } = await useFetch(`${backendBase}/api/admin/centres`, {
@@ -102,7 +97,7 @@ const { data: centres } = await useFetch(`${backendBase}/api/admin/centres`, {
 
 const centresList = computed(() => {
   return (centres.value || []).map(c => ({
-    id: c.id, // ID Único fundamental
+    id: c.id,
     codi_centre: c.codi_centre,
     nom_centre: c.nom_centre,
     municipi: c.municipi,
@@ -141,12 +136,23 @@ const filteredUsuarios = computed(() => {
 </script>
 
 <style scoped>
-.page { padding: 20px 24px; }
+/* Transición de salida de la página */
+.page { 
+  padding: 20px 24px; 
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.page-exit { 
+  opacity: 0.6; 
+  transform: scale(0.995); 
+}
+
 .page-title { margin: 0 0 18px 0; font-size: 22px; color: #203a63; }
 .header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
 .tabs { display: flex; gap: 8px; }
 .tab { padding: 10px 16px; border-radius: 6px; border: 1px solid transparent; background: transparent; cursor: pointer; color: #3b5ca8; font-weight: 600; }
 .tab.active { background: #ffffff; border-color: #d8e6ff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+/* MANTENGO TU BUSCADOR EXACTAMENTE IGUAL */
 .search { padding: 10px 12px; border-radius: 6px; border: 1px solid #e6eef9; min-width: 320px; }
 
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
@@ -160,7 +166,13 @@ const filteredUsuarios = computed(() => {
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
-  height: fit-content; /* Permite que la tarjeta crezca al expandirse */
+  height: fit-content;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: #2b63b6;
+  box-shadow: 0 8px 16px rgba(43, 99, 182, 0.1);
 }
 
 .card::before {
@@ -176,22 +188,11 @@ const filteredUsuarios = computed(() => {
 .badge { background: #eef7ff; color: #2b63b6; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
 .badge.neutral { background: #f5f5f5; color: #999; }
 
-/* ESTILOS DESPLEGABLE */
-.is-expanded { border-color: #2b63b6; background: #fafcfe; }
-
-.card-details { margin-top: 15px; padding-top: 12px; width: 100%; }
-.details-divider { height: 1px; background: #e2e8f0; margin-bottom: 12px; }
-.details-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 10px; }
-
-.details-list { list-style: none; padding: 0; margin: 0; }
-.details-list li {
-  font-size: 13px; color: #1e293b; padding: 6px 0; display: flex; align-items: center; border-bottom: 1px solid #f1f5f9;
+.card-hint { 
+  margin-top: 12px; font-size: 11px; color: #2b63b6; font-weight: 700; 
+  text-align: right; opacity: 0; transition: opacity 0.2s;
 }
-.details-list li:last-child { border-bottom: none; }
+.card:hover .card-hint { opacity: 1; }
 
-.dot { width: 6px; height: 6px; background: #2b63b6; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
-.taller-text { font-weight: 500; }
-
-.no-tallers { font-size: 12px; color: #94a3b8; font-style: italic; margin-top: 5px; }
 .empty { grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b; }
 </style>

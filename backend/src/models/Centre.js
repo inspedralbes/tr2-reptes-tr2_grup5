@@ -30,12 +30,14 @@ const Centre = {
     }
   },
 
-  // Buscar un centre per ID incloent els seus tallers
+  // Buscar un centre per ID incloent els seus tallers, professors i alumnat/responsables
   findById: async (id) => {
     try {
+      // 1. Dades bàsiques del centre
       const [rows] = await db.query("SELECT * FROM centres WHERE id = ?", [id]);
       if (rows.length === 0) return null;
 
+      // 2. Tallers assignats al centre
       const [tallers] = await db.query(`
         SELECT t.titol, pd.estat 
         FROM peticio_detalls pd
@@ -44,14 +46,36 @@ const Centre = {
         WHERE p.centre_id = ? AND pd.estat = 'ASSIGNADA'
       `, [id]);
 
-      return { ...rows[0], tallers };
+      // 3. Professors vinculats directament al centre (Taula 'professors')
+      const [professors] = await db.query(`
+        SELECT id, nom, cognoms 
+        FROM professors 
+        WHERE centre_id = ?
+      `, [id]);
+
+      // 4. Responsables de grup i recompte d'alumnes (Taula 'peticio_detalls')
+      // Això extreu qui gestiona el taller i quants alumnes porta segons la petició
+      const [responsables_grups] = await db.query(`
+        SELECT DISTINCT pd.docent_nom as nom, pd.num_participants as n_alumnes, t.titol as taller
+        FROM peticio_detalls pd
+        JOIN peticions p ON pd.peticio_id = p.id
+        JOIN tallers t ON pd.taller_id = t.id
+        WHERE p.centre_id = ? AND pd.docent_nom IS NOT NULL
+      `, [id]);
+
+      // Retornem l'objecte complet per al frontend
+      return { 
+        ...rows[0], 
+        tallers, 
+        professors, 
+        responsables_grups 
+      };
     } catch (error) {
       console.error("Error a Centre.findById:", error);
       throw error;
     }
   },
 
-  // La resta de mètodes (create, update, delete, findByUserId) es mantenen igual...
   create: async (data) => {
     const sql = `
       INSERT INTO centres 

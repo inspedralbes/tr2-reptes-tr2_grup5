@@ -5,10 +5,24 @@ const User = require("../../models/User");
 // --- 1. GET: Obtenir tots els centres ---
 const getAllCentres = async (req, res) => {
   try {
-    // Aquí no cal canviar res si ja has modificat el mètode getAll al model Centre.js.
-    // Ara 'centres' ja contindrà l'array de tallers per a cada centre.
     const centres = await Centre.getAll();
     res.json(centres || []); 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- NOU: GET: Obtenir un centre per ID (Per al detall) ---
+const getCentreById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const centre = await Centre.findById(id);
+
+    if (!centre) {
+      return res.status(404).json({ message: "No s'ha trobat el centre" });
+    }
+
+    res.json(centre);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -22,7 +36,7 @@ const createCentre = async (req, res) => {
     user_id, 
     email_oficial, 
     adreca,
-    municipi,
+    municipi, 
     telefon,
     nom_coordinador,
     es_primera_vegada 
@@ -33,7 +47,6 @@ const createCentre = async (req, res) => {
   }
 
   try {
-    // Validació de Rol: Si s'assigna un usuari
     if (user_id) {
       const user = await User.findById(user_id);
       if (!user) {
@@ -147,8 +160,10 @@ const deleteCentre = async (req, res) => {
   }
 };
 
+// --- EXPORTS ACTUALITZATS ---
 module.exports = { 
-  getAllCentres,  
+  getAllCentres,
+  getCentreById, // Afegeix-lo aquí
   createCentre, 
   updateCentre, 
   deleteCentre 
