@@ -1,7 +1,26 @@
 <template>
   <div class="page">
     <div class="header-section">
-      <h2>Gestió de Peticions de Tallers</h2>
+      <div class="header-top">
+        <h2>Gestió de Peticions de Tallers</h2>
+        <button 
+          class="btn-auto-assign" 
+          @click="executeAutoAssignment" 
+          :disabled="autoAssignLoading"
+          title="Executar assignació automàtica de tallers"
+        >
+          <span v-if="autoAssignLoading">⏳ Processant...</span>
+          <span v-else>⚡ Executar Assignació Automàtica</span>
+        </button>
+      </div>
+      <div v-if="assignmentResult" class="assignment-result" :class="assignmentResult.success ? 'success' : 'error'">
+        <strong>{{ assignmentResult.message }}</strong>
+        <div v-if="assignmentResult.summary" class="summary-details">
+          Assignades: {{ assignmentResult.summary.success }} | 
+          Rebutjades: {{ assignmentResult.summary.rejected }} | 
+          Errors: {{ assignmentResult.summary.errors }}
+        </div>
+      </div>
     </div>
 
     <div v-if="pending && !detallsPeticions.length" class="loading">
@@ -23,7 +42,6 @@
             <th>Trimestre</th>
             <th>Participants</th>
             <th>Prioritat</th>
-            <th>Disponibilitat Dimarts</th>
             <th>Estat</th>
             <th class="actions-header">Accions</th>
           </tr>
@@ -67,10 +85,6 @@
               </span>
             </td>
             <td>
-              <span v-if="detall.disponibilitat_dimarts" class="disponibilitat-badge">✓ Sí</span>
-              <span v-else class="disponibilitat-badge no">✗ No</span>
-            </td>
-            <td>
               <span :class="['status-badge', (detall.estat || 'PENDENT').toLowerCase()]">
                 {{ detall.estat || 'PENDENT' }}
               </span>
@@ -104,6 +118,8 @@ header.setHeaderAdmin()
 
 const tokenCookie = useCookie('authToken')
 const actionLoading = ref(false)
+const autoAssignLoading = ref(false)
+const assignmentResult = ref(null)
 const detallsPeticions = ref([])
 const pending = ref(true)
 const error = ref(null)
@@ -170,6 +186,46 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
     actionLoading.value = false
   }
 }
+
+const executeAutoAssignment = async () => {
+  if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) {
+    return
+  }
+
+  autoAssignLoading.value = true
+  assignmentResult.value = null
+  
+  try {
+    const token = tokenCookie.value
+    const result = await $fetch('http://localhost:1700/api/admin/matching/auto', {
+      method: 'POST',
+      headers: { Authorization: token ? `Bearer ${token}` : '' }
+    })
+    
+    assignmentResult.value = {
+      success: true,
+      message: `Assignació automàtica completada!`,
+      summary: result.summary
+    }
+    
+    // Actualitzar la llista de peticions
+    await fetchPeticions()
+    
+    // Ocultar el missatge després de 8 segons
+    setTimeout(() => {
+      assignmentResult.value = null
+    }, 8000)
+    
+  } catch (err) {
+    console.error('Error executant assignació automàtica:', err)
+    assignmentResult.value = {
+      success: false,
+      message: `Error: ${err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.'}`
+    }
+  } finally {
+    autoAssignLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -179,7 +235,62 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
   margin-bottom: 30px; 
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
+
+.btn-auto-assign {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.btn-auto-assign:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-auto-assign:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.assignment-result {
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-top: 15px;
+  font-size: 0.95rem;
+}
+
+.assignment-result.success {
+  background: #dcfce7;
+  color: #15803d;
+  border-left: 4px solid #22c55e;
+}
+
+.assignment-result.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-left: 4px solid #ef4444;
+}
+
+.summary-details {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
 
 /* Taula Principal */
 .table-container {
@@ -298,18 +409,6 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
   font-size: 0.9rem;
 }
 .prio-level-1 { background: #dbeafe; color: #1e40af; }
-.disponibilitat-badge {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  background: #dcfce7;
-  color: #15803d;
-}
-.disponibilitat-badge.no {
-  background: #fee2e2;
-  color: #b91c1c;
-}
 
 .taller-details { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: #64748b; }
 .preferencia-referent-section {

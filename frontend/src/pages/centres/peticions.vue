@@ -63,12 +63,6 @@
                   <option value="3r">3r Trimestre</option>
                 </select>
               </div>
-              <div class="form-group checkbox-group">
-                <label>
-                  <input type="checkbox" v-model="t.disponibilitat_dimarts">
-                  Disponibilitat Dimarts
-                </label>
-              </div>
             </div>
 
             <div class="form-row">
@@ -225,7 +219,6 @@ const nextStep = () => {
   form.value.tallers = selectedTallers.value.map(t => ({
     taller_id: t.id,
     trimestre: '',
-    disponibilitat_dimarts: false,
     num_participants: 1,
     docent_nom: '',
     docent_email: '',

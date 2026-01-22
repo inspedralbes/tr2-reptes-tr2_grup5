@@ -39,9 +39,9 @@ INSERT INTO peticions (id, centre_id) VALUES
 (1, 1);
 
 -- 7. TAULA: peticio_detalls
-INSERT INTO peticio_detalls (id, peticio_id, taller_id, trimestre, disponibilitat_dimarts, num_participants, prioritat, es_preferencia_referent, estat, descripcio) VALUES
-(1, 1, 1, '2n', 1, 4, 2, 1, 'ASSIGNADA', 'Comentari de prova per al taller de Robòtica i IA'),
-(2, 1, 2, '2n', 0, 2, 6, 0, 'PENDENT', 'Comentari de prova per al taller de Cuina Creativa');
+INSERT INTO peticio_detalls (id, peticio_id, taller_id, trimestre, num_participants, prioritat, es_preferencia_referent, estat, descripcio) VALUES
+(1, 1, 1, '2n', 4, 2, 1, 'ASSIGNADA', 'Comentari de prova per al taller de Robòtica i IA'),
+(2, 1, 2, '2n', 2, 6, 0, 'PENDENT', 'Comentari de prova per al taller de Cuina Creativa');
 
 -- 11. TAULA: referents_assignats
 INSERT INTO referents_assignats (peticio_detall_id, professor_id) VALUES

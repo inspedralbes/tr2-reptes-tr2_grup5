@@ -131,19 +131,38 @@ const peticionsController = {
             // 3. ACTUALITZAR PLACES AL TALLER (Nou pas automàtic)
             await Taller.restarPlaces(taller_id, numParticipants);
 
-            // 4. Gestió de Referents (el teu codi es manté)
+            // 4. Gestió de Referents
             if (detall.es_preferencia_referent == 1 && detall.docent_email) {
-                const [prof] = await db.query(`
-                    SELECT p.id FROM professors p 
-                    JOIN usuaris u ON p.user_id = u.id 
-                    WHERE u.email = ?
-                `, [detall.docent_email]);
+                // Comptar referents ja assignats per aquest taller en aquest trimestre
+                const [referentsCount] = await db.query(`
+                    SELECT COUNT(DISTINCT ra.professor_id) as count
+                    FROM referents_assignats ra
+                    JOIN peticio_detalls pd ON ra.peticio_detall_id = pd.id
+                    WHERE pd.taller_id = ? AND pd.trimestre = ? AND pd.estat = 'ASSIGNADA'
+                `, [taller_id, trimestre]);
 
-                if (prof[0]) {
+                const numReferents = referentsCount[0].count || 0;
+
+                // Si ja hi ha 2 referents assignats, posar es_preferencia_referent a 0 i no assignar
+                if (numReferents >= 2) {
                     await db.query(
-                        "INSERT IGNORE INTO referents_assignats (peticio_detall_id, professor_id) VALUES (?, ?)",
-                        [detall.id, prof[0].id]
+                        "UPDATE peticio_detalls SET es_preferencia_referent = 0 WHERE id = ?",
+                        [detall.id]
                     );
+                    console.warn(`No s'assigna referent per ${detall.id}: ja hi ha 2 referents assignats al taller ${taller_id} en el trimestre ${trimestre}`);
+                } else {
+                    const [prof] = await db.query(`
+                        SELECT p.id FROM professors p 
+                        JOIN usuaris u ON p.user_id = u.id 
+                        WHERE u.email = ?
+                    `, [detall.docent_email]);
+
+                    if (prof[0]) {
+                        await db.query(
+                            "INSERT IGNORE INTO referents_assignats (peticio_detall_id, professor_id) VALUES (?, ?)",
+                            [detall.id, prof[0].id]
+                        );
+                    }
                 }
             }
 
