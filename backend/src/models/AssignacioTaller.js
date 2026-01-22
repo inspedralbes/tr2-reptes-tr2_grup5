@@ -6,8 +6,7 @@ const AssignacioTaller = {
         const [result] = await db.query(`
             SELECT SUM(pd.num_participants) as total_ocupat
             FROM peticio_detalls pd
-            JOIN peticions p ON pd.peticio_id = p.id
-            WHERE pd.taller_id = ? AND p.trimestre = ? AND pd.estat = 'ASSIGNADA'
+            WHERE pd.taller_id = ? AND pd.trimestre = ? AND pd.estat = 'ASSIGNADA'
         `, [taller_id, trimestre]);
 
         return result[0].total_ocupat || 0;
@@ -53,7 +52,7 @@ const AssignacioTaller = {
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
             SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
-                   p.trimestre, p.data_creacio, t.titol, t.modalitat, t.ubicacio
+                   pd.trimestre, pd.disponibilitat_dimarts, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio
             FROM peticio_detalls pd
             JOIN peticions p ON pd.peticio_id = p.id
             JOIN tallers t ON pd.taller_id = t.id
