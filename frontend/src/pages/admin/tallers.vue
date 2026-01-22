@@ -37,7 +37,7 @@
                 <span class="label">Capacitat total:</span>
                 <span class="value">{{ taller.places_maximes }}</span>
               </div>
-              <div class="remaining-box" :class="getRemainingClass(taller)">
+              <div class="remaining-box">
                 <span class="rem-label">PLACES RESTANTS</span>
                 <span class="rem-value">{{ taller.places_restants ?? taller.places_maximes }}</span>
               </div>
@@ -52,7 +52,7 @@
           <div class="card-footer">
             <span class="taller-id">#{{ taller.id }}</span>
             <div class="actions">
-              <button class="btn-icon" title="Editar">
+              <button class="btn-icon" title="Editar" @click="editTaller(taller.id)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
 
@@ -99,6 +99,10 @@ const deleteTaller = async (id) => {
   }
 };
 
+const editTaller = (id) => {
+  navigateTo(`/admin/tallers/editTallers?id=${id}`)
+};
+
 </script>
 
 <style scoped>
@@ -127,7 +131,7 @@ const deleteTaller = async (id) => {
 .dot.archived { background-color: #94a3b8; }
 .card-content { padding: 24px 20px; flex-grow: 1; }
 .taller-title { font-size: 1.25rem; font-weight: 700; color: #1a202c; margin: 0 0 12px 0; }
-.description { font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 20px; height: 45px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.description { font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 20px; height: 45px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; }
 .detail-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
 .detail-row .label { color: #64748b; font-weight: 500; }
 .detail-row .value { color: #1e293b; font-weight: 600; }

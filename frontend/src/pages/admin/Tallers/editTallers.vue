@@ -149,7 +149,7 @@ input, select, textarea {
   padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1; 
   font-size: 0.95rem; transition: border-color 0.2s;
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; ring: 2px solid #dbeafe; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6 }
 
 .helper { font-size: 0.75rem; color: #94a3b8; margin: 0; }
 
