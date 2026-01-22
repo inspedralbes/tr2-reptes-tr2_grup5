@@ -5,7 +5,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         Tornar al catàleg
       </NuxtLink>
-      <h2>Editar Taller #{{ route.query.id }}</h2>
+      <h2>Editar Taller #{{ route.params.id }}</h2>
     </div>
 
     <div v-if="pending" class="state-msg">Carregant dades del taller...</div>
@@ -84,6 +84,9 @@ const router = useRouter();
 const token = useCookie('authToken');
 const saving = ref(false);
 
+// IMPORTANTE: Extraemos el ID de los parámetros de la ruta (params)
+const tallerId = route.params.id;
+
 const sectors = [
   "Agroalimentari", "Manufacturer", "Energia i Aigua", "Construcció", 
   "Comerç i Turisme", "Transport", "Hoteleria", "Informació i Comunicació", 
@@ -102,23 +105,23 @@ const formData = ref({
   actiu: 1
 });
 
-// 1. Carregar dades inicials del taller
-const { data: taller, pending, error } = await useFetch(`http://localhost:1700/api/admin/tallers/${route.query.id}`, {
+// 1. Carregar dades inicials usando el ID de la URL
+const { data: taller, pending, error } = await useFetch(`http://localhost:1700/api/admin/tallers/${tallerId}`, {
   headers: { Authorization: `Bearer ${token.value}` }
 });
 
-// Omplir el formulari quan les dades estiguin llestes
+// Rellenar el formulario cuando los datos lleguen
 watchEffect(() => {
   if (taller.value) {
     formData.value = { ...taller.value };
   }
 });
 
-// 2. Funció per actualitzar
+// 2. Función para actualizar
 const handleUpdate = async () => {
   saving.value = true;
   try {
-    await $fetch(`http://localhost:1700/api/admin/tallers/${route.query.id}`, {
+    await $fetch(`http://localhost:1700/api/admin/tallers/${tallerId}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token.value}` },
       body: formData.value
@@ -149,7 +152,7 @@ input, select, textarea {
   padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1; 
   font-size: 0.95rem; transition: border-color 0.2s;
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; ring: 2px solid #dbeafe; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
 
 .helper { font-size: 0.75rem; color: #94a3b8; margin: 0; }
 
@@ -164,6 +167,5 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6
 .state-msg { text-align: center; padding: 40px; color: #64748b; }
 .state-msg.error { color: #ef4444; }
 
-/* Switch Toggle simple */
 .switch-label { display: flex; align-items: center; gap: 12px; cursor: pointer; }
 </style>
