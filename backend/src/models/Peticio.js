@@ -15,14 +15,13 @@ const Peticio = {
 
             const peticio_id = peticioResult.insertId;
 
-            // 2. Inserir els detalls a 'peticio_detalls' (amb trimestre, disponibilitat_dimarts i descripcio)
+            // 2. Inserir els detalls a 'peticio_detalls' (amb trimestre i descripcio)
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, trimestre, disponibilitat_dimarts, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, trimestre, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
                     d.trimestre,
-                    d.disponibilitat_dimarts ? 1 : 0,
                     d.num_participants > 4 ? 4 : d.num_participants,
                     d.prioritat || 1,
                     d.es_preferencia_referent ? 1 : 0,
@@ -46,7 +45,7 @@ const Peticio = {
     // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.trimestre, pd.disponibilitat_dimarts, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, pd.descripcio, t.titol as taller_titol
+      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.trimestre, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, pd.descripcio, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id
