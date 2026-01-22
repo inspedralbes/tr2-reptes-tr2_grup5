@@ -85,6 +85,14 @@ const { data: tallers, pending, error, refresh } = await useFetch('http://localh
   }
 })
 
+const getRemainingClass = (taller) => {
+  const restants = taller.places_restants ?? taller.places_maximes;
+  
+  if (restants === 0) return 'critical';
+  if (restants < 5) return 'warning';
+  return 'good';
+};
+
 const deleteTaller = async (id) => {
   try {
     await $fetch(`http://localhost:1700/api/admin/tallers/${id}`, {
