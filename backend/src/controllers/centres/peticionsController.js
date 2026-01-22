@@ -6,7 +6,7 @@ const peticionsController = {
     createPeticio: async (req, res) => {
         try {
             const user_id = req.user.id; // Obtingut del token JWT
-            const { trimestre, disponibilitat_dimarts, tallers } = req.body;
+            const { tallers } = req.body;
 
             // 1. Trobar el centre associat a l'usuari loguejat
             const centre = await Centre.findByUserId(user_id);
@@ -15,19 +15,25 @@ const peticionsController = {
             }
 
             // 2. Validacions bàsiques
-            if (!trimestre || !tallers || !Array.isArray(tallers) || tallers.length === 0) {
-                return res.status(400).json({ message: "Cal especificar el trimestre i almenys un taller." });
+            if (!tallers || !Array.isArray(tallers) || tallers.length === 0) {
+                return res.status(400).json({ message: "Cal especificar almenys un taller." });
             }
 
-            // 3. Crear la petició
+            // 3. Validar que cada taller tingui els camps necessaris
+            for (const taller of tallers) {
+                if (!taller.taller_id || !taller.trimestre) {
+                    return res.status(400).json({ 
+                        message: "Cada taller ha de tenir 'taller_id' i 'trimestre' especificats." 
+                    });
+                }
+            }
+
+            // 4. Crear la petició (només amb centre_id)
             const peticioData = {
-                centre_id: centre.id,
-                trimestre,
-                disponibilitat_dimarts: disponibilitat_dimarts ? 1 : 0
+                centre_id: centre.id
             };
 
             const peticioId = await Peticio.create(peticioData, tallers);
-
 
             res.status(201).json({
                 message: "Sol·licitud de tallers creada correctament.",

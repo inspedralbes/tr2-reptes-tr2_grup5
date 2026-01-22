@@ -2,32 +2,33 @@ const db = require("../config/db");
 
 const Peticio = {
     // Crear una nova petició amb els seus detalls 
-    create: async (peticioData, tallersDetalls) => {
+    create: async (infoPeticio, tallersDetalls) => {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
 
-            // 1. Inserir a la taula 'peticions'
-            const { centre_id, trimestre, disponibilitat_dimarts } = peticioData;
+            // 1. Inserir a la taula 'peticions' (només centre_id)
             const [peticioResult] = await connection.query(
-                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts) VALUES (?, ?, ?)",
-                [centre_id, trimestre, disponibilitat_dimarts]
+                "INSERT INTO peticions (centre_id) VALUES (?)",
+                [infoPeticio.centre_id]
             );
 
             const peticio_id = peticioResult.insertId;
 
-            // 2. Inserir els detalls a 'peticio_detalls'
+            // 2. Inserir els detalls a 'peticio_detalls' (amb trimestre, disponibilitat_dimarts i descripcio)
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, trimestre, disponibilitat_dimarts, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
+                    d.trimestre,
+                    d.disponibilitat_dimarts ? 1 : 0,
                     d.num_participants > 4 ? 4 : d.num_participants,
                     d.prioritat || 1,
                     d.es_preferencia_referent ? 1 : 0,
                     d.docent_nom || null,
                     d.docent_email || null,
-                    d.comentaris || null
+                    d.descripcio || null
                 ]);
                 await connection.query(detallsSql, [values]);
             }
@@ -42,20 +43,20 @@ const Peticio = {
         }
     },
 
-    // Obtenir peticions d'un centre //TODO: OBTENIR DETALLS SE PETICIONS D'UN CENTRE
+    // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
+      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.trimestre, pd.disponibilitat_dimarts, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, pd.descripcio, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id
       WHERE p.centre_id = ?
-      ORDER BY pd.prioritat ASC
+      ORDER BY p.data_creacio DESC
     `, [centre_id]);
         return rows;
     },
 
-    // ADMIN: Obtenir totes les peticions amb filtres //TODO: OBTENIR TOTS ELS DETALLS DE PETICIONS
+    // ADMIN: Obtenir totes les peticions amb filtres
     getAllAdmin: async (filters = {}) => {
         let sql = `
             SELECT DISTINCT p.*, c.nom_centre
@@ -80,7 +81,7 @@ const Peticio = {
             params.push(filters.modalitat);
         }
         if (filters.trimestre) {
-            sql += " AND p.trimestre = ?";
+            sql += " AND pd.trimestre = ?";
             params.push(filters.trimestre);
         }
         if (filters.estat) {
@@ -152,10 +153,9 @@ const Peticio = {
     rebutjarPerMancaDePlaces: async (taller_id, trimestre, places_disponibles) => {
         const sql = `
             UPDATE peticio_detalls pd
-            JOIN peticions p ON pd.peticio_id = p.id
             SET pd.estat = 'REBUTJADA'
             WHERE pd.taller_id = ? 
-              AND p.trimestre = ?
+              AND pd.trimestre = ?
               AND pd.estat = 'PENDENT' 
               AND pd.num_participants > ?
         `;

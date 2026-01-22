@@ -46,66 +46,38 @@
 
       <form @submit.prevent="handleSubmit" class="peticio-form">
         <section class="form-section">
-          <h2>Dades de la Petició</h2>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Trimestre</label>
-              <select v-model="form.trimestre" required>
-                <option value="" disabled>Selecciona un trimestre</option>
-                <option value="1r">1r Trimestre</option>
-                <option value="2n">2n Trimestre</option>
-                <option value="3r">3r Trimestre</option>
-              </select>
-            </div>
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="form.disponibilitat_dimarts">
-                Disponibilitat Dimarts
-              </label>
-            </div>
-          </div>
-        </section>
-
-        <section class="form-section">
           <h2>Tallers seleccionats</h2>
+          <p class="section-description">Configura els detalls per a cada taller seleccionat</p>
           <div v-for="(t, index) in form.tallers" :key="t.taller_id" class="taller-detail-item">
             <div class="item-header">
               <h3>{{ getTallerTitol(t.taller_id) }}</h3>
             </div>
+            
             <div class="form-row">
               <div class="form-group">
-                <label>Num. Participants (max 4)</label>
-                <input type="number" v-model="t.num_participants" min="1" max="4" required>
-              </div>
-              <div class="form-group">
-                <label>Docent Responsable</label>
-                <select v-model="t.docent_nom" @change="updateDocentEmail(t)" required>
-                  <option value="" disabled>Selecciona un docent</option>
-                  <option v-for="prof in professors" :key="prof.id" :value="prof.nom + ' ' + prof.cognoms">
-                    {{ prof.nom }} {{ prof.cognoms }}
-                  </option>
+                <label>Trimestre *</label>
+                <select v-model="t.trimestre" required>
+                  <option value="" disabled>Selecciona un trimestre</option>
+                  <option value="1r">1r Trimestre</option>
+                  <option value="2n">2n Trimestre</option>
+                  <option value="3r">3r Trimestre</option>
                 </select>
-                <button @click="activeDocentFormIndex = index">Afegir Docent</button>
-                <h4>Nou Docent</h4>
-                <div v-if="activeDocentFormIndex === index" class="docent-form">
-                  <input type="text" v-model="newDocent.nom" placeholder="Nom" required>
-                  <input type="text" v-model="newDocent.cognoms" placeholder="Cognoms" required>
-                  <input type="email" v-model="newDocent.email" placeholder="Email" required>
-                  <button @click="handleSaveDocent(index)">Desar Docent</button>
-                </div>
               </div>
-            </div>
-            <div class="form-row">
               <div class="form-group checkbox-group">
                 <label>
-                  <input type="checkbox" v-model="t.es_preferencia_referent">
-                  És preferència referent
+                  <input type="checkbox" v-model="t.disponibilitat_dimarts">
+                  Disponibilitat Dimarts
                 </label>
               </div>
             </div>
+
             <div class="form-row">
               <div class="form-group">
-                <label>Prioritat (1-10)</label>
+                <label>Num. Participants (max 4) *</label>
+                <input type="number" v-model="t.num_participants" min="1" max="4" required>
+              </div>
+              <div class="form-group">
+                <label>Prioritat (1-10) *</label>
                 <input 
                   type="number" 
                   v-model.number="t.prioritat" 
@@ -117,9 +89,37 @@
                 <small class="help-text">1: Mínima, 10: Màxima</small>
               </div>
             </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Docent Responsable *</label>
+                <select v-model="t.docent_nom" @change="updateDocentEmail(t)" required>
+                  <option value="" disabled>Selecciona un docent</option>
+                  <option v-for="prof in professors" :key="prof.id" :value="prof.nom + ' ' + prof.cognoms">
+                    {{ prof.nom }} {{ prof.cognoms }}
+                  </option>
+                </select>
+                <button type="button" @click="activeDocentFormIndex = index" class="btn-add-docent">Afegir Docent</button>
+                <div v-if="activeDocentFormIndex === index" class="docent-form">
+                  <h4>Nou Docent</h4>
+                  <input type="text" v-model="newDocent.nom" placeholder="Nom" required>
+                  <input type="text" v-model="newDocent.cognoms" placeholder="Cognoms" required>
+                  <input type="email" v-model="newDocent.email" placeholder="Email" required>
+                  <button type="button" @click="handleSaveDocent(index)">Desar Docent</button>
+                </div>
+              </div>
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="t.es_preferencia_referent">
+                  <span>Preferència Referent</span>
+                </label>
+                <small class="help-text">Marca si aquest professor serà el referent d'aquest taller</small>
+              </div>
+            </div>
+
             <div class="form-group">
-              <label>Comentaris (Transport, horaris, etc.)</label>
-              <textarea v-model="t.comentaris" rows="3" placeholder="Observacions..."></textarea>
+              <label>Descripció / Comentaris (Transport, horaris, etc.)</label>
+              <textarea v-model="t.descripcio" rows="3" placeholder="Observacions específiques per a aquest taller..."></textarea>
             </div>
           </div>
         </section>
@@ -188,8 +188,6 @@ const handleSaveDocent = async (tallerIndex) => {
 };
 
 const form = ref({
-  trimestre: '',
-  disponibilitat_dimarts: false,
   tallers: []
 });
 
@@ -226,12 +224,14 @@ const toggleTaller = (taller) => {
 const nextStep = () => {
   form.value.tallers = selectedTallers.value.map(t => ({
     taller_id: t.id,
+    trimestre: '',
+    disponibilitat_dimarts: false,
     num_participants: 1,
     docent_nom: '',
     docent_email: '',
     prioritat: 1,
     es_preferencia_referent: false,
-    comentaris: ''
+    descripcio: ''
   }));
   currentStep.value = 2;
 };
@@ -286,6 +286,23 @@ onMounted(fetchData);
 .form-section { margin-bottom: 2rem; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
 .form-group { display: flex; flex-direction: column; }
+.checkbox-group { justify-content: center; }
+.checkbox-label { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+.checkbox-label span {
+  user-select: none;
+}
 .taller-detail-item { border: 1px solid #eee; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: #fafafa; }
 .alert { padding: 1rem; margin-top: 1rem; border-radius: 4px; }
 .success { background: #dcfce7; color: #166534; }

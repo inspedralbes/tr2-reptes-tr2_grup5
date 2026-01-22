@@ -2,12 +2,9 @@
   <div class="page">
     <div class="header-section">
       <h2>Gestió de Peticions de Tallers</h2>
-      <button class="btn-refresh" @click="refresh" :disabled="pending">
-        {{ pending ? 'Actualitzant...' : 'Refrescar Dades' }}
-      </button>
     </div>
 
-    <div v-if="pending && !peticions.length" class="loading">
+    <div v-if="pending && !detallsPeticions.length" class="loading">
       <div class="spinner"></div>
       Carregant peticions...
     </div>
@@ -18,103 +15,82 @@
     </div>
 
     <div v-else class="table-container">
-      <table v-if="peticions && peticions.length > 0">
+      <table v-if="detallsPeticions && detallsPeticions.length > 0">
         <thead>
           <tr>
-            <th class="expand-col"></th>
             <th>Centre</th>
+            <th>Taller</th>
             <th>Trimestre</th>
-            <th class="tallers-count">Tallers Sol·licitats</th>
+            <th>Participants</th>
+            <th>Prioritat</th>
+            <th>Disponibilitat Dimarts</th>
             <th>Estat</th>
             <th class="actions-header">Accions</th>
           </tr>
         </thead>
-        <tbody v-for="peticio in peticions" :key="peticio.id">
-          <tr class="main-row" @click="toggleRow(peticio.id)" :class="{ 'is-expanded': expandedRows.includes(peticio.id) }">
-            <td class="expand-col">
-              <span :class="['arrow', expandedRows.includes(peticio.id) ? 'down' : 'right']">▶</span>
+        <tbody>
+          <tr v-for="detall in detallsPeticions" :key="`${detall.peticio_id}-${detall.taller_id}`" class="main-row">
+            <td>
+              <div class="centre-name">{{ detall.nom_centre }}</div>
+              <div class="meta">Sol·licitat el {{ formatDate(detall.data_creacio) }}</div>
             </td>
             <td>
-              <div class="centre-name">{{ peticio.nom_centre }}</div>
-              <div class="meta">Sol·licitat el {{ formatDate(peticio.data_creacio) }}</div>
+              <div class="taller-info">
+                <span class="modalitat-badge">{{ detall.modalitat }}</span>
+                <span class="taller-title">{{ detall.titol }}</span>
+              </div>
+              <div v-if="detall.descripcio" class="descripcio-text">
+                <strong>💡 Descripció:</strong> {{ detall.descripcio }}
+              </div>
+              <div v-if="detall.es_preferencia_referent" class="preferencia-referent-section">
+                <div class="ref-tag">
+                  Preferència Referent
+                </div>
+                <div v-if="detall.docent_nom" class="docent-info">
+                  <strong>Professor:</strong> {{ detall.docent_nom }} 
+                  <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
+                </div>
+                <div v-else class="docent-info missing">
+                  <strong>Professor:</strong> <em>No especificat</em>
+                </div>
+              </div>
+              <div v-else-if="detall.docent_nom" class="docent-info">
+                <strong>Docent:</strong> {{ detall.docent_nom }} 
+                <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
+              </div>
             </td>
-            <td><span class="trimestre-tag">{{ peticio.trimestre }}</span></td>
-            <td class="tallers-count">
-              <span class="count-pill">{{ peticio.detalls?.length || 0 }}</span>
+            <td><span class="trimestre-tag">{{ detall.trimestre }}</span></td>
+            <td><span class="count-pill">{{ detall.num_participants }}</span></td>
+            <td>
+              <span class="priority-badge" :class="'prio-level-' + detall.prioritat">
+                {{ detall.prioritat }}
+              </span>
             </td>
             <td>
-              <span :class="['status-badge', (peticio.estat || 'PENDENT').toLowerCase()]">
-                {{ peticio.estat || 'PENDENT' }}
+              <span v-if="detall.disponibilitat_dimarts" class="disponibilitat-badge">✓ Sí</span>
+              <span v-else class="disponibilitat-badge no">✗ No</span>
+            </td>
+            <td>
+              <span :class="['status-badge', (detall.estat || 'PENDENT').toLowerCase()]">
+                {{ detall.estat || 'PENDENT' }}
               </span>
             </td>
             <td class="actions-cell">
-              <button class="btn-toggle">
-                {{ expandedRows.includes(peticio.id) ? 'Amagar' : 'Veure detalls' }}
-              </button>
+              <div v-if="(detall.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
+                <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
+                  ✓ Assignar
+                </button>
+                <button class="btn-action reject" title="Rebutjar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'REBUTJADA')" :disabled="actionLoading">
+                  ✕ Rebutjar
+                </button>
+              </div>
+              <span v-else class="no-actions">—</span>
             </td>
           </tr>
-          
-          <transition name="fade">
-            <tr v-if="expandedRows.includes(peticio.id)" class="details-row">
-              <td colspan="6">
-                <div class="details-content">
-                  <div class="details-header">
-                    <h4>Tallers en ordre de prioritat</h4>
-                    <p v-if="peticio.comentaris" class="comentaris">
-                      <strong>💡 Comentaris del centre:</strong> {{ peticio.comentaris }}
-                    </p>
-                  </div>
-                  
-                  <div class="tallers-grid">
-                    <div v-for="t in peticio.detalls" :key="t.taller_id" class="taller-card">
-                      <div class="priority-section" :class="'prio-level-' + t.prioritat">
-                        <span class="prio-label">PRIORITAT</span>
-                        <span class="prio-num">{{ t.prioritat || '-' }}</span>
-                      </div>
-
-                      <div class="taller-main-info">
-                        <div class="taller-top">
-                          <span class="modalitat-badge">{{ t.modalitat }}</span>
-                          <span class="taller-title">{{ t.titol }}</span>
-                        </div>
-                        
-                        <div class="taller-details">
-                          <div class="detail-item">
-                            <strong>Participants:</strong> {{ t.num_participants }}
-                          </div>
-                          <div v-if="t.es_preferencia_referent" class="ref-tag">
-                            ⭐ Preferència Referent
-                          </div>
-                          <div v-if="t.docent_nom" class="docent-info">
-                            <strong>Docent:</strong> {{ t.docent_nom }} <small>({{ t.docent_email }})</small>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div class="taller-status-actions">
-                        <span :class="['status-badge small', (t.estat || 'PENDENT').toLowerCase()]">
-                          {{ t.estat || 'PENDENT' }}
-                        </span>
-                        
-                        <div v-if="(t.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
-                          <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(peticio.id, t.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
-                            ✓
-                          </button>
-                          <button class="btn-action reject" title="Rebutjar Taller" @click="updateTallerStatus(peticio.id, t.taller_id, 'REBUTJADA')" :disabled="actionLoading">
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </transition>
         </tbody>
       </table>
       <div v-else class="no-data">
-        <p>No hi ha peticions de tallers enregistrades.</p>
+        <p>No hi ha detalls de peticions de tallers enregistrats.</p>
       </div>
     </div>
   </div>
@@ -128,12 +104,11 @@ header.setHeaderAdmin()
 
 const tokenCookie = useCookie('authToken')
 const actionLoading = ref(false)
-const expandedRows = ref([])
-const peticions = ref([])
+const detallsPeticions = ref([])
 const pending = ref(true)
 const error = ref(null)
 
-// Funció per obtenir les peticions (el backend ja les ordena per prioritat ASC)
+// Funció per obtenir els detalls de peticions (el backend retorna peticions amb detalls)
 const fetchPeticions = async () => {
   pending.value = true
   error.value = null
@@ -144,7 +119,15 @@ const fetchPeticions = async () => {
         Authorization: token ? `Bearer ${token}` : ''
       }
     })
-    peticions.value = data
+    // Aplanar les peticions per obtenir tots els detalls com a llista principal
+    detallsPeticions.value = data.flatMap(peticio => 
+      (peticio.detalls || []).map(detall => ({
+        ...detall,
+        peticio_id: peticio.id,
+        nom_centre: peticio.nom_centre,
+        data_creacio: peticio.data_creacio
+      }))
+    ).sort((a, b) => (a.prioritat || 0) - (b.prioritat || 0))
   } catch (err) {
     console.error('Error fetching peticions:', err)
     error.value = err
@@ -153,20 +136,9 @@ const fetchPeticions = async () => {
   }
 }
 
-const refresh = () => fetchPeticions()
-
 onMounted(() => {
   fetchPeticions()
 })
-
-const toggleRow = (id) => {
-  const index = expandedRows.value.indexOf(id)
-  if (index > -1) {
-    expandedRows.value.splice(index, 1)
-  } else {
-    expandedRows.value.push(id)
-  }
-}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
@@ -190,7 +162,7 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
       headers: { Authorization: token ? `Bearer ${token}` : '' },
       body: { estat }
     })
-    await refresh()
+    await fetchPeticions()
   } catch (err) {
     console.error('Error actualitzant estat:', err)
     alert('No s\'ha pogut actualitzar l\'estat.')
@@ -204,24 +176,10 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
 .page { padding: 30px; max-width: 1200px; margin: 0 auto; }
 
 .header-section { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
   margin-bottom: 30px; 
 }
 
 h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
-
-.btn-refresh {
-  background: white;
-  border: 1px solid #e2e8f0;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-refresh:hover { background: #f8fafc; border-color: #cbd5e1; }
 
 /* Taula Principal */
 .table-container {
@@ -249,6 +207,13 @@ th {
 .main-row.is-expanded { background: #f8fafc; }
 
 td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
+
+.actions-cell { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+}
+.no-actions { color: #94a3b8; font-size: 0.85rem; }
 
 .centre-name { font-weight: 700; color: #334155; font-size: 1rem; }
 .meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
@@ -302,6 +267,7 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 
 .taller-main-info { flex: 1; }
 .taller-title { font-weight: 700; color: #334155; font-size: 1.05rem; }
+.taller-info { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .modalitat-badge { 
   font-size: 0.65rem; 
   font-weight: 800; 
@@ -309,19 +275,79 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
   color: #64748b; 
   padding: 2px 6px; 
   border-radius: 4px; 
-  margin-right: 8px;
+}
+.descripcio-text { 
+  font-size: 0.85rem; 
+  color: #64748b; 
+  margin-top: 8px; 
+  padding: 8px; 
+  background: #f8fafc; 
+  border-radius: 4px; 
+}
+.priority-badge {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.prio-level-1 { background: #dbeafe; color: #1e40af; }
+.disponibilitat-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #15803d;
+}
+.disponibilitat-badge.no {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .taller-details { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: #64748b; }
-.ref-tag { color: #059669; font-weight: 700; }
+.preferencia-referent-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+}
+.ref-tag { 
+  color: #059669; 
+  font-weight: 700; 
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  display: block;
+}
+.docent-info {
+  font-size: 0.85rem;
+  color: #334155;
+  margin-top: 6px;
+}
+.docent-info.missing {
+  color: #94a3b8;
+  font-style: italic;
+}
+.docent-info small {
+  color: #64748b;
+  font-size: 0.8rem;
+}
 
 /* Botons d'acció */
 .taller-status-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .taller-btn-group { display: flex; gap: 8px; }
 
 .btn-action {
-  width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+  padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: transform 0.1s;
+  font-size: 0.85rem;
 }
 .btn-action.approve { background: #10b981; }
 .btn-action.reject { background: #ef4444; }
