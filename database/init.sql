@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS tallers (
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
     estat_taller ENUM('inscripcio', 'actiu', 'inactiu', 'confirmacio') DEFAULT 'inactiu',
-    actiu TINYINT(1) DEFAULT 1
+    data_execucio DATE(null)
 ) ENGINE=InnoDB;
 
 -- 6. Taula: peticions
