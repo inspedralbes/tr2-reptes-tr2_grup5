@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS tallers (
     modalitat ENUM('A', 'B', 'C'),
     trimestres_disponibles VARCHAR(50),
     places_maximes INT DEFAULT 12,
+    places_restants INT DEFAULT 12,
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
     actiu TINYINT(1) DEFAULT 1
@@ -69,9 +70,6 @@ CREATE TABLE IF NOT EXISTS tallers (
 CREATE TABLE IF NOT EXISTS peticions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     centre_id INT NOT NULL,
-    trimestre ENUM('2n', '3r'),
-    disponibilitat_dimarts TINYINT(1) DEFAULT 0,
-    comentaris TEXT NULL,
     data_creacio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -81,11 +79,14 @@ CREATE TABLE IF NOT EXISTS peticio_detalls (
     id INT AUTO_INCREMENT PRIMARY KEY,
     peticio_id INT NOT NULL,
     taller_id INT NOT NULL,
+    trimestre ENUM('1r', '2n', '3r') NOT NULL,
     num_participants INT NOT NULL,
+    prioritat INT CHECK (prioritat IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
     es_preferencia_referent TINYINT(1) DEFAULT 0,
     docent_nom VARCHAR(255),
     docent_email VARCHAR(255),
     estat ENUM('PENDENT', 'ASSIGNADA', 'REBUTJADA') DEFAULT 'PENDENT',
+    descripcio TEXT,
     UNIQUE KEY (peticio_id, taller_id),
     FOREIGN KEY (peticio_id) REFERENCES peticions(id) ON DELETE CASCADE,
     FOREIGN KEY (taller_id) REFERENCES tallers(id) ON DELETE CASCADE
@@ -106,6 +107,17 @@ CREATE TABLE IF NOT EXISTS sessions (
     peticio_detall_id INT NOT NULL,
     ordre INT,
     data DATE,
+    FOREIGN KEY (peticio_detall_id) REFERENCES peticio_detalls(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 12.1. Taula: assistencia_alumnes (Llista d'alumnes amb assistència)
+CREATE TABLE IF NOT EXISTS assistencia_alumnes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    peticio_detall_id INT NOT NULL,
+    nom VARCHAR(100),
+    cognoms VARCHAR(100),
+    email VARCHAR(255),
+    ha_assistit TINYINT(1) DEFAULT 1,
     FOREIGN KEY (peticio_detall_id) REFERENCES peticio_detalls(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

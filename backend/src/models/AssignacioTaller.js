@@ -6,8 +6,7 @@ const AssignacioTaller = {
         const [result] = await db.query(`
             SELECT SUM(pd.num_participants) as total_ocupat
             FROM peticio_detalls pd
-            JOIN peticions p ON pd.peticio_id = p.id
-            WHERE pd.taller_id = ? AND p.trimestre = ? AND pd.estat = 'ASSIGNADA'
+            WHERE pd.taller_id = ? AND pd.trimestre = ? AND pd.estat = 'ASSIGNADA'
         `, [taller_id, trimestre]);
 
         return result[0].total_ocupat || 0;
@@ -53,7 +52,7 @@ const AssignacioTaller = {
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
             SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
-                   p.trimestre, p.data_creacio, t.titol, t.modalitat, t.ubicacio
+                   pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio
             FROM peticio_detalls pd
             JOIN peticions p ON pd.peticio_id = p.id
             JOIN tallers t ON pd.taller_id = t.id
@@ -61,6 +60,23 @@ const AssignacioTaller = {
             ORDER BY p.data_creacio DESC
         `, [centre_id]);
         return rows;
+    },
+
+    // Comprovar si un professor és referent d'una assignació (o del taller en general)
+    isReferent: async (peticio_detall_id, professor_id) => {
+        // Nova lògica: Tens permís si ets referent d'aquest taller (assignat o per preferència)
+        const [rows] = await db.query(`
+            SELECT 1 
+            FROM peticio_detalls pd_target
+            JOIN peticio_detalls pd_ref ON pd_target.taller_id = pd_ref.taller_id
+            JOIN professors p ON p.id = ?
+            JOIN usuaris u ON p.user_id = u.id
+            LEFT JOIN referents_assignats ra ON ra.peticio_detall_id = pd_ref.id
+            WHERE pd_target.id = ? 
+            AND (ra.professor_id = ? OR (pd_ref.docent_email = u.email AND pd_ref.es_preferencia_referent = 1))
+        `, [professor_id, peticio_detall_id, professor_id]);
+
+        return rows.length > 0;
     }
 };
 

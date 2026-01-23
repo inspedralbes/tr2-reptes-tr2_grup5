@@ -17,4 +17,11 @@ router.get('/tallers/:id/alumnes', alumnesController.getAlumnes);
 router.post('/tallers/:id/alumnes', alumnesController.addAlumne);
 router.delete('/tallers/:id/alumnes/:studentId', alumnesController.deleteAlumne);
 
+// Rutes d'assistència
+// Rutes d'assistència
+const assistenciaController = require('../controllers/professors/assistenciaController');
+router.get('/assistencia/:id', assistenciaController.getAssistencia);
+router.post('/assistencia', assistenciaController.saveAssistencia);
+router.put('/assistencia/:id', assistenciaController.updateStatus);
+
 module.exports = router;

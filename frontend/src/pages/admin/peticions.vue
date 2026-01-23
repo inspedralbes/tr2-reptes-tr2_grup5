@@ -1,92 +1,111 @@
 <template>
   <div class="page">
-    <h2>Gestió de Peticions de Tallers</h2>
+    <div class="header-section">
+      <div class="header-top">
+        <h2>Gestió de Peticions de Tallers</h2>
+        <button 
+          class="btn-auto-assign" 
+          @click="executeAutoAssignment" 
+          :disabled="autoAssignLoading"
+          title="Executar assignació automàtica de tallers"
+        >
+          <span v-if="autoAssignLoading">⏳ Processant...</span>
+          <span v-else>⚡ Executar Assignació Automàtica</span>
+        </button>
+      </div>
+      <div v-if="assignmentResult" class="assignment-result" :class="assignmentResult.success ? 'success' : 'error'">
+        <strong>{{ assignmentResult.message }}</strong>
+        <div v-if="assignmentResult.summary" class="summary-details">
+          Assignades: {{ assignmentResult.summary.success }} | 
+          Rebutjades: {{ assignmentResult.summary.rejected }} | 
+          Errors: {{ assignmentResult.summary.errors }}
+        </div>
+      </div>
+    </div>
 
-    <div v-if="pending" class="loading">Carregant peticions...</div>
-    <div v-else-if="error" class="error">Error carregant les peticions: {{ error.message }}</div>
+    <div v-if="pending && !detallsPeticions.length" class="loading">
+      <div class="spinner"></div>
+      Carregant peticions...
+    </div>
+    
+    <div v-else-if="error" class="error">
+      <span class="error-icon">⚠️</span>
+      Error carregant les peticions: {{ error.message }}
+    </div>
 
     <div v-else class="table-container">
-      <table v-if="peticions && peticions.length > 0">
+      <table v-if="detallsPeticions && detallsPeticions.length > 0">
         <thead>
           <tr>
-            <th class="expand-col"></th>
             <th>Centre</th>
+            <th>Taller</th>
             <th>Trimestre</th>
-            <th class="tallers-count">Tallers</th>
-            <th>Estat General</th>
+            <th>Participants</th>
+            <th>Prioritat</th>
+            <th>Estat</th>
             <th class="actions-header">Accions</th>
           </tr>
         </thead>
-        <tbody v-for="peticio in peticions" :key="peticio.id">
-          <tr class="main-row" @click="toggleRow(peticio.id)">
-            <td class="expand-col">
-              <span :class="['arrow', expandedRows.includes(peticio.id) ? 'down' : 'right']">▶</span>
+        <tbody>
+          <tr v-for="detall in detallsPeticions" :key="`${detall.peticio_id}-${detall.taller_id}`" class="main-row">
+            <td>
+              <div class="centre-name">{{ detall.nom_centre }}</div>
+              <div class="meta">Sol·licitat el {{ formatDate(detall.data_creacio) }}</div>
             </td>
             <td>
-              <strong>{{ peticio.nom_centre }}</strong>
-              <div class="meta">{{ formatDate(peticio.data_creacio) }}</div>
+              <div class="taller-info">
+                <span class="modalitat-badge">{{ detall.modalitat }}</span>
+                <span class="taller-title">{{ detall.titol }}</span>
+              </div>
+              <div v-if="detall.descripcio" class="descripcio-text">
+                <strong>💡 Descripció:</strong> {{ detall.descripcio }}
+              </div>
+              <div v-if="detall.es_preferencia_referent" class="preferencia-referent-section">
+                <div class="ref-tag">
+                  Preferència Referent
+                </div>
+                <div v-if="detall.docent_nom" class="docent-info">
+                  <strong>Professor:</strong> {{ detall.docent_nom }} 
+                  <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
+                </div>
+                <div v-else class="docent-info missing">
+                  <strong>Professor:</strong> <em>No especificat</em>
+                </div>
+              </div>
+              <div v-else-if="detall.docent_nom" class="docent-info">
+                <strong>Docent:</strong> {{ detall.docent_nom }} 
+                <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
+              </div>
             </td>
-            <td>{{ peticio.trimestre }}</td>
-            <td class="tallers-count">{{ peticio.detalls?.length || 0 }} talleres</td>
+            <td><span class="trimestre-tag">{{ detall.trimestre }}</span></td>
+            <td><span class="count-pill">{{ detall.num_participants }}</span></td>
             <td>
-              <span :class="['status-badge', (peticio.estat || 'PENDENT').toLowerCase()]">
-                {{ peticio.estat || 'PENDENT' }}
+              <span class="priority-badge" :class="'prio-level-' + detall.prioritat">
+                {{ detall.prioritat }}
+              </span>
+            </td>
+            <td>
+              <span :class="['status-badge', (detall.estat || 'PENDENT').toLowerCase()]">
+                {{ detall.estat || 'PENDENT' }}
               </span>
             </td>
             <td class="actions-cell">
-              <button class="btn-toggle" @click.stop="toggleRow(peticio.id)">
-                {{ expandedRows.includes(peticio.id) ? 'Amagar' : 'Veure Tallers' }}
-              </button>
+              <div v-if="(detall.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
+                <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
+                  ✓ Assignar
+                </button>
+                <button class="btn-action reject" title="Rebutjar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'REBUTJADA')" :disabled="actionLoading">
+                  ✕ Rebutjar
+                </button>
+              </div>
+              <span v-else class="no-actions">—</span>
             </td>
           </tr>
-          
-          <!-- FILA DESPLEGABLE -->
-          <transition name="fade">
-            <tr v-if="expandedRows.includes(peticio.id)" class="details-row">
-              <td colspan="6">
-                <div class="details-content">
-                  <div class="details-header">
-                    <h4>Tallers Sol·licitats</h4>
-                    <p v-if="peticio.comentaris" class="comentaris"><strong>Comentaris:</strong> {{ peticio.comentaris }}</p>
-                  </div>
-                  
-                  <div class="tallers-grid">
-                    <div v-for="t in peticio.detalls" :key="t.taller_id" class="taller-card">
-                      <div class="taller-info">
-                        <span class="badge">{{ t.modalitat }}</span>
-                        <span class="taller-title">{{ t.titol }}</span>
-                        <div class="taller-meta">
-                          <span>{{ t.num_participants }} part.</span>
-                          <span v-if="t.es_preferencia_referent" class="ref-badge">Preferència Referent</span>
-                        </div>
-                        <div v-if="t.docent_nom" class="docent-info">
-                          Docent: {{ t.docent_nom }}
-                        </div>
-                      </div>
-                      
-                      <div class="taller-status-actions">
-                        <span :class="['status-badge small', (t.estat || 'PENDENT').toLowerCase()]">
-                          {{ t.estat || 'PENDENT' }}
-                        </span>
-                        
-                        <div v-if="(t.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
-                          <button class="btn-accept-mini" @click="updateTallerStatus(peticio.id, t.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
-                            ✓
-                          </button>
-                          <button class="btn-reject-mini" @click="updateTallerStatus(peticio.id, t.taller_id, 'REBUTJADA')" :disabled="actionLoading">
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </transition>
         </tbody>
       </table>
-      <p v-else class="no-data">No hi ha peticions de tallers enregistrades.</p>
+      <div v-else class="no-data">
+        <p>No hi ha detalls de peticions de tallers enregistrats.</p>
+      </div>
     </div>
   </div>
 </template>
@@ -97,25 +116,34 @@ import { ref, onMounted } from 'vue'
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
-const tokenCookie = useCookie('authToken');
+const tokenCookie = useCookie('authToken')
 const actionLoading = ref(false)
-const expandedRows = ref([])
-const peticions = ref([])
+const autoAssignLoading = ref(false)
+const assignmentResult = ref(null)
+const detallsPeticions = ref([])
 const pending = ref(true)
 const error = ref(null)
 
-// Fetching peticions
+// Funció per obtenir els detalls de peticions (el backend retorna peticions amb detalls)
 const fetchPeticions = async () => {
   pending.value = true
   error.value = null
   try {
-    const token = tokenCookie.value;
+    const token = tokenCookie.value
     const data = await $fetch('http://localhost:1700/api/admin/peticions', {
       headers: {
         Authorization: token ? `Bearer ${token}` : ''
       }
     })
-    peticions.value = data
+    // Aplanar les peticions per obtenir tots els detalls com a llista principal
+    detallsPeticions.value = data.flatMap(peticio => 
+      (peticio.detalls || []).map(detall => ({
+        ...detall,
+        peticio_id: peticio.id,
+        nom_centre: peticio.nom_centre,
+        data_creacio: peticio.data_creacio
+      }))
+    ).sort((a, b) => (a.prioritat || 0) - (b.prioritat || 0))
   } catch (err) {
     console.error('Error fetching peticions:', err)
     error.value = err
@@ -124,33 +152,21 @@ const fetchPeticions = async () => {
   }
 }
 
-const refresh = () => fetchPeticions()
-
 onMounted(() => {
   fetchPeticions()
 })
 
-const toggleRow = (id) => {
-  if (expandedRows.value.includes(id)) {
-    expandedRows.value = expandedRows.value.filter(rowId => rowId !== id)
-  } else {
-    expandedRows.value.push(id)
-  }
-}
-
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('ca-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
+    day: '2-digit', month: '2-digit', year: 'numeric'
   })
 }
 
 const updateTallerStatus = async (peticioId, tallerId, estat) => {
   const confirmMsg = estat === 'ASSIGNADA' 
-    ? 'Estàs segur que vols marcar aquest taller com a ASSIGNAT?' 
-    : 'Estàs segur que vols REBUTJAR aquest taller?'
+    ? 'Vols marcar aquest taller com a ASSIGNAT?' 
+    : 'Vols REBUTJAR aquesta sol·licitud?'
     
   if (!confirm(confirmMsg)) return
 
@@ -162,77 +178,288 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
       headers: { Authorization: token ? `Bearer ${token}` : '' },
       body: { estat }
     })
-    await refresh()
+    await fetchPeticions()
   } catch (err) {
-    console.error('Error actualitzant estat del taller:', err)
-    alert('Error al actualitzar l\'estat del taller.')
+    console.error('Error actualitzant estat:', err)
+    alert('No s\'ha pogut actualitzar l\'estat.')
   } finally {
     actionLoading.value = false
+  }
+}
+
+const executeAutoAssignment = async () => {
+  if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) {
+    return
+  }
+
+  autoAssignLoading.value = true
+  assignmentResult.value = null
+  
+  try {
+    const token = tokenCookie.value
+    const result = await $fetch('http://localhost:1700/api/admin/matching/auto', {
+      method: 'POST',
+      headers: { Authorization: token ? `Bearer ${token}` : '' }
+    })
+    
+    assignmentResult.value = {
+      success: true,
+      message: `Assignació automàtica completada!`,
+      summary: result.summary
+    }
+    
+    // Actualitzar la llista de peticions
+    await fetchPeticions()
+    
+    // Ocultar el missatge després de 8 segons
+    setTimeout(() => {
+      assignmentResult.value = null
+    }, 8000)
+    
+  } catch (err) {
+    console.error('Error executant assignació automàtica:', err)
+    assignmentResult.value = {
+      success: false,
+      message: `Error: ${err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.'}`
+    }
+  } finally {
+    autoAssignLoading.value = false
   }
 }
 </script>
 
 <style scoped>
-.page { padding: 20px; }
-h2 { color: #203a63; margin-bottom: 24px; font-weight: 800; }
+.page { padding: 30px; max-width: 1200px; margin: 0 auto; }
 
+.header-section { 
+  margin-bottom: 30px; 
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
+
+.btn-auto-assign {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.btn-auto-assign:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-auto-assign:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.assignment-result {
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-top: 15px;
+  font-size: 0.95rem;
+}
+
+.assignment-result.success {
+  background: #dcfce7;
+  color: #15803d;
+  border-left: 4px solid #22c55e;
+}
+
+.assignment-result.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-left: 4px solid #ef4444;
+}
+
+.summary-details {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* Taula Principal */
 .table-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(15,30,70,0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
   overflow: hidden;
 }
 
 table { width: 100%; border-collapse: collapse; }
-th { background: #f8fafc; color: #64748b; text-align: left; padding: 16px; font-weight: 700; font-size: 0.85em; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
-td { padding: 16px; border-bottom: 1px solid #f1f5f9; }
-
-.expand-col { width: 40px; text-align: center; color: #94a3b8; font-size: 0.7em; }
-.arrow { display: inline-block; transition: transform 0.2s; }
-.arrow.down { transform: rotate(90deg); color: #3b82f6; }
+th { 
+  background: #f8fafc; 
+  padding: 16px; 
+  text-align: left; 
+  color: #64748b; 
+  font-size: 0.75rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+}
 
 .main-row { cursor: pointer; transition: background 0.2s; }
-.main-row:hover { background: #f8fafc; }
+.main-row:hover { background: #f1f5f9; }
+.main-row.is-expanded { background: #f8fafc; }
 
-.meta { color: #94a3b8; font-size: 0.85em; }
+td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 
-.tallers-count { color: #64748b; font-weight: 600; }
+.actions-cell { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+}
+.no-actions { color: #94a3b8; font-size: 0.85rem; }
 
-.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: 800; letter-spacing: 0.05em; }
-.status-badge.small { padding: 2px 8px; font-size: 0.7em; }
+.centre-name { font-weight: 700; color: #334155; font-size: 1rem; }
+.meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+.trimestre-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+.count-pill { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
+
+/* Status Badges */
+.status-badge { 
+  padding: 5px 12px; 
+  border-radius: 12px; 
+  font-size: 0.7rem; 
+  font-weight: 800; 
+  text-transform: uppercase;
+}
 .status-badge.pendent { background: #fef3c7; color: #92400e; }
-.status-badge.assignada { background: #dcfce7; color: #166534; }
-.status-badge.rebutjada { background: #fee2e2; color: #991b1b; }
+.status-badge.assignada { background: #dcfce7; color: #15803d; }
+.status-badge.rebutjada { background: #fee2e2; color: #b91c1c; }
 
-.btn-toggle { background: #eff6ff; color: #2563eb; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.85em; cursor: pointer; transition: all 0.2s; }
-.btn-toggle:hover { background: #dbeafe; }
-
-/* DETALLES DESPLEGABLES */
+/* Grid de Tallers (Desplegable) */
 .details-row { background: #f8fafc; }
-.details-content { padding: 24px; border-left: 4px solid #3b82f6; }
-.details-header { margin-bottom: 20px; }
-.details-header h4 { margin: 0 0 8px 0; color: #1e293b; font-weight: 800; }
-.comentaris { font-size: 0.9em; color: #64748b; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.details-content { padding: 30px; border-left: 5px solid #3b82f6; }
+.details-header h4 { margin: 0 0 15px 0; color: #1e293b; font-weight: 800; font-size: 1.1rem; }
 
-.tallers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-.taller-card { background: white; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.tallers-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
 
-.taller-info { flex: 1; }
-.taller-title { font-weight: 700; color: #334155; display: block; margin-top: 4px; }
-.badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.75em; }
-.taller-meta { font-size: 0.85em; color: #94a3b8; margin-top: 4px; display: flex; gap: 8px; align-items: center; }
-.ref-badge { background: #ecfdf5; color: #059669; padding: 1px 4px; border-radius: 4px; font-size: 0.7em; font-weight: 800; }
-.docent-info { margin-top: 8px; font-size: 0.8em; color: #64748b; }
+.taller-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  transition: transform 0.2s;
+}
 
-.taller-status-actions { text-align: right; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-.taller-btn-group { display: flex; gap: 6px; }
-.btn-accept-mini { background: #10b981; color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: opacity 0.2s; }
-.btn-reject-mini { background: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: opacity 0.2s; }
-.btn-accept-mini:hover, .btn-reject-mini:hover { opacity: 0.8; }
-.btn-accept-mini:disabled, .btn-reject-mini:disabled { opacity: 0.3; cursor: not-allowed; }
+/* Secció Prioritat */
+.priority-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  border-right: 2px solid #f1f5f9;
+  margin-right: 20px;
+  padding-right: 10px;
+}
+.prio-label { font-size: 0.6rem; font-weight: 800; color: #94a3b8; }
+.prio-num { font-size: 1.6rem; font-weight: 900; color: #1e293b; line-height: 1; }
 
-.loading, .error, .no-data { text-align: center; padding: 60px; color: #94a3b8; font-weight: 600; }
-.error { color: #ef4444; }
+.prio-level-1 .prio-num { color: #3b82f6; } /* Color blau per prioritat 1 */
+
+.taller-main-info { flex: 1; }
+.taller-title { font-weight: 700; color: #334155; font-size: 1.05rem; }
+.taller-info { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.modalitat-badge { 
+  font-size: 0.65rem; 
+  font-weight: 800; 
+  background: #f1f5f9; 
+  color: #64748b; 
+  padding: 2px 6px; 
+  border-radius: 4px; 
+}
+.descripcio-text { 
+  font-size: 0.85rem; 
+  color: #64748b; 
+  margin-top: 8px; 
+  padding: 8px; 
+  background: #f8fafc; 
+  border-radius: 4px; 
+}
+.priority-badge {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.prio-level-1 { background: #dbeafe; color: #1e40af; }
+
+.taller-details { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: #64748b; }
+.preferencia-referent-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+}
+.ref-tag { 
+  color: #059669; 
+  font-weight: 700; 
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  display: block;
+}
+.docent-info {
+  font-size: 0.85rem;
+  color: #334155;
+  margin-top: 6px;
+}
+.docent-info.missing {
+  color: #94a3b8;
+  font-style: italic;
+}
+.docent-info small {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* Botons d'acció */
+.taller-status-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.taller-btn-group { display: flex; gap: 8px; }
+
+.btn-action {
+  padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: transform 0.1s;
+  font-size: 0.85rem;
+}
+.btn-action.approve { background: #10b981; }
+.btn-action.reject { background: #ef4444; }
+.btn-action:hover { transform: scale(1.1); }
+.btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Estats de càrrega */
+.loading { text-align: center; padding: 100px; color: #64748b; }
+.spinner { 
+  width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; 
+  border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; 
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

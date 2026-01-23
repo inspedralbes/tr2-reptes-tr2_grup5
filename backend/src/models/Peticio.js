@@ -1,31 +1,78 @@
 const db = require("../config/db");
 
 const Peticio = {
-    // Crear una nova petició amb els seus detalls 
-    create: async (peticioData, tallersDetalls) => {
+    // --- NOUS MÈTODES PER A ESTADÍSTIQUES (AFEGITS) ---
+
+    // Obté el rànquing de centres basat en activitat per a la pàgina d'estadístiques
+    getCentresPrioritatRanking: async () => {
+        const sql = `
+            SELECT 
+                c.nom_centre,
+                COUNT(pd.id) as total_tallers,
+                SUM(pd.num_participants) as total_alumnes
+            FROM centres c
+            JOIN peticions p ON c.id = p.centre_id
+            JOIN peticio_detalls pd ON p.id = pd.peticio_id
+            WHERE pd.estat = 'ASSIGNADA'
+            GROUP BY c.id
+            ORDER BY total_tallers DESC, total_alumnes ASC
+            LIMIT 5
+        `;
+        const [rows] = await db.query(sql);
+        return rows;
+    },
+
+    // Obté mètriques globals de centres i alumnes
+    getCentresStats: async () => {
+        const [rows] = await db.query(`
+            SELECT 
+                COUNT(DISTINCT p.centre_id) as total_centres,
+                SUM(pd.num_participants) as total_alumnes,
+                AVG(pd.num_participants) as media_alumnes
+            FROM peticions p
+            JOIN peticio_detalls pd ON p.id = pd.peticio_id
+        `);
+
+        const [trimTop] = await db.query(`
+            SELECT trimestre, COUNT(*) as total 
+            FROM peticio_detalls 
+            GROUP BY trimestre 
+            ORDER BY total DESC LIMIT 1
+        `);
+
+        return { 
+            ...rows[0], 
+            trimestreTop: trimTop[0]?.trimestre || 'N/A' 
+        };
+    },
+
+    // --- CODI ORIGINAL RECUPERAT (PER A LA GESTIÓ D'ADMIN) ---
+
+    create: async (infoPeticio, tallersDetalls) => {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
 
-            // 1. Inserir a la taula 'peticions'
-            const { centre_id, trimestre, disponibilitat_dimarts, comentaris } = peticioData;
             const [peticioResult] = await connection.query(
-                "INSERT INTO peticions (centre_id, trimestre, disponibilitat_dimarts, comentaris) VALUES (?, ?, ?, ?)",
-                [centre_id, trimestre, disponibilitat_dimarts, comentaris]
+                "INSERT INTO peticions (centre_id) VALUES (?)",
+                [infoPeticio.centre_id]
             );
 
             const peticio_id = peticioResult.insertId;
 
-            // 2. Inserir els detalls a 'peticio_detalls'
+            // 2. Inserir els detalls a 'peticio_detalls' (amb trimestre i descripcio)
             if (tallersDetalls && tallersDetalls.length > 0) {
-                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, num_participants, es_preferencia_referent, docent_nom, docent_email) VALUES ?";
+                const detallsSql = "INSERT INTO peticio_detalls (peticio_id, taller_id, trimestre, num_participants, prioritat, es_preferencia_referent, docent_nom, docent_email, descripcio) VALUES ?";
                 const values = tallersDetalls.map(d => [
                     peticio_id,
                     d.taller_id,
+                    d.trimestre,
                     d.num_participants > 4 ? 4 : d.num_participants,
+                    d.prioritat || 1,
                     d.es_preferencia_referent ? 1 : 0,
                     d.docent_nom || null,
-                    d.docent_email || null
+                    d.docent_email || null,
+                    d.descripcio || null
                 ]);
                 await connection.query(detallsSql, [values]);
             }
@@ -40,10 +87,9 @@ const Peticio = {
         }
     },
 
-    // Obtenir peticions d'un centre
     getByCentreId: async (centre_id) => {
         const [rows] = await db.query(`
-      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.num_participants, pd.es_preferencia_referent, pd.estat as detall_estat, t.titol as taller_titol
+      SELECT p.*, pd.id as detall_id, pd.taller_id, pd.trimestre, pd.num_participants, pd.prioritat, pd.es_preferencia_referent, pd.estat as detall_estat, pd.descripcio, t.titol as taller_titol
       FROM peticions p
       LEFT JOIN peticio_detalls pd ON p.id = pd.peticio_id
       LEFT JOIN tallers t ON pd.taller_id = t.id
@@ -53,7 +99,6 @@ const Peticio = {
         return rows;
     },
 
-    // ADMIN: Obtenir totes les peticions amb filtres
     getAllAdmin: async (filters = {}) => {
         let sql = `
             SELECT DISTINCT p.*, c.nom_centre
@@ -65,26 +110,11 @@ const Peticio = {
         `;
         const params = [];
 
-        if (filters.taller_id) {
-            sql += " AND pd.taller_id = ?";
-            params.push(filters.taller_id);
-        }
-        if (filters.centre_id) {
-            sql += " AND p.centre_id = ?";
-            params.push(filters.centre_id);
-        }
-        if (filters.modalitat) {
-            sql += " AND t.modalitat = ?";
-            params.push(filters.modalitat);
-        }
-        if (filters.trimestre) {
-            sql += " AND p.trimestre = ?";
-            params.push(filters.trimestre);
-        }
-        if (filters.estat) {
-            sql += " AND pd.estat = ?";
-            params.push(filters.estat);
-        }
+        if (filters.taller_id) { sql += " AND pd.taller_id = ?"; params.push(filters.taller_id); }
+        if (filters.centre_id) { sql += " AND p.centre_id = ?"; params.push(filters.centre_id); }
+        if (filters.modalitat) { sql += " AND t.modalitat = ?"; params.push(filters.modalitat); }
+        if (filters.trimestre) { sql += " AND pd.trimestre = ?"; params.push(filters.trimestre); }
+        if (filters.estat) { sql += " AND pd.estat = ?"; params.push(filters.estat); }
 
         sql += " ORDER BY p.data_creacio DESC";
 
@@ -103,7 +133,6 @@ const Peticio = {
         return enrichedRows;
     },
 
-    // ADMIN: Buscar per ID amb detalls
     findById: async (id) => {
         const [peticio] = await db.query(`
             SELECT p.*, c.nom_centre 
@@ -124,16 +153,12 @@ const Peticio = {
         return { ...peticio[0], detalls };
     },
 
-
-    // ADMIN: Eliminar petició sencera
     delete: async (id) => {
         const [result] = await db.query("DELETE FROM peticions WHERE id = ?", [id]);
         return result.affectedRows > 0;
     },
 
-    // ADMIN: Actualitzar l'estat d'un taller dins d'una petició
     updateEstat: async (peticio_id, taller_id, estat) => {
-        // Validar que l'estat sigui vàlid
         const estatsValids = ['PENDENT', 'ASSIGNADA', 'REBUTJADA'];
         if (!estatsValids.includes(estat)) {
             throw new Error(`Estat no vàlid: ${estat}. Ha de ser un de: ${estatsValids.join(', ')}`);
@@ -146,14 +171,12 @@ const Peticio = {
         return result.affectedRows > 0;
     },
 
-    // ADMIN: Rebutjar automàticament detalls que ja no caben en un trimestre
     rebutjarPerMancaDePlaces: async (taller_id, trimestre, places_disponibles) => {
         const sql = `
             UPDATE peticio_detalls pd
-            JOIN peticions p ON pd.peticio_id = p.id
             SET pd.estat = 'REBUTJADA'
             WHERE pd.taller_id = ? 
-              AND p.trimestre = ?
+              AND pd.trimestre = ?
               AND pd.estat = 'PENDENT' 
               AND pd.num_participants > ?
         `;

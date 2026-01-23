@@ -43,7 +43,7 @@
 
 <script setup>
 definePageMeta({
-  layout: 'false'
+  layout: false
 })
 const router = useRouter();
 

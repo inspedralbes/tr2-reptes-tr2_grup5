@@ -1,286 +1,238 @@
 <template>
   <div class="page">
     <div class="header-actions">
-      <h2>Llista d'Alumnes del Taller</h2>
-      <button class="back-link" @click="navigateTo('/professors/tallers')">
-        ← Tornar als tallers
-      </button>
+      <h2>Gestió de Llista - {{ taller?.titol }}</h2>
+      <div class="actions">
+        <button class="btn-primary" @click="openModal" :disabled="!taller">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          Afegir Alumnes
+        </button>
+        <button class="btn-secondary" @click="router.back()">Tornar</button>
+      </div>
     </div>
 
-    <div v-if="pending" class="loading">Carregant alumnes...</div>
-    <div v-else-if="error" class="error">Error carregant els alumnes: {{ error.message }}</div>
+    <div v-if="pending" class="loading">Carregant dades...</div>
+    <div v-else-if="error" class="error">Error: {{ error.message }}</div>
 
     <div v-else class="content-container">
-      <div v-if="limitInfo" class="limit-info">
-        <p>Places ocupades: <strong>{{ alumnes.length }}</strong> de <strong>{{ limitInfo.max }}</strong></p>
-        <div class="progress-bar">
-          <div class="progress" :style="{ width: (alumnes.length / limitInfo.max * 100) + '%' }"></div>
-        </div>
+      <div class="info-banner">
+        <p>Com a docent assignat, pots afegir alumnes a la llista. Aquesta llista serà visible per al professor referent per passar llista.</p>
       </div>
 
-      <div class="add-student-form" v-if="!isFull">
-        <div class="form-group">
-          <input 
-            v-model="newStudentName" 
-            type="text" 
-            placeholder="Nom i Cognoms de l'alumne"
-            @keyup.enter="addStudent"
-          />
-          <button @click="addStudent" :disabled="!newStudentName" class="btn-add">
-            Afegir Alumne
-          </button>
-        </div>
+      <!-- Llista d'alumnes ja registrats -->
+      <div v-if="assistencia && assistencia.length > 0" class="students-list">
+        <h3>Alumnes a la Llista</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Cognoms</th>
+              <th>Email</th>
+              <th>Accions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="student in assistencia" :key="student.id">
+              <td>{{ student.nom }}</td>
+              <td>{{ student.cognoms }}</td>
+              <td>{{ student.email }}</td>
+              <td>
+                <button class="btn-delete" @click="deleteStudent(student.id)" title="Eliminar de la llista">
+                   🗑️
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div v-else class="limit-reached">
-        <p>Has assolit el nombre màxim d'alumnes per aquest taller.</p>
-      </div>
-
-      <div class="students-list">
-        <div v-if="alumnes.length === 0" class="no-students">
-          No hi ha alumnes afegits encara.
-        </div>
-        <div v-else v-for="alumne in alumnes" :key="alumne.id" class="student-item">
-          <span class="student-name">{{ alumne.nom_alumne }}</span>
-          <button class="btn-delete" @click="deleteStudent(alumne.id)" title="Eliminar alumne">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        </div>
+      <div v-else class="no-data">
+        <p>No hi ha alumnes a la llista. Afegeix-ne perquè el referent pugui passar assistència.</p>
       </div>
     </div>
+
+    <!-- MODAL -->
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Afegir Alumnes ({{ taller?.num_participants }} places totals)</h3>
+        <form @submit.prevent="submitAssistencia">
+          <div class="students-form-grid">
+            <div v-for="(student, index) in studentsForm" :key="index" class="student-row">
+              <span class="row-number">#{{ index + 1 }}</span>
+              <div class="form-group">
+                <input v-model="student.nom" placeholder="Nom" required />
+              </div>
+              <div class="form-group">
+                <input v-model="student.cognoms" placeholder="Cognoms" required />
+              </div>
+              <div class="form-group">
+                <input v-model="student.email" type="email" placeholder="Email" required />
+              </div>
+              <!-- Eliminat checkbox d'assistència inicial -->
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="closeModal">Cancel·lar</button>
+            <button type="submit" class="btn-primary" :disabled="submitting">
+              {{ submitting ? 'Enviant...' : 'Enviar Llista' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 const route = useRoute();
+const router = useRouter();
+const detalleId = route.params.id; 
+
 const token = useCookie('authToken');
-const header = useHeaderStore();
-header.setHeaderProfessors();
+const showModal = ref(false);
+const submitting = ref(false);
+const studentsForm = ref([]);
 
-const tallerId = route.params.id;
-const newStudentName = ref('');
-const limitInfo = ref({ max: 0 }); // Iniciarem amb 0 fins que carreguem dades si cal o podem passar-ho per state
-
-// Fetch alumnes
-const { data: alumnes, pending, error, refresh } = await useFetch(`http://localhost:1700/api/professors/tallers/${tallerId}/alumnes`, {
-  server: false,
-  headers: {
-    Authorization: token.value ? `Bearer ${token.value}` : ''
-  }
-});
-
-// Com que no tenim un endpoint per agafar info del taller specific, podem fer un fetch als tallers i filtrar (una mica ineficient pero serveix per ara)
-// O idealment, l'endpoint de alumnes podria retornar tb la info del taller.
-// Per simplificar, assumeixo que l'usuari ve de la llista i podriem passar dades, pero millor fer un fetch independent si es pot.
-// En aquest cas, farem un fetch als tallers assignats i buscarem aquest per saber el limit.
+// 1. Fetch taller info
 const { data: tallers } = await useFetch('http://localhost:1700/api/professors/tallers', {
-  server: false,
-  headers: {
-    Authorization: token.value ? `Bearer ${token.value}` : ''
-  }
+  headers: { Authorization: `Bearer ${token.value}` }
 });
 
-watch(tallers, (newTallers) => {
-  if (newTallers) {
-    const currentTaller = newTallers.find(t => t.detall_id == tallerId);
-    if (currentTaller) {
-      limitInfo.value.max = currentTaller.num_participants;
-      console.log("Limit taller:", limitInfo.value.max);
-    }
-  }
-}, { immediate: true });
-
-
-const isFull = computed(() => {
-  return alumnes.value && limitInfo.value.max > 0 && alumnes.value.length >= limitInfo.value.max;
+const taller = computed(() => {
+  if (!tallers.value) return null;
+  return tallers.value.find(t => t.detall_id == detalleId);
 });
 
+// 2. Fetch llista existent (endpoint d'alumnes, no assistència)
+// Utilitzem getAlumnes que està permès per Docents
+const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
+  headers: { Authorization: `Bearer ${token.value}` }
+});
 
-const addStudent = async () => {
-  if (!newStudentName.value) return;
+const openModal = () => {
+  if (!taller.value) return;
+  
+  const total = taller.value.num_participants || 0;
+  // Calculem quants en falten
+  const current = assistencia.value ? assistencia.value.length : 0;
+  const remaining = total - current;
 
-  try {
-    await $fetch(`http://localhost:1700/api/professors/tallers/${tallerId}/alumnes`, {
-      method: 'POST',
-      headers: {
-        Authorization: token.value ? `Bearer ${token.value}` : ''
-      },
-      body: { nom_alumne: newStudentName.value }
-    });
-    newStudentName.value = '';
-    refresh();
-  } catch (e) {
-    alert(e.data?.message || 'Error afegint alumne');
+  if (remaining <= 0) {
+      alert("La llista està plena.");
+      return;
   }
+  
+  studentsForm.value = Array.from({ length: remaining }, () => ({
+    nom: '',
+    cognoms: '',
+    email: '',
+    ha_assistit: true // Default intern
+  }));
+  
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
 };
 
 const deleteStudent = async (studentId) => {
-  if (!confirm('Estàs segur que vols eliminar aquest alumne?')) return;
-  
+    if (!confirm("Segur que vols eliminar aquest alumne de la llista?")) return;
+    try {
+        await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes/${studentId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token.value}` }
+        });
+        refreshAssistencia();
+    } catch (e) {
+        alert("Error eliminant alumne: " + e.message);
+    }
+}
+
+const submitAssistencia = async () => {
+  submitting.value = true;
   try {
-    await $fetch(`http://localhost:1700/api/professors/tallers/${tallerId}/alumnes/${studentId}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: token.value ? `Bearer ${token.value}` : ''
+    // Aquest endpoint és el correcte per Docents
+    await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.value}` },
+      body: {
+        alumnes: studentsForm.value
       }
     });
-    refresh();
-  } catch (e) {
-    alert('Error eliminant alumne');
+    
+    await refreshAssistencia();
+    closeModal();
+    alert('Llista enviada correctament!');
+  } catch (err) {
+    console.error(err);
+    alert('Error enviant la llista: ' + (err.data?.message || err.message));
+  } finally {
+    submitting.value = false;
   }
 };
 </script>
 
 <style scoped>
-.page {
-  padding: 30px;
-  max-width: 800px;
-  margin: 0 auto;
+.page { padding: 30px; max-width: 1200px; margin: 0 auto; }
+.header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.actions { display: flex; gap: 10px; }
+
+h2 { font-size: 1.8rem; color: #1a202c; }
+h3 { color: #1e293b; margin-bottom: 1rem; }
+
+.btn-primary { 
+  background: #2b63b6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500;
+}
+.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-secondary { background: white; border: 1px solid #cbd5e1; color: #475569; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+
+/* Table styles */
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+th { background: #f8fafc; font-weight: 600; color: #475569; }
+
+.badge-success { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+.badge-danger { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-content {
+  background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;
 }
 
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
+.students-form-grid { display: grid; gap: 15px; margin-bottom: 20px; }
+.student-row { display: grid; grid-template-columns: 40px 1fr 1fr 1.5fr auto; gap: 10px; align-items: center; padding: 10px; background: #f8fafc; border-radius: 8px; }
+.row-number { font-weight: bold; color: #94a3b8; }
 
-.header-actions h2 {
-  font-size: 1.8rem;
-  color: #1a202c;
-  margin: 0;
-}
+input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
+.checkbox { display: flex; align-items: center; }
 
-.back-link {
-  background: none;
-  border: none;
-  color: #3b82f6;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
 
-.limit-info {
-  background: #f8fafc;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 1px solid #e2e8f0;
-}
-
-.progress-bar {
-  height: 8px;
-  background-color: #e2e8f0;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.progress {
-  height: 100%;
-  background-color: #3b82f6;
-  transition: width 0.3s ease;
-}
-
-.add-student-form {
-  margin-bottom: 30px;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  border: 1px solid #e2e8f0;
-}
-
-.form-group {
-  display: flex;
-  gap: 10px;
-}
-
-.form-group input {
-  flex-grow: 1;
-  padding: 10px 15px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
-.btn-add {
-  padding: 10px 20px;
-  background-color: #10b981;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-add:hover {
-  background-color: #059669;
-}
-
-.btn-add:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.limit-reached {
-  background-color: #fff1f2;
-  color: #e11d48;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.students-list {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-.student-item {
-  padding: 15px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.student-item:last-child {
-  border-bottom: none;
-}
-
-.student-name {
-  font-size: 1.1rem;
-  color: #334155;
+.info-banner {
+    background-color: #ebf8ff;
+    border-left: 4px solid #4299e1;
+    color: #2b6cb0;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 0.95rem;
 }
 
 .btn-delete {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 4px;
-  transition: color 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    transition: transform 0.2s;
 }
-
 .btn-delete:hover {
-  color: #ef4444;
-  background-color: #fef2f2;
-}
-
-.no-students {
-  padding: 40px;
-  text-align: center;
-  color: #64748b;
-  font-style: italic;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 40px;
+    transform: scale(1.1);
 }
 </style>

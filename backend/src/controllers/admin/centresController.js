@@ -6,7 +6,23 @@ const User = require("../../models/User");
 const getAllCentres = async (req, res) => {
   try {
     const centres = await Centre.getAll();
-    res.json(centres);
+    res.json(centres || []); 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// --- NOU: GET: Obtenir un centre per ID (Per al detall) ---
+const getCentreById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const centre = await Centre.findById(id);
+
+    if (!centre) {
+      return res.status(404).json({ message: "No s'ha trobat el centre" });
+    }
+
+    res.json(centre);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -20,31 +36,27 @@ const createCentre = async (req, res) => {
     user_id, 
     email_oficial, 
     adreca,
-    municipi,
+    municipi, 
     telefon,
     nom_coordinador,
     es_primera_vegada 
   } = req.body;
 
-  // Comprovem camps obligatoris
   if (!nom_centre || !codi_centre) {
     return res.status(400).json({ message: "El nom del centre i el codi són obligatoris" });
   }
 
-  // Validació de Rol: Si s'assigna un usuari, ha de ser rol 'CENTRE'
-  if (user_id) {
-    // Nota: El mètode hasRole retorna true/false, però la consulta SQL potser retorna rows buides.
-    // Millor fem una consulta directa a User.findById per estar segurs del rol.
-    const user = await User.findById(user_id);
-    if (!user) {
-      return res.status(404).json({ message: "L'usuari assignat no existeix." });
-    }
-    if (user.rol !== 'CENTRE') {
-      return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
-    }
-  }
-
   try {
+    if (user_id) {
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ message: "L'usuari assignat no existeix." });
+      }
+      if (user.rol !== 'CENTRE') {
+        return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
+      }
+    }
+
     const newId = await Centre.create({
       codi_centre,
       nom_centre, 
@@ -57,9 +69,8 @@ const createCentre = async (req, res) => {
       es_primera_vegada
     });
     
-    // AUDITORIA
     await Log.create({
-      usuari_id: req.user ? req.user.id : null, // Assumint que tenim el middleware auth
+      usuari_id: req.user ? req.user.id : null,
       accio: 'CREATE',
       taula_afectada: 'centres',
       valor_nou: { id: newId, codi_centre, nom_centre }
@@ -83,28 +94,28 @@ const updateCentre = async (req, res) => {
   const { id } = req.params;
   const newData = req.body;
 
-  // Validació de Rol en cas de canvi d'usuari
-  if (newData.user_id) {
-    const user = await User.findById(newData.user_id);
-    if (!user) {
-      return res.status(404).json({ message: "L'usuari assignat no existeix." });
-    }
-    if (user.rol !== 'CENTRE') {
-      return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
-    }
-  }
-
   try {
-    // Recuperar valor anterior per auditoria
+    if (newData.user_id) {
+      const user = await User.findById(newData.user_id);
+      if (!user) {
+        return res.status(404).json({ message: "L'usuari assignat no existeix." });
+      }
+      if (user.rol !== 'CENTRE') {
+        return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
+      }
+    }
+
     const oldData = await Centre.findById(id);
+    if (!oldData) {
+      return res.status(404).json({ message: "No s'ha trobat el centre" });
+    }
 
     const updated = await Centre.update(id, newData);
 
     if (!updated) {
-      return res.status(404).json({ message: "No s'ha trobat el centre per actualitzar" });
+      return res.status(400).json({ message: "No s'han pogut actualitzar les dades." });
     }
 
-    // AUDITORIA
     await Log.create({
       usuari_id: req.user ? req.user.id : null, 
       accio: 'UPDATE',
@@ -126,16 +137,13 @@ const updateCentre = async (req, res) => {
 const deleteCentre = async (req, res) => {
   const { id } = req.params;
   try {
-    // Recuperar valor anterior per auditoria
     const oldData = await Centre.findById(id);
-
-    const deleted = await Centre.delete(id);
-
-    if (!deleted) {
+    if (!oldData) {
       return res.status(404).json({ message: "No s'ha trobat el centre per eliminar" });
     }
 
-    // AUDITORIA
+    const deleted = await Centre.delete(id);
+
     await Log.create({
       usuari_id: req.user ? req.user.id : null, 
       accio: 'DELETE',
@@ -145,18 +153,18 @@ const deleteCentre = async (req, res) => {
 
     res.json({ message: "Centre eliminat correctament" });
   } catch (error) {
-    // Si falla per restricció de clau forana
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({ message: "No es pot eliminar el centre perquè té registres associades." });
+      return res.status(409).json({ message: "No es pot eliminar el centre perquè té registres associats (peticions, etc.)." });
     }
     res.status(500).json({ error: error.message });
   }
 };
 
+// --- EXPORTS ACTUALITZATS ---
 module.exports = { 
-  getAllCentres,  
+  getAllCentres,
+  getCentreById, // Afegeix-lo aquí
   createCentre, 
   updateCentre, 
   deleteCentre 
 };
-
