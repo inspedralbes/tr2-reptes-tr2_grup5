@@ -1,75 +1,79 @@
 <template>
   <div class="page">
-    <div class="header-section">
-      <div class="title-with-icon">
-        <span class="header-icon">🎓</span>
-        <div>
-          <h2>Les meves Assignacions</h2>
-          <p class="subtitle">Tallers confirmats i acceptats per al teu centre.</p>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="pending" class="loading-state">
-      <div class="spinner"></div>
-      <span>Carregant les teves assignacions...</span>
-    </div>
-
-    <div v-else-if="error" class="error-state">
-      <span class="error-status">⚠️</span>
-      <p>No s'hi ha pogut conectar al servidor: {{ error.message }}</p>
-      <button @click="refresh" class="btn-retry">Reintentar</button>
-    </div>
-
-    <div v-else class="content-wrapper">
-      <div v-if="assignacions && assignacions.length > 0" class="assignments-grid">
-        <div v-for="assignacio in assignacions" :key="assignacio.id" class="assignment-card">
-          <div class="card-status-bar">
-            {{ assignacio.trimestre }} Trimestre
-          </div>
-          
-          <div class="card-body">
-            <div class="taller-info">
-              <div class="modalitat-indicator" :class="'mod-' + assignacio.modalitat.toLowerCase()">
-                {{ assignacio.modalitat }}
-              </div>
-              <div class="taller-main">
-                <h3>{{ assignacio.titol }}</h3>
-                <p class="ubicacio">📍 {{ assignacio.ubicacio || 'Ubicació per confirmar' }}</p>
-              </div>
-            </div>
-
-            <div class="assignment-details">
-              <div class="detail-item">
-                <span class="label">Participants</span>
-                <span class="value">{{ assignacio.num_participants }} alumnes</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Docent Referent</span>
-                <span class="value">{{ assignacio.docent_nom || 'Pendent d\'assignar' }}</span>
-              </div>
-              <div class="detail-item" v-if="assignacio.docent_email">
-                <span class="label">Email Docent</span>
-                <span class="value small">{{ assignacio.docent_email }}</span>
-              </div>
-            </div>
-
-            <div class="footer-actions">
-              <NuxtLink :to="`/centres/assignacions/${assignacio.id}`" class="btn-details">
-                Veure detalls i sessions ❯
-              </NuxtLink>
-            </div>
+    <template v-if="!$route.params.id">
+      <div class="header-section">
+        <div class="title-with-icon">
+          <span class="header-icon">🎓</span>
+          <div>
+            <h2>Les meves Assignacions</h2>
+            <p class="subtitle">Tallers confirmats i acceptats per al teu centre.</p>
           </div>
         </div>
       </div>
 
-      <div v-else class="empty-state">
-        <div class="empty-illustration">📅</div>
-        <h3>Encara no tens cap taller assignat</h3>
-        <p>Quan l'administració accepti les teves sol·licituds, apareixeran aquí.</p>
-        <NuxtLink to="/peticions" class="btn-primary">Anar a Sol·licituds</NuxtLink>
+      <div v-if="pending" class="loading-state">
+        <div class="spinner"></div>
+        <span>Carregant les teves assignacions...</span>
       </div>
-    </div>
+
+      <div v-else-if="error" class="error-state">
+        <span class="error-status">⚠️</span>
+        <p>No s'hi ha pogut conectar al servidor: {{ error.message }}</p>
+        <button @click="refresh" class="btn-retry">Reintentar</button>
+      </div>
+
+      <div v-else class="content-wrapper">
+        <div v-if="assignacions && assignacions.length > 0" class="assignments-grid">
+          <div v-for="assignacio in assignacions" :key="assignacio.id" class="assignment-card">
+            <div class="card-status-bar">
+              {{ assignacio.trimestre }} Trimestre
+            </div>
+            
+            <div class="card-body">
+              <div class="taller-info">
+                <div class="modalitat-indicator" :class="'mod-' + assignacio.modalitat.toLowerCase()">
+                  {{ assignacio.modalitat }}
+                </div>
+                <div class="taller-main">
+                  <h3>{{ assignacio.titol }}</h3>
+                  <p class="ubicacio">📍 {{ assignacio.ubicacio || 'Ubicació per confirmar' }}</p>
+                </div>
+              </div>
+
+              <div class="assignment-details">
+                <div class="detail-item">
+                  <span class="label">Participants</span>
+                  <span class="value">{{ assignacio.num_participants }} alumnes</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Docent Referent</span>
+                  <span class="value">{{ assignacio.docent_nom || 'Pendent d\'assignar' }}</span>
+                </div>
+                <div class="detail-item" v-if="assignacio.docent_email">
+                  <span class="label">Email Docent</span>
+                  <span class="value small">{{ assignacio.docent_email }}</span>
+                </div>
+              </div>
+
+              <div class="footer-actions">
+                <NuxtLink :to="`/centres/assignacions/${assignacio.id}`" class="btn-details">
+                  Veure detalls i sessions ❯
+                </NuxtLink>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="empty-state">
+          <div class="empty-illustration">📅</div>
+          <h3>Encara no tens cap taller assignat</h3>
+          <p>Quan l'administració accepti les teves sol·licituds, apareixeran aquí.</p>
+          <NuxtLink to="/peticions" class="btn-primary">Anar a Sol·licituds</NuxtLink>
+        </div>
+      </div>
+    </template>
+
+    <NuxtPage />
   </div>
 </template>
 
@@ -77,6 +81,7 @@
 const header = useHeaderStore()
 header.setHeaderCentres()
 const tokenCookie = useCookie('authToken')
+
 const { data: assignacions, pending, error, refresh } = await useFetch('http://localhost:1700/api/centre/assignacions', {
   server: false,
   headers: {

@@ -29,6 +29,7 @@ router.get("/perfil", verifyToken, async (req, res) => {
 // URL base: /api/centre/tallers
 router.get("/tallers", tallersController.getAllTallersDisponibles);
 router.get("/assignacions", verifyToken, tallersController.getMevesAssignacions);
+router.get('/assignacions/:id', verifyToken, tallersController.getAssignacioById);    
 
 //--- RUTES PER A PROFESSORAT ---
 // URL base: /api/centre/professors
@@ -41,4 +42,3 @@ router.post("/peticions", verifyToken, peticionsController.createPeticio);
 router.get("/peticions", verifyToken, peticionsController.getMevesPeticions);
 
 module.exports = router;
-
