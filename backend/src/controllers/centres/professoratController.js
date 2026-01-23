@@ -1,8 +1,23 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const Professor = require("../../models/Professor");
 const Centre = require("../../models/Centre");
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador de professorat (centres): CRUD de professors del centre
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
 const professoratController = {
-    getMeusProfessors: async (req, res) => {
+  // A) --- Obtenir els professors del centre ---
+  getMeusProfessors: async (req, res) => {
         try {
             const user_id = req.user.id;
             const centre = await Centre.findByUserId(user_id);
@@ -19,25 +34,27 @@ const professoratController = {
         }
     },
 
-    createProf: async (req, res) => {
-        try {
-            const user_id = req.user.id;
-            const { nom, cognoms, email } = req.body;
+  // B) --- Crear un professor ---
+  createProf: async (req, res) => {
+    try {
+      const user_id = req.user.id;
+      const nom = req.body.nom;
+      const cognoms = req.body.cognoms;
+      const email = req.body.email;
 
-            // 1. Busquem el centre
-            const centre = await Centre.findByUserId(user_id);
-            if (!centre) {
-                return res.status(404).json({ message: "Centre no trobat." });
-            }
+      // 1. Busquem el centre
+      const centre = await Centre.findByUserId(user_id);
+      if (!centre) {
+        return res.status(404).json({ message: "Centre no trobat." });
+      }
 
-            // 2. Executem la creació (Doble INSERT a la BD)
-            // Ens assegurem que la variable 'result' estigui ben definida
-            const result = await Professor.create({
-                nom,
-                cognoms,
-                email,
-                centre_id: centre.id
-            });
+      // 2. Executem la creació (doble INSERT a la BD)
+      const result = await Professor.create({
+        nom: nom,
+        cognoms: cognoms,
+        email: email,
+        centre_id: centre.id
+      });
 
             // 3. Enviem la resposta fent servir 'result.professorId' que retorna el teu model
             return res.status(201).json({
@@ -61,12 +78,14 @@ const professoratController = {
         }
     },
 
-    // A) --- Actualitzar professor ---
-    updateProfessor: async (req, res) => {
-        try {
-            const user_id = req.user.id;
-            const prof_id = req.params.id;
-            const { nom, cognoms, email } = req.body;
+  // C) --- Actualitzar professor ---
+  updateProfessor: async (req, res) => {
+    try {
+      const user_id = req.user.id;
+      const prof_id = req.params.id;
+      const nom = req.body.nom;
+      const cognoms = req.body.cognoms;
+      const email = req.body.email;
 
             // 1. Busquem el centre de l'usuari actual
             const centre = await Centre.findByUserId(user_id);
@@ -85,14 +104,13 @@ const professoratController = {
                 return res.status(403).json({ message: "No tens permís per editar aquest professor." });
             }
 
-            // 4. Executem l'actualització
-            // Nota: Passem user_id per si cal actualitzar l'email a la taula usuaris
-            await Professor.update(prof_id, {
-                nom,
-                cognoms,
-                email,
-                user_id: professor.user_id
-            });
+      // 4. Executem l'actualització
+      await Professor.update(prof_id, {
+        nom: nom,
+        cognoms: cognoms,
+        email: email,
+        user_id: professor.user_id
+      });
 
             return res.json({ message: "Professor actualitzat correctament." });
 
@@ -102,8 +120,8 @@ const professoratController = {
         }
     },
 
-    // A) --- Eliminar professor ---
-    deleteProfessor: async (req, res) => {
+  // D) --- Eliminar professor ---
+  deleteProfessor: async (req, res) => {
         try {
             const user_id = req.user.id;
             const prof_id = req.params.id;

@@ -1,21 +1,46 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const Centre = require("../../models/Centre");
 const Log = require("../../models/Log");
 const User = require("../../models/User");
 
-// --- 1. GET: Obtenir tots els centres ---
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador de centres (admin): CRUD de centres
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Obtenir tots els centres ---
 const getAllCentres = async (req, res) => {
   try {
+    // 1. Obtenim tots els centres
     const centres = await Centre.getAll();
-    res.json(centres || []); 
+
+    // 2. Si no n'hi ha, retornem array buit; si n'hi ha, els retornem
+    let resultat = centres;
+    if (!resultat) {
+      resultat = [];
+    }
+
+    res.json(resultat);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// --- NOU: GET: Obtenir un centre per ID (Per al detall) ---
+// B) --- Obtenir un centre per ID (per al detall) ---
 const getCentreById = async (req, res) => {
   try {
-    const { id } = req.params;
+    // 1. Obtenim l'ID dels paràmetres de la ruta
+    const id = req.params.id;
+
+    // 2. Busquem el centre
     const centre = await Centre.findById(id);
 
     if (!centre) {
@@ -28,53 +53,59 @@ const getCentreById = async (req, res) => {
   }
 };
 
-// --- 2. POST: Crear un nou centre ---
+// C) --- Crear un nou centre ---
 const createCentre = async (req, res) => {
-  const { 
-    codi_centre,
-    nom_centre, 
-    user_id, 
-    email_oficial, 
-    adreca,
-    municipi, 
-    telefon,
-    nom_coordinador,
-    es_primera_vegada 
-  } = req.body;
+  // 1. Obtenim les dades del cos de la petició
+  const codi_centre = req.body.codi_centre;
+  const nom_centre = req.body.nom_centre;
+  const user_id = req.body.user_id;
+  const email_oficial = req.body.email_oficial;
+  const adreca = req.body.adreca;
+  const municipi = req.body.municipi;
+  const telefon = req.body.telefon;
+  const nom_coordinador = req.body.nom_coordinador;
+  const es_primera_vegada = req.body.es_primera_vegada;
 
   if (!nom_centre || !codi_centre) {
     return res.status(400).json({ message: "El nom del centre i el codi són obligatoris" });
   }
 
   try {
+    // 2. Si s'assigna usuari, comprovem que existeixi i tingui rol CENTRE
     if (user_id) {
       const user = await User.findById(user_id);
       if (!user) {
         return res.status(404).json({ message: "L'usuari assignat no existeix." });
       }
-      if (user.rol !== 'CENTRE') {
+      if (user.rol !== "CENTRE") {
         return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
       }
     }
 
+    // 3. Creem el centre a la base de dades
     const newId = await Centre.create({
-      codi_centre,
-      nom_centre, 
-      user_id, 
-      email_oficial, 
-      adreca,
-      municipi, 
-      telefon,
-      nom_coordinador,
-      es_primera_vegada
+      codi_centre: codi_centre,
+      nom_centre: nom_centre,
+      user_id: user_id,
+      email_oficial: email_oficial,
+      adreca: adreca,
+      municipi: municipi,
+      telefon: telefon,
+      nom_coordinador: nom_coordinador,
+      es_primera_vegada: es_primera_vegada
     });
 
-    const txtNou = "Creat el centre '" + (nom_centre || '') + "' (codi: " + (codi_centre || '') + ", id: " + newId + ").";
+    // 4. Registrem el log d'auditoria
+    let usuariIdLog = null;
+    if (req.user) {
+      usuariIdLog = req.user.id;
+    }
+    const txtNou = "Creat el centre '" + (nom_centre || "") + "' (codi: " + (codi_centre || "") + ", id: " + newId + ").";
     try {
       await Log.create({
-        usuari_id: req.user ? req.user.id : null,
-        accio: 'CREATE',
-        taula_afectada: 'centres',
+        usuari_id: usuariIdLog,
+        accio: "CREATE",
+        taula_afectada: "centres",
         valor_anterior: null,
         valor_nou: txtNou
       });
@@ -82,10 +113,11 @@ const createCentre = async (req, res) => {
       console.error("Error creant log d'auditoria:", logErr.message);
     }
 
-    res.status(201).json({ 
-      id: newId, 
-      nom_centre, 
-      message: "Centre creat correctament" 
+    // 5. Retornem èxit
+    res.status(201).json({
+      id: newId,
+      nom_centre: nom_centre,
+      message: "Centre creat correctament"
     });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
@@ -95,22 +127,25 @@ const createCentre = async (req, res) => {
   }
 };
 
-// --- 3. PUT: Actualitzar un centre existent ---
+// D) --- Actualitzar un centre existent ---
 const updateCentre = async (req, res) => {
-  const { id } = req.params;
+  // 1. Obtenim l'ID i les dades noves
+  const id = req.params.id;
   const newData = req.body;
 
   try {
+    // 2. Si s'assigna usuari, comprovem que existeixi i tingui rol CENTRE
     if (newData.user_id) {
       const user = await User.findById(newData.user_id);
       if (!user) {
         return res.status(404).json({ message: "L'usuari assignat no existeix." });
       }
-      if (user.rol !== 'CENTRE') {
+      if (user.rol !== "CENTRE") {
         return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
       }
     }
 
+    // 3. Obtenim les dades antigues i actualitzem
     const oldData = await Centre.findById(id);
     if (!oldData) {
       return res.status(404).json({ message: "No s'ha trobat el centre" });
@@ -122,13 +157,18 @@ const updateCentre = async (req, res) => {
       return res.status(400).json({ message: "No s'han pogut actualitzar les dades." });
     }
 
-    const txtAnterior = "Centre id " + oldData.id + ", nom '" + (oldData.nom_centre || '') + "', codi " + (oldData.codi_centre || '') + ", abans d'actualitzar.";
-    const txtNou = "Actualitzat el centre id " + id + " (nom: '" + (newData.nom_centre || oldData.nom_centre || '') + "', codi: " + (newData.codi_centre || oldData.codi_centre || '') + ").";
+    // 4. Registrem el log d'auditoria
+    let usuariIdLog = null;
+    if (req.user) {
+      usuariIdLog = req.user.id;
+    }
+    const txtAnterior = "Centre id " + oldData.id + ", nom '" + (oldData.nom_centre || "") + "', codi " + (oldData.codi_centre || "") + ", abans d'actualitzar.";
+    const txtNou = "Actualitzat el centre id " + id + " (nom: '" + (newData.nom_centre || oldData.nom_centre || "") + "', codi: " + (newData.codi_centre || oldData.codi_centre || "") + ").";
     try {
       await Log.create({
-        usuari_id: req.user ? req.user.id : null, 
-        accio: 'UPDATE',
-        taula_afectada: 'centres',
+        usuari_id: usuariIdLog,
+        accio: "UPDATE",
+        taula_afectada: "centres",
         valor_anterior: txtAnterior,
         valor_nou: txtNou
       });
@@ -136,6 +176,7 @@ const updateCentre = async (req, res) => {
       console.error("Error creant log d'auditoria:", logErr.message);
     }
 
+    // 5. Retornem èxit
     res.json({ message: "Centre actualitzat correctament" });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
@@ -145,25 +186,34 @@ const updateCentre = async (req, res) => {
   }
 };
 
-// --- 4. DELETE: Eliminar un centre ---
+// E) --- Eliminar un centre ---
 const deleteCentre = async (req, res) => {
-  const { id } = req.params;
+  // 1. Obtenim l'ID dels paràmetres
+  const id = req.params.id;
+
   try {
+    // 2. Obtenim les dades abans d'eliminar
     const oldData = await Centre.findById(id);
     if (!oldData) {
       return res.status(404).json({ message: "No s'ha trobat el centre per eliminar" });
     }
 
+    // 3. Eliminem el centre
     const deleted = await Centre.delete(id);
 
     if (deleted) {
+      // 4. Registrem el log d'auditoria
+      let usuariIdLog = null;
+      if (req.user) {
+        usuariIdLog = req.user.id;
+      }
       try {
         const txtAnterior = "Centre amb id " + oldData.id + ", nom '" + (oldData.nom_centre || "") + "', codi " + (oldData.codi_centre || "") + ", abans d'eliminar.";
         const txtNou = "Eliminat el centre '" + (oldData.nom_centre || "") + "' (codi: " + (oldData.codi_centre || "") + ", id: " + oldData.id + ").";
         await Log.create({
-          usuari_id: req.user ? req.user.id : null, 
-          accio: 'DELETE',
-          taula_afectada: 'centres',
+          usuari_id: usuariIdLog,
+          accio: "DELETE",
+          taula_afectada: "centres",
           valor_anterior: txtAnterior,
           valor_nou: txtNou
         });
@@ -172,6 +222,7 @@ const deleteCentre = async (req, res) => {
       }
     }
 
+    // 5. Retornem èxit
     res.json({ message: "Centre eliminat correctament" });
   } catch (error) {
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
@@ -181,11 +232,10 @@ const deleteCentre = async (req, res) => {
   }
 };
 
-// --- EXPORTS ACTUALITZATS ---
-module.exports = { 
+module.exports = {
   getAllCentres,
-  getCentreById, // Afegeix-lo aquí
-  createCentre, 
-  updateCentre, 
-  deleteCentre 
+  getCentreById,
+  createCentre,
+  updateCentre,
+  deleteCentre
 };
