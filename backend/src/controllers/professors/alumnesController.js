@@ -86,11 +86,11 @@ const alumnesController = {
             const { studentId } = req.params;
 
             // 1. Obtenir info del alumne per saber el taller
-            const [alumneRows] = await db.query("SELECT peticio_detall_id FROM alumnes_taller WHERE id = ?", [studentId]);
-            if (!alumneRows.length) {
+            const alumne = await Alumne.getById(studentId);
+            if (!alumne) {
                 return res.status(404).json({ message: "Alumne no trobat." });
             }
-            const peticio_detall_id = alumneRows[0].peticio_detall_id;
+            const peticio_detall_id = alumne.peticio_detall_id;
 
             // 2. Verificar permís (mateixa lògica que addAlumne: només docent assignat)
             const [tallerRows] = await db.query("SELECT docent_email FROM peticio_detalls WHERE id = ?", [peticio_detall_id]);
