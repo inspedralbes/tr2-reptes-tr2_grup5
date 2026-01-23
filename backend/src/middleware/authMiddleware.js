@@ -1,29 +1,53 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const jwt = require('jsonwebtoken');
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Middleware d'autenticació: Verifica el token JWT de les peticions
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Verificar el token JWT de la petició ---
 const verifyToken = (req, res, next) => {
-    // 1. Llegim la capçalera 'Authorization'
+    // 1. Llegim la capçalera 'Authorization' de la petició
     const tokenHeader = req.header('Authorization');
 
-    // Si no hi ha token, deneguem l'accés (403 Forbidden)
+    // 2. Comprovem si hi ha token a la capçalera
     if (!tokenHeader) {
-        return res.status(403).json({ message: 'Accés denegat: No s\'ha proporcionat token.' });
+        // 3. Si no hi ha token, deneguem l'accés amb error 403
+        res.status(403).json({ message: 'Accés denegat: No s\'ha proporcionat token.' });
+        return;
     }
 
-    // El format sol ser "Bearer <token_real>". Netegem el prefix si existeix.
+    // 4. Separem el token de la capçalera (format sol ser "Bearer <token_real>")
     const tokenParts = tokenHeader.split(' ');
-    const token = tokenParts.length === 2 ? tokenParts[1] : tokenHeader;
+    
+    // 5. Obtenim el token real eliminant el prefix "Bearer" si existeix
+    let token;
+    if (tokenParts.length === 2) {
+        token = tokenParts[1];
+    } else {
+        token = tokenHeader;
+    }
 
     try {
-        // 2. Verifiquem la firma del token amb la nostra clau secreta
+        // 6. Verifiquem la firma del token amb la clau secreta
         const verified = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Si és vàlid, guardem les dades de l'usuari a la petició (req.user)
+        // 7. Guardem les dades de l'usuari verificat a la petició
         req.user = verified;
 
-        // 3. Deixem passar la petició al següent pas (el controlador)
+        // 8. Deixem passar la petició al següent middleware o controlador
         next();
     } catch (error) {
-        // Si la firma no coincideix o ha caducat, deneguem l'accés (401 Unauthorized)
+        // 9. Si el token és invàlid o ha caducat, deneguem l'accés amb error 401
         res.status(401).json({ message: 'Token invàlid o expirat.' });
     }
 };

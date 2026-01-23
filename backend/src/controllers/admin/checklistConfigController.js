@@ -31,13 +31,18 @@ const createChecklistStep = async (req, res) => {
       obligatori: obligatoriVal
     });
 
-    // Logs d'auditoria
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
-      accio: 'CREATE',
-      taula_afectada: 'checklist_config',
-      valor_nou: { id: newId, titol_pas, obligatori: obligatoriVal }
-    });
+    const txtNou = "Creat el pas de checklist '" + (titol_pas || '') + "' (id: " + newId + ", obligatori: " + obligatoriVal + ").";
+    try {
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null, 
+        accio: 'CREATE',
+        taula_afectada: 'checklist_config',
+        valor_anterior: null,
+        valor_nou: txtNou
+      });
+    } catch (logErr) {
+      console.error("Error creant log d'auditoria:", logErr.message);
+    }
 
     res.status(201).json({ 
       id: newId, 
@@ -79,14 +84,19 @@ const updateChecklistStep = async (req, res) => {
 
     const updated = await ChecklistConfig.update(id, newData);
 
-    // Logs d'auditoria
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
-      accio: 'UPDATE',
-      taula_afectada: 'checklist_config',
-      valor_anterior: oldData,
-      valor_nou: { id, ...newData }
-    });
+    const txtAnterior = "Pas de checklist id " + oldData.id + ", títol '" + (oldData.titol_pas || '') + "', obligatori: " + (oldData.obligatori || 0) + ", abans d'actualitzar.";
+    const txtNou = "Actualitzat el pas de checklist id " + id + " (títol: '" + (newData.titol_pas || oldData.titol_pas || '') + "', obligatori: " + (newData.obligatori !== undefined ? newData.obligatori : oldData.obligatori) + ").";
+    try {
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null, 
+        accio: 'UPDATE',
+        taula_afectada: 'checklist_config',
+        valor_anterior: txtAnterior,
+        valor_nou: txtNou
+      });
+    } catch (logErr) {
+      console.error("Error creant log d'auditoria:", logErr.message);
+    }
 
     res.json({ message: "Pas del checklist actualitzat correctament" });
   } catch (error) {
@@ -114,13 +124,21 @@ const deleteChecklistStep = async (req, res) => {
 
     const deleted = await ChecklistConfig.delete(id);
 
-    // Logs d'auditoria
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
-      accio: 'DELETE',
-      taula_afectada: 'checklist_config',
-      valor_anterior: oldData
-    });
+    if (deleted) {
+      try {
+        const txtAnterior = "Pas de checklist id " + oldData.id + ", títol '" + (oldData.titol_pas || '') + "', obligatori: " + (oldData.obligatori || 0) + ", abans d'eliminar.";
+        const txtNou = "Eliminat el pas del checklist '" + (oldData.titol_pas || '') + "' (id: " + oldData.id + ").";
+        await Log.create({
+          usuari_id: req.user ? req.user.id : null, 
+          accio: 'DELETE',
+          taula_afectada: 'checklist_config',
+          valor_anterior: txtAnterior,
+          valor_nou: txtNou
+        });
+      } catch (logErr) {
+        console.error("Error creant log d'auditoria:", logErr.message);
+      }
+    }
 
     res.json({ message: "Pas del checklist eliminat correctament" });
   } catch (error) {

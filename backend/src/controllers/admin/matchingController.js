@@ -26,26 +26,50 @@ const matchingController = {
                     const places_disponibles = detall.places_maximes - ocupat;
 
                     if (detall.num_participants > places_disponibles) {
-                        // Marcar com a REBUTJADA per falta de places
                         await db.query(
                             "UPDATE peticio_detalls SET estat = 'REBUTJADA' WHERE id = ?",
                             [detall.detall_id]
                         );
                         rejectedCount++;
-                        continue; // No hi ha places suficients, passar a la següent
+                        const txtAnterior = "Detall petició id " + detall.detall_id + ", taller id " + detall.taller_id + ", trimestre '" + detall.trimestre + "', estat PENDENT.";
+                        const txtNou = "Rebutjada per assignació automàtica: manquen places (detall id " + detall.detall_id + ", taller id " + detall.taller_id + ", demanats " + detall.num_participants + ", disponibles " + places_disponibles + ").";
+                        try {
+                            await Log.create({
+                                usuari_id: req.user.id,
+                                accio: 'AUTO_REJECT_TALLER',
+                                taula_afectada: 'peticio_detalls',
+                                valor_anterior: txtAnterior,
+                                valor_nou: txtNou
+                            });
+                        } catch (logErr) {
+                            console.error("Error creant log d'auditoria:", logErr.message);
+                        }
+                        continue;
                     }
 
                     // 2. Validar límit modalitat C (màxim 12 alumnes per centre per trimestre)
                     if (detall.modalitat === 'C') {
                         const totalModC = await Matching.getCentreCountModC(detall.centre_id, detall.trimestre);
                         if (totalModC + detall.num_participants > 12) {
-                            // Marcar com a REBUTJADA per superar límit modalitat C
                             await db.query(
                                 "UPDATE peticio_detalls SET estat = 'REBUTJADA' WHERE id = ?",
                                 [detall.detall_id]
                             );
                             rejectedCount++;
-                            continue; // Supera el límit de 12 alumnes en modalitat C
+                            const txtAnterior = "Detall petició id " + detall.detall_id + ", taller id " + detall.taller_id + ", trimestre '" + detall.trimestre + "', modalitat C, estat PENDENT.";
+                            const txtNou = "Rebutjada per assignació automàtica: límit de 12 alumnes en modalitat C superat (detall id " + detall.detall_id + ", centre id " + detall.centre_id + ", trimestre " + detall.trimestre + ").";
+                            try {
+                                await Log.create({
+                                    usuari_id: req.user.id,
+                                    accio: 'AUTO_REJECT_TALLER',
+                                    taula_afectada: 'peticio_detalls',
+                                    valor_anterior: txtAnterior,
+                                    valor_nou: txtNou
+                                });
+                            } catch (logErr) {
+                                console.error("Error creant log d'auditoria:", logErr.message);
+                            }
+                            continue;
                         }
                     }
 
@@ -115,17 +139,19 @@ const matchingController = {
                         successCount++;
 
                         // Registrar a l'auditoria
-                        await Log.create({
-                            usuari_id: req.user.id,
-                            accio: 'AUTO_ASSIGN_TALLER',
-                            taula_afectada: 'peticio_detalls',
-                            valor_nou: {
-                                detall_id: detall.detall_id,
-                                taller_id: detall.taller_id,
-                                trimestre: detall.trimestre,
-                                num_participants: detall.num_participants
-                            }
-                        });
+                        const txtAnterior = "Detall petició id " + detall.detall_id + ", taller id " + detall.taller_id + ", trimestre '" + detall.trimestre + "', estat PENDENT, abans d'assignació automàtica.";
+                        const txtNou = "Assignat automàticament el taller id " + detall.taller_id + " (trimestre " + detall.trimestre + ", " + detall.num_participants + " participants) al detall id " + detall.detall_id + ".";
+                        try {
+                            await Log.create({
+                                usuari_id: req.user.id,
+                                accio: 'AUTO_ASSIGN_TALLER',
+                                taula_afectada: 'peticio_detalls',
+                                valor_anterior: txtAnterior,
+                                valor_nou: txtNou
+                            });
+                        } catch (logErr) {
+                            console.error("Error creant log d'auditoria:", logErr.message);
+                        }
 
                     } catch (transactionError) {
                         await connection.rollback();

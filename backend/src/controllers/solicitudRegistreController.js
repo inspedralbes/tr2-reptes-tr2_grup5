@@ -1,6 +1,7 @@
 const SolicitudRegistre = require('../models/SolicitudRegistre');
 const User = require('../models/User');
 const Centre = require('../models/Centre');
+const Log = require('../models/Log');
 const bcrypt = require('bcryptjs');
 
 const solicitudRegistreController = {
@@ -172,6 +173,30 @@ const solicitudRegistreController = {
                     }
                 }
 
+                // Log d'auditoria quan l'administrador accepta o rebutja la sol·licitud
+                if (estat === 'acceptada' || estat === 'rebutjada') {
+                    const accio = estat === 'acceptada' ? 'ACCEPT_REGISTRATION' : 'REJECT_REGISTRATION';
+                    const nomC = existing.nom_centre === 'Altres' ? (existing.nom_centre_manual || 'Altres') : (existing.nom_centre || '');
+                    const txtAnterior = "Sol·licitud de registre id " + existing.id + ", estat '" + (existing.estat || '') + "', centre '" + nomC + "' (codi: " + (existing.codi_centre || '') + "), email coordinador: " + (existing.email_coordinador || '') + ".";
+                    let txtNou;
+                    if (estat === 'acceptada') {
+                        txtNou = "Acceptada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+                    } else {
+                        txtNou = "Rebutjada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+                    }
+                    try {
+                        await Log.create({
+                            usuari_id: req.user ? req.user.id : null,
+                            accio: accio,
+                            taula_afectada: 'solicituds_registre',
+                            valor_anterior: txtAnterior,
+                            valor_nou: txtNou
+                        });
+                    } catch (logErr) {
+                        console.error("Error creant log d'auditoria:", logErr.message);
+                    }
+                }
+
                 res.json({ message: 'Estat actualitzat correctament', data: { estat } });
             } else {
                 res.status(400).json({ message: 'Error al actualitzar l\'estat' });
@@ -185,10 +210,33 @@ const solicitudRegistreController = {
     // ADMIN: Delete
     delete: async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
+
+            // 1. Obtenir les dades abans de borrar per al log
+            const item = await SolicitudRegistre.findById(id);
+            if (!item) return res.status(404).json({ message: 'No trobat' });
+
             const success = await SolicitudRegistre.delete(id);
-            if (success) res.json({ message: 'Eliminat correctament' });
-            else res.status(404).json({ message: 'No trobat' });
+            if (success) {
+                // 2. Log d'auditoria (només si l'eliminació ha tingut èxit); sense password
+                const nomC = item.nom_centre === 'Altres' ? (item.nom_centre_manual || 'Altres') : (item.nom_centre || '');
+                const txtAnterior = "Sol·licitud de registre id " + item.id + ", estat '" + (item.estat || '') + "', centre '" + nomC + "' (codi: " + (item.codi_centre || '') + "), email coordinador: " + (item.email_coordinador || '') + ", abans d'eliminar.";
+                const txtNou = "Eliminada la sol·licitud de registre del centre '" + nomC + "' (id: " + item.id + ").";
+                try {
+                    await Log.create({
+                        usuari_id: req.user ? req.user.id : null,
+                        accio: 'DELETE_REGISTRATION',
+                        taula_afectada: 'solicituds_registre',
+                        valor_anterior: txtAnterior,
+                        valor_nou: txtNou
+                    });
+                } catch (logErr) {
+                    console.error("Error creant log d'auditoria:", logErr.message);
+                }
+                res.json({ message: 'Eliminat correctament' });
+            } else {
+                res.status(404).json({ message: 'No trobat' });
+            }
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: 'Error al servidor' });

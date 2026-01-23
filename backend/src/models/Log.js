@@ -28,15 +28,23 @@ const Log = {
       const valor_anterior = dades.valor_anterior;
       const valor_nou = dades.valor_nou;
       
-      // 2. Convertim els objectes a JSON string
+      // 2. Convertim a string: si ja és text (string) es guarda directament; si és objecte es passa a JSON
       let prevString = null;
-      if (valor_anterior) {
-        prevString = JSON.stringify(valor_anterior);
+      if (valor_anterior !== undefined && valor_anterior !== null) {
+        if (typeof valor_anterior === 'string') {
+          prevString = valor_anterior;
+        } else {
+          prevString = JSON.stringify(valor_anterior);
+        }
       }
-      
+
       let nouString = null;
-      if (valor_nou) {
-        nouString = JSON.stringify(valor_nou);
+      if (valor_nou !== undefined && valor_nou !== null) {
+        if (typeof valor_nou === 'string') {
+          nouString = valor_nou;
+        } else {
+          nouString = JSON.stringify(valor_nou);
+        }
       }
       
       // 3. Executem la consulta SQL per inserir el log

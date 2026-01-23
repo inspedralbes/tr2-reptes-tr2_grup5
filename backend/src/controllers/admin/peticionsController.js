@@ -82,12 +82,19 @@ const peticionsController = {
                     await Taller.sumarPlaces(taller_id, participants);
                 }
 
-                await Log.create({
-                    usuari_id: req.user.id,
-                    accio: 'UPDATE_TALLER_STATUS',
-                    taula_afectada: 'peticio_detalls',
-                    valor_nou: { id, taller_id, estat }
-                });
+                try {
+                    const txtAnterior = "Detall petició id " + id + ", taller id " + taller_id + ", estat anterior: '" + estatAnterior + "'.";
+                    const txtNou = "Estat actualitzat a '" + estat + "' per la petició id " + id + ", taller id " + taller_id + ".";
+                    await Log.create({
+                        usuari_id: req.user.id,
+                        accio: 'UPDATE_TALLER_STATUS',
+                        taula_afectada: 'peticio_detalls',
+                        valor_anterior: txtAnterior,
+                        valor_nou: txtNou
+                    });
+                } catch (logErr) {
+                    console.error("Error creant log d'auditoria:", logErr.message);
+                }
                 res.json({ message: "Estat i places actualitzats correctament." });
             } else {
                 res.status(404).json({ message: "No s'ha pogut actualitzar el detall." });
@@ -167,12 +174,19 @@ const peticionsController = {
             }
 
             // 5. Auditoria
-            await Log.create({
-                usuari_id: req.user.id,
-                accio: 'ASSIGN_TALLER',
-                taula_afectada: 'peticio_detalls',
-                valor_nou: { peticio_id, taller_id, trimestre }
-            });
+            try {
+                const txtAnterior = "Petició id " + peticio_id + ", taller id " + taller_id + ", trimestre '" + trimestre + "', estat: PENDENT.";
+                const txtNou = "Assignat el taller id " + taller_id + " a la petició id " + peticio_id + " (trimestre " + trimestre + ").";
+                await Log.create({
+                    usuari_id: req.user.id,
+                    accio: 'ASSIGN_TALLER',
+                    taula_afectada: 'peticio_detalls',
+                    valor_anterior: txtAnterior,
+                    valor_nou: txtNou
+                });
+            } catch (logErr) {
+                console.error("Error creant log d'auditoria:", logErr.message);
+            }
 
             res.json({ message: "Taller assignat i places actualitzades correctament." });
 
@@ -197,15 +211,26 @@ const peticionsController = {
     delete: async (req, res) => {
         try {
             if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: "No tens permisos." });
-            const { id } = req.params;
+            const id = req.params.id;
+
+            const peticio = await Peticio.findById(id);
+            if (!peticio) return res.status(404).json({ message: "No trobada." });
+
             const success = await Peticio.delete(id);
             if (success) {
-                await Log.create({
-                    usuari_id: req.user.id,
-                    accio: 'DELETE_PETICIO',
-                    taula_afectada: 'peticions',
-                    valor_anterior: { id }
-                });
+                try {
+                    const txtAnterior = "Petició id " + peticio.id + ", centre_id " + (peticio.centre_id || '') + ", abans d'eliminar.";
+                    const txtNou = "Eliminada la petició id " + peticio.id + ".";
+                    await Log.create({
+                        usuari_id: req.user.id,
+                        accio: 'DELETE_PETICIO',
+                        taula_afectada: 'peticions',
+                        valor_anterior: txtAnterior,
+                        valor_nou: txtNou
+                    });
+                } catch (logErr) {
+                    console.error("Error creant log d'auditoria:", logErr.message);
+                }
                 res.json({ message: "Sol·licitud eliminada." });
             } else {
                 res.status(404).json({ message: "No trobada." });

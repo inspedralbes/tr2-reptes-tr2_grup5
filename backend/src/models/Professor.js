@@ -83,6 +83,7 @@ const Professor = {
       connection.release();
     }
   },
+
   // A) --- Buscar un professor per ID amb dades d'usuari ---
   findById: async (id) => {
     // 1. Executem la consulta
@@ -110,49 +111,41 @@ const Professor = {
     const email = data.email;
     const user_id = data.user_id;
 
-    const connection = await db.getConnection();
     try {
-      await connection.beginTransaction();
-
       // 2. Actualitzem la taula professors
-      await connection.query("UPDATE professors SET nom = ?, cognoms = ? WHERE id = ?", [nom, cognoms, id]);
+      await db.query("UPDATE professors SET nom = ?, cognoms = ? WHERE id = ?", [nom, cognoms, id]);
 
       // 3. Actualitzem l'email a la taula usuaris si cal
       if (email && user_id) {
-        await connection.query("UPDATE usuaris SET email = ? WHERE id = ?", [email, user_id]);
+        await db.query("UPDATE usuaris SET email = ? WHERE id = ?", [email, user_id]);
       }
 
-      await connection.commit();
+      // 4. Retornem true per indicar èxit
       return true;
+
     } catch (error) {
-      await connection.rollback();
+      // 5. En cas d'error, el propaguem
       throw error;
-    } finally {
-      connection.release();
     }
   },
 
   // A) --- Eliminar professor i el seu usuari ---
   delete: async (id, user_id) => {
-    const connection = await db.getConnection();
     try {
-      await connection.beginTransaction();
-
       // 1. Eliminem primer el professor (fill)
-      await connection.query("DELETE FROM professors WHERE id = ?", [id]);
+      await db.query("DELETE FROM professors WHERE id = ?", [id]);
 
-      // 2. Eliminem l'usuari (pare)
+      // 2. Eliminem l'usuari (pare) si existeix
       if (user_id) {
-        await connection.query("DELETE FROM usuaris WHERE id = ?", [user_id]);
+        await db.query("DELETE FROM usuaris WHERE id = ?", [user_id]);
       }
 
-      await connection.commit();
+      // 3. Retornem true per indicar èxit
       return true;
+
     } catch (error) {
-      await connection.rollback();
+      // 4. En cas d'error, el propaguem
       throw error;
-    } finally {
-      connection.release();
     }
   }
 };

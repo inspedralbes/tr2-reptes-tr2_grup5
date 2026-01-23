@@ -68,13 +68,19 @@ const createCentre = async (req, res) => {
       nom_coordinador,
       es_primera_vegada
     });
-    
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null,
-      accio: 'CREATE',
-      taula_afectada: 'centres',
-      valor_nou: { id: newId, codi_centre, nom_centre }
-    });
+
+    const txtNou = "Creat el centre '" + (nom_centre || '') + "' (codi: " + (codi_centre || '') + ", id: " + newId + ").";
+    try {
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null,
+        accio: 'CREATE',
+        taula_afectada: 'centres',
+        valor_anterior: null,
+        valor_nou: txtNou
+      });
+    } catch (logErr) {
+      console.error("Error creant log d'auditoria:", logErr.message);
+    }
 
     res.status(201).json({ 
       id: newId, 
@@ -116,13 +122,19 @@ const updateCentre = async (req, res) => {
       return res.status(400).json({ message: "No s'han pogut actualitzar les dades." });
     }
 
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
-      accio: 'UPDATE',
-      taula_afectada: 'centres',
-      valor_anterior: oldData,
-      valor_nou: { id, ...newData }
-    });
+    const txtAnterior = "Centre id " + oldData.id + ", nom '" + (oldData.nom_centre || '') + "', codi " + (oldData.codi_centre || '') + ", abans d'actualitzar.";
+    const txtNou = "Actualitzat el centre id " + id + " (nom: '" + (newData.nom_centre || oldData.nom_centre || '') + "', codi: " + (newData.codi_centre || oldData.codi_centre || '') + ").";
+    try {
+      await Log.create({
+        usuari_id: req.user ? req.user.id : null, 
+        accio: 'UPDATE',
+        taula_afectada: 'centres',
+        valor_anterior: txtAnterior,
+        valor_nou: txtNou
+      });
+    } catch (logErr) {
+      console.error("Error creant log d'auditoria:", logErr.message);
+    }
 
     res.json({ message: "Centre actualitzat correctament" });
   } catch (error) {
@@ -144,12 +156,21 @@ const deleteCentre = async (req, res) => {
 
     const deleted = await Centre.delete(id);
 
-    await Log.create({
-      usuari_id: req.user ? req.user.id : null, 
-      accio: 'DELETE',
-      taula_afectada: 'centres',
-      valor_anterior: oldData
-    });
+    if (deleted) {
+      try {
+        const txtAnterior = "Centre amb id " + oldData.id + ", nom '" + (oldData.nom_centre || "") + "', codi " + (oldData.codi_centre || "") + ", abans d'eliminar.";
+        const txtNou = "Eliminat el centre '" + (oldData.nom_centre || "") + "' (codi: " + (oldData.codi_centre || "") + ", id: " + oldData.id + ").";
+        await Log.create({
+          usuari_id: req.user ? req.user.id : null, 
+          accio: 'DELETE',
+          taula_afectada: 'centres',
+          valor_anterior: txtAnterior,
+          valor_nou: txtNou
+        });
+      } catch (logErr) {
+        console.error("Error creant log d'auditoria:", logErr.message);
+      }
+    }
 
     res.json({ message: "Centre eliminat correctament" });
   } catch (error) {
