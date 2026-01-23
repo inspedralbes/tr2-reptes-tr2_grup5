@@ -40,6 +40,12 @@ const Alumne = {
         }
     },
 
+    // Obtenir un alumne per ID
+    getById: async (id) => {
+        const [rows] = await db.query("SELECT * FROM assistencia_alumnes WHERE id = ?", [id]);
+        return rows[0];
+    },
+
     // Eliminar un alumne
     delete: async (id) => {
         const [result] = await db.query("DELETE FROM assistencia_alumnes WHERE id = ?", [id]);
