@@ -38,12 +38,14 @@ docker compose --env-file .env -f docker/docker-compose.dev.yml up --build
 
 **Nota importante:** Es necesario usar `--env-file .env` para que Docker Compose lea las variables de entorno correctamente.
 
+
+¡¡Si el docker da algun problema hacer docker compose -f docker-compose.dev.yml down
+
 ## 🛠️ Requisitos Previos
 
 Para ejecutar este proyecto sin instalar Node.js o bases de datos localmente, solo necesitas:
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y en ejecución.
 * Terminal de comandos (Git Bash, ZSH, PowerShell).
-
 ---
 
 ## ⚙️ Configuración del Entorno (`.env`)

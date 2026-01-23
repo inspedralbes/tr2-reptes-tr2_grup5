@@ -178,7 +178,7 @@ export default defineComponent({
           trimestres_disponibles: form.trimestres.join(', ')
         }
 
-        await $fetch('http://localhost:1700/api/admin/tallers', {
+        await $fetch('/api/admin/tallers', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + useCookie('authToken').value

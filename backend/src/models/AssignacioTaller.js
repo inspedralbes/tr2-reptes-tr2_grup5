@@ -60,6 +60,23 @@ const AssignacioTaller = {
             ORDER BY p.data_creacio DESC
         `, [centre_id]);
         return rows;
+    },
+
+    // Comprovar si un professor és referent d'una assignació (o del taller en general)
+    isReferent: async (peticio_detall_id, professor_id) => {
+        // Nova lògica: Tens permís si ets referent d'aquest taller (assignat o per preferència)
+        const [rows] = await db.query(`
+            SELECT 1 
+            FROM peticio_detalls pd_target
+            JOIN peticio_detalls pd_ref ON pd_target.taller_id = pd_ref.taller_id
+            JOIN professors p ON p.id = ?
+            JOIN usuaris u ON p.user_id = u.id
+            LEFT JOIN referents_assignats ra ON ra.peticio_detall_id = pd_ref.id
+            WHERE pd_target.id = ? 
+            AND (ra.professor_id = ? OR (pd_ref.docent_email = u.email AND pd_ref.es_preferencia_referent = 1))
+        `, [professor_id, peticio_detall_id, professor_id]);
+
+        return rows.length > 0;
     }
 };
 

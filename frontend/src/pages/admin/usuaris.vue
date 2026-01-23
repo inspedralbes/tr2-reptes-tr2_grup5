@@ -75,7 +75,7 @@ const mostrarCentres = ref(true)
 const searchTerm = ref('')
 const isExiting = ref(false) // Estado para la transición de salida
 
-const backendBase = 'http://localhost:1700'
+const backendBase = ''
 const token = useCookie('authToken').value
 
 // EVENT LISTENER DE NAVEGACIÓN

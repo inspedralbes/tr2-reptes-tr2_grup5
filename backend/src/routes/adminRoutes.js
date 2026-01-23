@@ -10,6 +10,7 @@ const peticionsController = require("../controllers/admin/peticionsController");
 const usuarisController = require("../controllers/admin/usuarisController");
 const matchingController = require("../controllers/admin/matchingController");
 const statsController = require("../controllers/admin/statsController");
+const logsController = require("../controllers/admin/logsController");
 
 //--- RUTES PER A TALLERS ---
 // URL base: /api/admin/tallers
@@ -44,6 +45,12 @@ router.delete("/checklist-config/:id", checklistController.deleteChecklistStep);
 
 // --- RUTA: llistar usuaris ---
 router.get("/usuaris", usuarisController.getAllUsers);
+
+// --- RUTA: llistar logs ---
+router.get("/logs", logsController.getAll);
+
+// --- RUTA: llistar logs ---
+router.get("/logs", logsController.getAll);
 
 //--- RUTES PER ASSIGNACIÓ AUTOMÀTICA (Matching) ---
 // URL base: /api/admin/matching

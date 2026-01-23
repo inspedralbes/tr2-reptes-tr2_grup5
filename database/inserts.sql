@@ -2,11 +2,11 @@ USE enginy_db;
 
 -- 1. TAULA: usuaris
 INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
-(1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()),
-(2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()),
-(3, 'profe.referent@escola.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
-(5, 'pere.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW()),
-(6, 'anna.prof@la-presentacio.cat', '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW', 'PROFESSOR', NOW());
+(1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()), -- admin123
+(2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()), -- centre123
+(3, 'profe.referent@escola.cat', '$2b$10$8A5bSwYukCAesP90N4pOJeUPsIup/viCDZN18vAHasnjFcFGI6zKa', 'PROFESSOR', NOW()), -- profe123
+(5, 'pere.prof@la-presentacio.cat', '$2b$10$lZNp1kfUMKfbVqjkxIOa6O4/Uw6Ft2kt8X8LTE8h4.UyMQVZlVHe.', 'PROFESSOR', NOW()), -- pere123
+(6, 'anna.prof@la-presentacio.cat', '$2b$10$xTRaeFUEuyDu5.u5uo.jl.vFAEJkEcx5g2ejEFe4ORxYXlFAZoc9W', 'PROFESSOR', NOW()); -- anna123
 
 
 -- 2. TAULA: administradors
@@ -41,11 +41,12 @@ INSERT INTO peticions (id, centre_id) VALUES
 -- 7. TAULA: peticio_detalls
 INSERT INTO peticio_detalls (id, peticio_id, taller_id, trimestre, num_participants, prioritat, es_preferencia_referent, estat, descripcio) VALUES
 (1, 1, 1, '2n', 4, 2, 1, 'ASSIGNADA', 'Comentari de prova per al taller de Robòtica i IA'),
-(2, 1, 2, '2n', 2, 6, 0, 'PENDENT', 'Comentari de prova per al taller de Cuina Creativa');
+(2, 1, 2, '2n', 2, 6, 0, 'ASSIGNADA', 'Comentari de prova per al taller de Cuina Creativa');
 
 -- 11. TAULA: referents_assignats
 INSERT INTO referents_assignats (peticio_detall_id, professor_id) VALUES
-(1, 1);
+(1, 1),
+(2, 3);
 
 -- 12. TAULA: sessions
 INSERT INTO sessions (peticio_detall_id, ordre, data) VALUES

@@ -64,7 +64,7 @@ const peticionsController = {
             );
 
             if (!oldData[0]) return res.status(404).json({ message: "Detall no trobat." });
-            
+
             const estatAnterior = oldData[0].estat;
             const participants = oldData[0].num_participants;
 
@@ -76,7 +76,7 @@ const peticionsController = {
                 // Si passem a ASSIGNADA: Restem
                 if (estat === 'ASSIGNADA' && estatAnterior !== 'ASSIGNADA') {
                     await Taller.restarPlaces(taller_id, participants);
-                } 
+                }
                 // Si trèiem l'assignació: Sumem (devolvemos plazas)
                 else if (estatAnterior === 'ASSIGNADA' && estat !== 'ASSIGNADA') {
                     await Taller.sumarPlaces(taller_id, participants);
@@ -132,7 +132,7 @@ const peticionsController = {
             await Taller.restarPlaces(taller_id, numParticipants);
 
             // 4. Gestió de Referents
-            if (detall.es_preferencia_referent == 1 && detall.docent_email) {
+            if (detall.docent_email) {
                 // Comptar referents ja assignats per aquest taller en aquest trimestre
                 const [referentsCount] = await db.query(`
                     SELECT COUNT(DISTINCT ra.professor_id) as count

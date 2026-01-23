@@ -1,31 +1,58 @@
 <template>
-  <div class="page">
-    <div class="header-actions">
-      <h2>Auditoria del Sistema</h2>
-      <button class="btn-primary">Exportar PDF/CSV</button>
+    <div>
+        <h1>Logs</h1>
     </div>
-    <div class="content">
-      <p>Registre d'activitat i auditoria...</p>
-    </div>
-  </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuari</th>
+                <th>Acció</th>
+                <th>Taula</th>
+                <th>Valor anterior</th>
+                <th>Valor nou</th>
+                <th>Data Registre</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="log in logs" :key="log.id">
+                <td>{{ log.id }}</td>
+                <td>{{ log.usuari_email }}</td>
+                <td>{{ log.accio }}</td>
+                <td>{{ log.taula_afectada }}</td>
+                <td>{{ log.valor_anterior }}</td>
+                <td>{{ log.valor_nou }}</td>
+                <td>{{ log.data_registre }}</td>
+            </tr>
+        </tbody>
+    </table>
 </template>
 
+<script setup>
+
+const tokenCookie = useCookie('authToken');
+const { data: logs, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/logs', {
+    server: false,
+    headers: {
+        Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
+    }
+    
+})
+</script>
 <style scoped>
-.page {
-  padding: 20px;
+
+table {
+    width: 100%;
+    border-collapse: collapse;
 }
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
 }
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+
+th {
+    background-color: #f2f2f2;
 }
 </style>

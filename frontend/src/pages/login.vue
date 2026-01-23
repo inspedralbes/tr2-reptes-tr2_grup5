@@ -1,6 +1,6 @@
 <template>
 <div class="login-container">
-    <h1>Iniciar Sesión</h1>
+    <h1>Iniciar Sesión hola</h1>
     <form @submit.prevent="handleLogin">
     <div class="form-group">
         <label for="email">Email:</label>
@@ -43,7 +43,7 @@
 
 <script setup>
 definePageMeta({
-  layout: 'false'
+  layout: false
 })
 const router = useRouter();
 
@@ -59,7 +59,7 @@ loading.value = true;
 errorMessage.value = '';
 
 try {
-    const response = await $fetch('http://localhost:1700/api/auth/login', {
+    const response = await $fetch('/api/auth/login', {
     method: 'POST',
     body: form.value
     });

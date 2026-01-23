@@ -77,8 +77,10 @@
 const header = useHeaderStore()
 header.setHeaderAdmin()
 
-const token = useCookie('authToken');
-const { data: tallers, pending, error, refresh } = await useFetch('http://localhost:1700/api/admin/tallers', {
+// Fem la petició al backend per obtenir els tallers (només des del client)
+const tokenCookie = useCookie('authToken')
+const token = tokenCookie.value
+const { data: tallers, pending, error, refresh } = await useFetch('/api/admin/tallers', {
   server: false,
   headers: {
     Authorization: token.value ? `Bearer ${token.value}` : ''
