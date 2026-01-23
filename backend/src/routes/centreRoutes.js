@@ -34,6 +34,8 @@ router.get("/assignacions", verifyToken, tallersController.getMevesAssignacions)
 // URL base: /api/centre/professors
 router.get("/professors", verifyToken, professoratController.getMeusProfessors);
 router.post('/professors', verifyToken, professoratController.createProf);
+router.put('/professors/:id', verifyToken, professoratController.updateProfessor);
+router.delete('/professors/:id', verifyToken, professoratController.deleteProfessor);
 
 //--- RUTES PER A SOL·LICITUDS DE TALLERS ---
 // URL base: /api/centre/peticions

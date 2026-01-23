@@ -25,7 +25,7 @@ const Professor = {
       WHERE p.centre_id = ?
     `, [centre_id]);
     const rows = result[0];
-    
+
     // 2. Retornem els resultats
     return rows;
   },
@@ -37,14 +37,14 @@ const Professor = {
     const cognoms = data.cognoms;
     const email = data.email;
     const centre_id = data.centre_id;
-    
+
     // 2. Obtenim una connexió de la base de dades
     const connection = await db.getConnection();
 
     try {
       // 3. Iniciem una transacció
       await connection.beginTransaction();
-      
+
       // 4. Creem l'usuari associat al professor
       const passwordHash = '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW';
       const rol = 'PROFESSOR';
@@ -80,6 +80,78 @@ const Professor = {
       throw error;
     } finally {
       // 10. Alliberem la connexió
+      connection.release();
+    }
+  },
+  // A) --- Buscar un professor per ID amb dades d'usuari ---
+  findById: async (id) => {
+    // 1. Executem la consulta
+    const result = await db.query(`
+      SELECT p.id, p.nom, p.cognoms, p.centre_id, p.user_id, u.email 
+      FROM professors p
+      LEFT JOIN usuaris u ON p.user_id = u.id
+      WHERE p.id = ?
+    `, [id]);
+    const rows = result[0];
+
+    // 2. Retornem el resultat o undefined
+    if (rows.length > 0) {
+      return rows[0];
+    } else {
+      return undefined;
+    }
+  },
+
+  // A) --- Actualitzar professor i el seu usuari associat ---
+  update: async (id, data) => {
+    // 1. Obtenim els paràmetres
+    const nom = data.nom;
+    const cognoms = data.cognoms;
+    const email = data.email;
+    const user_id = data.user_id;
+
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 2. Actualitzem la taula professors
+      await connection.query("UPDATE professors SET nom = ?, cognoms = ? WHERE id = ?", [nom, cognoms, id]);
+
+      // 3. Actualitzem l'email a la taula usuaris si cal
+      if (email && user_id) {
+        await connection.query("UPDATE usuaris SET email = ? WHERE id = ?", [email, user_id]);
+      }
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  },
+
+  // A) --- Eliminar professor i el seu usuari ---
+  delete: async (id, user_id) => {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Eliminem primer el professor (fill)
+      await connection.query("DELETE FROM professors WHERE id = ?", [id]);
+
+      // 2. Eliminem l'usuari (pare)
+      if (user_id) {
+        await connection.query("DELETE FROM usuaris WHERE id = ?", [user_id]);
+      }
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
       connection.release();
     }
   }
