@@ -12,6 +12,7 @@ const peticionsController = require("../controllers/admin/peticionsController");
 const usuarisController = require("../controllers/admin/usuarisController");
 const matchingController = require("../controllers/admin/matchingController");
 const statsController = require("../controllers/admin/statsController");
+const logsController = require("../controllers/admin/logsController");
 
 // ======================================
 // Definició de l'Esquema
@@ -56,6 +57,10 @@ router.delete("/checklist-config/:id", checklistController.deleteChecklistStep);
 
 // A) --- Ruta per llistar usuaris ---
 router.get("/usuaris", usuarisController.getAllUsers);
+
+// A) --- Rutes per als logs d'auditoria ---
+// URL base: /api/admin/logs
+router.get("/logs", logsController.getLogs);
 
 // A) --- Rutes per assignació automàtica (Matching) ---
 // URL base: /api/admin/matching

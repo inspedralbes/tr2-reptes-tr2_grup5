@@ -15,7 +15,36 @@ const db = require("../config/db");
 // ======================================
 
 const Log = {
-  // A) --- Crear un log d'auditoria ---
+  // A) --- Obtenir tots els logs d'auditoria (per a l'administrador) ---
+  getAll: async () => {
+    try {
+      // 1. Construïm la consulta SQL amb LEFT JOIN per obtenir l'email de l'usuari (sense LIMIT per retornar tots)
+      const sql = `
+        SELECT 
+          l.id,
+          l.usuari_id,
+          l.accio,
+          l.taula_afectada,
+          l.valor_anterior,
+          l.valor_nou,
+          l.data_registre,
+          u.email AS usuari_email
+        FROM logs_auditoria l
+        LEFT JOIN usuaris u ON l.usuari_id = u.id
+        ORDER BY l.data_registre DESC
+      `;
+      // 2. Executem la consulta
+      const result = await db.query(sql);
+      const rows = result[0];
+      // 3. Retornem totes les files
+      return rows;
+    } catch (error) {
+      console.error("Error obtenint els logs d'auditoria:", error.message);
+      throw error;
+    }
+  },
+
+  // B) --- Crear un log d'auditoria ---
   create: async (dades) => {
     try {
       // 1. Obtenim les dades del log
