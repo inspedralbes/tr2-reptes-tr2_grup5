@@ -1,18 +1,36 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const db = require("../../config/db");
 const AssignacioTaller = require("../../models/AssignacioTaller");
 const Centre = require("../../models/Centre");
 
-//--- 1. GET: OBTENIR TOTS ELS TALLERS DISPONIBLES PER A CENTRES ---
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador de tallers (centres): Llistar tallers disponibles i assignacions del centre
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Obtenir tots els tallers disponibles per a centres ---
 const getAllTallersDisponibles = async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM tallers WHERE actiu = 1");
+    // 1. Executem la consulta
+    const result = await db.query("SELECT * FROM tallers WHERE actiu = 1");
+    const rows = result[0];
+
+    // 2. Retornem les files
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-//--- 2. GET: OBTENIR TALLERS ASSIGNATS AL CENTRE LOGUEJAT ---
+// B) --- Obtenir les assignacions del centre loguejat ---
 const getMevesAssignacions = async (req, res) => {
   try {
     // Verificació de seguretat per evitar Error 500 si no hi ha middleware

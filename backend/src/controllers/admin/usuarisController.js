@@ -1,37 +1,49 @@
-const User = require("../../models/User");
-const Log = require("../../models/Log");
+// ======================================
+// Importem les dependències
+// ======================================
 
-// --- ADMIN: Obtener todos los usuarios ---
+const User = require("../../models/User");
+
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador d'usuaris (admin): Obtenir el llistat d'usuaris
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Obtenir tots els usuaris ---
 const getAllUsers = async (req, res) => {
   try {
+    // 1. Obtenim tots els usuaris des del model
     const users = await User.getAll();
 
-    // Opcional: auditar la consulta
-    try {
-      await Log.create({
-        usuari_id: req.user ? req.user.id : null,
-        accio: 'READ',
-        taula_afectada: 'usuaris',
-        valor_anterior: null
-      });
-    } catch (e) {
-      // no bloqueamos la respuesta si falla la auditoría
-      console.error('Audit log failed:', e.message);
+    // 2. Preparem la llista: si no és un array, comencem amb array buit
+    let llista = [];
+    if (Array.isArray(users)) {
+      llista = users;
     }
 
-    // Normalitzar la resposta per enviar només els camps que el frontend espera
-    const normalized = (Array.isArray(users) ? users : []).map(u => ({
-      id: u.id,
-      email: u.email,
-      rol: u.rol,
-      ultim_acces: u.ultim_acces,
-      nom_centre: u.nom_centre || null
-    }));
+    // 3. Construïm el resultat normalitzat (només els camps que el frontend espera) amb un bucle for
+    const normalized = [];
+    for (let i = 0; i < llista.length; i++) {
+      const u = llista[i];
+      normalized.push({
+        id: u.id,
+        email: u.email,
+        rol: u.rol,
+        ultim_acces: u.ultim_acces,
+        nom_centre: u.nom_centre || null
+      });
+    }
 
+    // 4. Retornem el resultat
     res.json(normalized);
   } catch (error) {
-    console.error("Error obteniendo usuarios:", error);
-    res.status(500).json({ message: "Error al obtener usuaris." });
+    console.error("Error obtenint usuaris:", error);
+    res.status(500).json({ message: "Error al obtenir usuaris." });
   }
 };
 

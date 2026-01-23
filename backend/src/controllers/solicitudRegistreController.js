@@ -1,11 +1,27 @@
-const SolicitudRegistre = require('../models/SolicitudRegistre');
-const User = require('../models/User');
-const Centre = require('../models/Centre');
-const bcrypt = require('bcryptjs');
+// ======================================
+// Importem les dependències
+// ======================================
+
+const SolicitudRegistre = require("../models/SolicitudRegistre");
+const User = require("../models/User");
+const Centre = require("../models/Centre");
+const Log = require("../models/Log");
+const bcrypt = require("bcryptjs");
+const db = require("../config/db");
+
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador de sol·licituds de registre: crear, llistar, actualitzar estat i eliminar
+
+// ======================================
+// Declaracions de funcions
+// ======================================
 
 const solicitudRegistreController = {
-    // PUBLIC: Crear una nova sol·licitud
-    create: async (req, res) => {
+  // A) --- Crear una nova sol·licitud (públic) ---
+  create: async (req, res) => {
         try {
             const data = req.body;
 
@@ -42,8 +58,8 @@ const solicitudRegistreController = {
 
             // 3.2 Comprovar Codi de Centre (Identificador oficial)
             const requestWithCodi = await SolicitudRegistre.findByCodiCentre(data.codi_centre);
-            // Cal buscar també a la taula 'centres'. Com que no tenim un findByCodiCentre al model Centre, ho fem manual o usem getAll.
-            const [existingCentres] = await require('../config/db').query("SELECT id FROM centres WHERE codi_centre = ?", [data.codi_centre]);
+            const resCentres = await db.query("SELECT id FROM centres WHERE codi_centre = ?", [data.codi_centre]);
+            const existingCentres = resCentres[0];
 
             if (requestWithCodi || existingCentres.length > 0) {
                 return res.status(400).json({ message: 'Aquest codi de centre ja està registrat o té una sol·licitud activa.' });
@@ -51,7 +67,8 @@ const solicitudRegistreController = {
 
             // 3.3 Comprovar Email del Centre (Oficial)
             const requestWithEmailCentre = await SolicitudRegistre.findByEmailCentre(data.email_centre);
-            const [existingEmailsOficials] = await require('../config/db').query("SELECT id FROM centres WHERE email_oficial = ?", [data.email_centre]);
+            const resEmails = await db.query("SELECT id FROM centres WHERE email_oficial = ?", [data.email_centre]);
+            const existingEmailsOficials = resEmails[0];
 
             if (requestWithEmailCentre || existingEmailsOficials.length > 0) {
                 return res.status(400).json({ message: 'Aquest email de centre ja està registrat o té una sol·licitud activa.' });
@@ -76,53 +93,69 @@ const solicitudRegistreController = {
         }
     },
 
-    // ADMIN: GetAll
-    getAll: async (req, res) => {
-        try {
-            const result = await SolicitudRegistre.getAll();
-            // Eliminem la contrasenya del llistat
-            const sanitizedResult = result.map(item => {
-                const { password, ...rest } = item;
-                return rest;
-            });
-            res.json(sanitizedResult);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error al obtenir dades.' });
+  // B) --- Obtenir totes les sol·licituds (admin, sense contrasenya) ---
+  getAll: async (req, res) => {
+    try {
+      const result = await SolicitudRegistre.getAll();
+      // Eliminem la contrasenya del llistat amb un bucle for
+      const sanitizedResult = [];
+      for (let i = 0; i < result.length; i++) {
+        const item = result[i];
+        const rest = {};
+        for (let k in item) {
+          if (k !== "password") {
+            rest[k] = item[k];
+          }
         }
-    },
+        sanitizedResult.push(rest);
+      }
+      res.json(sanitizedResult);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al obtenir dades." });
+    }
+  },
 
-    // ADMIN: GetById
-    getById: async (req, res) => {
-        try {
-            const { id } = req.params;
-            const item = await SolicitudRegistre.findById(id);
-            if (!item) return res.status(404).json({ message: 'No trobat' });
+  // C) --- Obtenir una sol·licitud per ID (admin, sense contrasenya) ---
+  getById: async (req, res) => {
+    try {
+      const id = req.params.id;
+      const item = await SolicitudRegistre.findById(id);
+      if (!item) {
+        return res.status(404).json({ message: "No trobat" });
+      }
 
-            // Eliminem la contrasenya
-            const { password, ...rest } = item;
-            res.json(rest);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error al obtenir dades.' });
+      // Eliminem la contrasenya construint un objecte sense aquest camp
+      const rest = {};
+      for (let k in item) {
+        if (k !== "password") {
+          rest[k] = item[k];
         }
-    },
+      }
+      res.json(rest);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al obtenir dades." });
+    }
+  },
 
-    // ADMIN: Update estat (Només es permet modificar l'estat)
-    update: async (req, res) => {
-        try {
-            const { id } = req.params;
-            const { estat } = req.body;
+  // D) --- Actualitzar l'estat d'una sol·licitud (admin) ---
+  update: async (req, res) => {
+    try {
+      const id = req.params.id;
+      const estat = req.body.estat;
 
-            if (!estat) {
-                return res.status(400).json({ message: 'Cal enviar el nou estat.' });
-            }
+      if (!estat) {
+        return res.status(400).json({ message: "Cal enviar el nou estat." });
+      }
 
-            const existing = await SolicitudRegistre.findById(id);
-            if (!existing) return res.status(404).json({ message: 'No trobat' });
+      const existing = await SolicitudRegistre.findById(id);
+      if (!existing) {
+        return res.status(404).json({ message: "No trobat" });
+      }
 
-            // Només actualitzem l'estat, la resta es manté igual
-            const updatedData = {
+      // Només actualitzem l'estat, la resta es manté igual
+      const updatedData = {
                 codi_centre: existing.codi_centre,
                 nom_centre: existing.nom_centre,
                 nom_centre_manual: existing.nom_centre_manual,
@@ -152,8 +185,12 @@ const solicitudRegistreController = {
                         });
 
                         // 2. Crear el centre vinculat a l'usuari
-                        // Si era "Altres", usem el nom manual. Si no, el de l'enum.
-                        const nomCentreFinal = existing.nom_centre === 'Altres' ? existing.nom_centre_manual : existing.nom_centre;
+                        let nomCentreFinal;
+                        if (existing.nom_centre === "Altres") {
+                          nomCentreFinal = existing.nom_centre_manual;
+                        } else {
+                          nomCentreFinal = existing.nom_centre;
+                        }
 
                         await Centre.create({
                             codi_centre: existing.codi_centre,
@@ -172,28 +209,98 @@ const solicitudRegistreController = {
                     }
                 }
 
-                res.json({ message: 'Estat actualitzat correctament', data: { estat } });
+                // Log d'auditoria quan l'administrador accepta o rebutja la sol·licitud
+                if (estat === "acceptada" || estat === "rebutjada") {
+                  let accio;
+                  if (estat === "acceptada") {
+                    accio = "ACCEPT_REGISTRATION";
+                  } else {
+                    accio = "REJECT_REGISTRATION";
+                  }
+                  let nomC;
+                  if (existing.nom_centre === "Altres") {
+                    nomC = existing.nom_centre_manual || "Altres";
+                  } else {
+                    nomC = existing.nom_centre || "";
+                  }
+                  const txtAnterior = "Sol·licitud de registre id " + existing.id + ", estat '" + (existing.estat || "") + "', centre '" + nomC + "' (codi: " + (existing.codi_centre || "") + "), email coordinador: " + (existing.email_coordinador || "") + ".";
+                  let txtNou;
+                  if (estat === "acceptada") {
+                    txtNou = "Acceptada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+                  } else {
+                    txtNou = "Rebutjada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+                  }
+                  let usuariIdLog = null;
+                  if (req.user) {
+                    usuariIdLog = req.user.id;
+                  }
+                  try {
+                    await Log.create({
+                      usuari_id: usuariIdLog,
+                      accio: accio,
+                      taula_afectada: "solicituds_registre",
+                      valor_anterior: txtAnterior,
+                      valor_nou: txtNou
+                    });
+                  } catch (logErr) {
+                    console.error("Error creant log d'auditoria:", logErr.message);
+                  }
+                }
+
+                res.json({ message: "Estat actualitzat correctament", data: { estat: estat } });
             } else {
-                res.status(400).json({ message: 'Error al actualitzar l\'estat' });
+                res.status(400).json({ message: "Error al actualitzar l'estat" });
             }
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: 'Error al servidor' });
+            res.status(500).json({ message: "Error al servidor" });
         }
-    },
+  },
 
-    // ADMIN: Delete
-    delete: async (req, res) => {
-        try {
-            const { id } = req.params;
-            const success = await SolicitudRegistre.delete(id);
-            if (success) res.json({ message: 'Eliminat correctament' });
-            else res.status(404).json({ message: 'No trobat' });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error al servidor' });
+  // E) --- Eliminar una sol·licitud (admin) ---
+  delete: async (req, res) => {
+    try {
+      const id = req.params.id;
+
+      const item = await SolicitudRegistre.findById(id);
+      if (!item) {
+        return res.status(404).json({ message: "No trobat" });
+      }
+
+      const success = await SolicitudRegistre.delete(id);
+      if (success) {
+        let nomC;
+        if (item.nom_centre === "Altres") {
+          nomC = item.nom_centre_manual || "Altres";
+        } else {
+          nomC = item.nom_centre || "";
         }
+        const txtAnterior = "Sol·licitud de registre id " + item.id + ", estat '" + (item.estat || "") + "', centre '" + nomC + "' (codi: " + (item.codi_centre || "") + "), email coordinador: " + (item.email_coordinador || "") + ", abans d'eliminar.";
+        const txtNou = "Eliminada la sol·licitud de registre del centre '" + nomC + "' (id: " + item.id + ").";
+        let usuariIdLog = null;
+        if (req.user) {
+          usuariIdLog = req.user.id;
+        }
+        try {
+          await Log.create({
+            usuari_id: usuariIdLog,
+            accio: "DELETE_REGISTRATION",
+            taula_afectada: "solicituds_registre",
+            valor_anterior: txtAnterior,
+            valor_nou: txtNou
+          });
+        } catch (logErr) {
+          console.error("Error creant log d'auditoria:", logErr.message);
+        }
+        res.json({ message: "Eliminat correctament" });
+      } else {
+        res.status(404).json({ message: "No trobat" });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al servidor" });
     }
+  }
 };
 
 module.exports = solicitudRegistreController;

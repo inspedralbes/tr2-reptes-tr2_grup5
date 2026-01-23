@@ -1,26 +1,96 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const db = require("../config/db");
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Model Log: Gestiona les operacions relacionades amb la taula 'logs_auditoria'
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
 const Log = {
-  create: async ({ usuari_id, accio, taula_afectada, valor_anterior, valor_nou }) => {
+  // A) --- Obtenir tots els logs d'auditoria (per a l'administrador) ---
+  getAll: async () => {
     try {
+      // 1. Construïm la consulta SQL amb LEFT JOIN per obtenir l'email de l'usuari (sense LIMIT per retornar tots)
+      const sql = `
+        SELECT 
+          l.id,
+          l.usuari_id,
+          l.accio,
+          l.taula_afectada,
+          l.valor_anterior,
+          l.valor_nou,
+          l.data_registre,
+          u.email AS usuari_email
+        FROM logs_auditoria l
+        LEFT JOIN usuaris u ON l.usuari_id = u.id
+        ORDER BY l.data_registre DESC
+      `;
+      // 2. Executem la consulta
+      const result = await db.query(sql);
+      const rows = result[0];
+      // 3. Retornem totes les files
+      return rows;
+    } catch (error) {
+      console.error("Error obtenint els logs d'auditoria:", error.message);
+      throw error;
+    }
+  },
+
+  // B) --- Crear un log d'auditoria ---
+  create: async (dades) => {
+    try {
+      // 1. Obtenim les dades del log
+      let usuari_id = dades.usuari_id;
+      if (!usuari_id) {
+        usuari_id = null;
+      }
+      const accio = dades.accio;
+      const taula_afectada = dades.taula_afectada;
+      const valor_anterior = dades.valor_anterior;
+      const valor_nou = dades.valor_nou;
+      
+      // 2. Convertim a string: si ja és text (string) es guarda directament; si és objecte es passa a JSON
+      let prevString = null;
+      if (valor_anterior !== undefined && valor_anterior !== null) {
+        if (typeof valor_anterior === 'string') {
+          prevString = valor_anterior;
+        } else {
+          prevString = JSON.stringify(valor_anterior);
+        }
+      }
+
+      let nouString = null;
+      if (valor_nou !== undefined && valor_nou !== null) {
+        if (typeof valor_nou === 'string') {
+          nouString = valor_nou;
+        } else {
+          nouString = JSON.stringify(valor_nou);
+        }
+      }
+      
+      // 3. Executem la consulta SQL per inserir el log
       const sql = `
         INSERT INTO logs_auditoria 
         (usuari_id, accio, taula_afectada, valor_anterior, valor_nou) 
         VALUES (?, ?, ?, ?, ?)
       `;
-      // Convertir objectes a STRING per guardar-los com TEXT
-      const prevString = valor_anterior ? JSON.stringify(valor_anterior) : null;
-      const nouString = valor_nou ? JSON.stringify(valor_nou) : null;
-
       await db.query(sql, [
-        usuari_id || null,
-        accio,
-        taula_afectada,
-        prevString,
+        usuari_id, 
+        accio, 
+        taula_afectada, 
+        prevString, 
         nouString
       ]);
     } catch (error) {
-      // El log no hauria de trencar l'execució principal, només ho mostrem per consola
+      // 4. En cas d'error, només ho registrem per consola (no trenquem l'execució principal)
       console.error("Error creant log d'auditoria:", error.message);
     }
   },
