@@ -7,9 +7,9 @@ const Taller = {
     const params = [];
 
     if (filter === 'active') {
-      sql += " WHERE actiu = 1";
+      sql += " WHERE estat_taller = 'actiu'";
     } else if (filter === 'archived') {
-      sql += " WHERE actiu = 0";
+      sql += " WHERE estat_taller = 'inactiu'";
     }
     const [rows] = await db.query(sql, params);
     return rows;
@@ -65,28 +65,28 @@ const Taller = {
 
   // Crear nou taller
   create: async (data) => {
-    const { titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio } = data;
+    const { titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, data_execucio } = data;
     const sql = `
       INSERT INTO tallers 
-      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, actiu) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, data_execucio, estat_taller) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'actiu')
     `;
     const [result] = await db.query(sql, [
       titol, descripcio || null, sector, modalitat, trimestres_disponibles || null,
-      places_maximes || 12, places_maximes || 12, adreca || null, ubicacio || null
+      places_maximes || 12, places_maximes || 12, adreca || null, ubicacio || null, data_execucio || null
     ]);
     return result.insertId;
   },
 
   // Actualitzar taller
   update: async (id, data) => {
-    const { titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, actiu } = data;
+    const { titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, data_execucio, estat_taller } = data;
     const sql = `
       UPDATE tallers SET titol = ?, descripcio = ?, sector = ?, modalitat = ?, 
-      trimestres_disponibles = ?, places_maximes = ?, adreca = ?, ubicacio = ?,
-      actiu = COALESCE(?, actiu) WHERE id = ?
+      trimestres_disponibles = ?, places_maximes = ?, adreca = ?, ubicacio = ?, data_execucio = ?,
+      estat_taller = COALESCE(?, estat_taller) WHERE id = ?
     `;
-    const [result] = await db.query(sql, [titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, actiu, id]);
+    const [result] = await db.query(sql, [titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, data_execucio, estat_taller, id]);
     return result.affectedRows > 0;
   },
 
@@ -105,7 +105,7 @@ const Taller = {
 
   // Arxivament i eliminació
   archive: async (id) => {
-    const [result] = await db.query("UPDATE tallers SET actiu = 0 WHERE id = ?", [id]);
+    const [result] = await db.query("UPDATE tallers SET estat_taller = 'inactiu' WHERE id = ?", [id]);
     return result.affectedRows > 0;
   },
 

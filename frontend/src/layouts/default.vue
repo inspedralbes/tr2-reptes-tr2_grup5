@@ -55,11 +55,13 @@ const logoutItem = computed(() => headerStore.buttons.find(b => b.label === 'Sor
 
 const getIcon = (label) => {
   const emojis = { 
-    'Catàleg': '📂', 
+    'Catàleg': '📂',
+    'Calendari': '🗓️',
     'Assignacions': '📅', 
     'Usuaris/Centres': '👥', 
     'Estadístiques': '📈', 
-    'Auditoria': '🛡️' 
+    'Auditoria': '🛡️',
+    'Peticions': '📝' 
   }
   return emojis[label] || '•'
 }

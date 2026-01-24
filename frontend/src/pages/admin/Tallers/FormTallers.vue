@@ -94,6 +94,11 @@
             <label>Adreça de l'Activitat</label>
             <input type="text" v-model="form.adreca" placeholder="Carrer, número, ciutat..." />
           </div>
+
+          <div class="form-group">
+            <label>Data Prevista d'Execució</label>
+            <input type="date" v-model="form.data_execucio" />
+          </div>
         </div>
 
         <div class="actions">
@@ -143,8 +148,10 @@ export default defineComponent({
       modalitat: '',
       places_maximes: 12,
       trimestres: [],
+      trimestres: [],
       ubicacio: '',
-      adreca: ''
+      adreca: '',
+      data_execucio: ''
     })
 
     // --- COMPUTED ---
@@ -191,7 +198,7 @@ export default defineComponent({
         // Reset form
         Object.assign(form, {
           titol: '', descripcio: '', sector: '', modalitat: '',
-          places_maximes: 12, trimestres: [], ubicacio: '', adreca: ''
+          places_maximes: 12, trimestres: [], ubicacio: '', adreca: '', data_execucio: ''
         })
       } catch (err) {
         alert("Error al crear el taller: " + (err.response?._data?.message || err.message))

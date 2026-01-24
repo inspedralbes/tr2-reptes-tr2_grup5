@@ -1,10 +1,22 @@
 const Peticio = require("../../models/Peticio");
 const Centre = require("../../models/Centre");
+const Config = require("../../models/Config"); // Import Config model
 
 const peticionsController = {
     // Crear una nova sol·licitud de tallers
     createPeticio: async (req, res) => {
         try {
+            // --- VALIDACIÓ PERÍODE D'INSCRIPCIÓ ---
+            const config = await Config.get('periode_inscripcio');
+            const isEnrollmentOpen = config ? config.valor === 'obert' : false;
+
+            if (!isEnrollmentOpen) {
+                return res.status(403).json({ 
+                    message: "Aquests dies no hi han tallers per presentar, has d'esperar a que obrin les inscripcions." 
+                });
+            }
+            // ---------------------------------------
+
             const user_id = req.user.id; // Obtingut del token JWT
             const { tallers } = req.body;
 

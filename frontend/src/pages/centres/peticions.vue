@@ -22,6 +22,7 @@
               <span><strong>Places:</strong> {{ taller.places_maximes }}</span>
               <span><strong>Trimestres:</strong> {{ taller.trimestres_disponibles }}</span>
               <span v-if="taller.adreca"><strong>📍 Adreça:</strong> {{ taller.adreca }}</span>
+              <span v-if="taller.data_execucio"><strong>📅 Data:</strong> {{ formatDate(taller.data_execucio) }}</span>
             </div>
           </div>
           <div class="card-footer">
@@ -145,6 +146,12 @@ const submitting = ref(false);
 const message = ref('');
 const messageType = ref('');
 const activeDocentFormIndex = ref(null);
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 
 const newDocent = ref({
   nom: '',

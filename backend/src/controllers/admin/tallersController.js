@@ -38,7 +38,7 @@ const getTallerById = async (req, res) => {
 const createTaller = async (req, res) => {
   const {
     titol, descripcio, sector, modalitat,
-    trimestres_disponibles, places_maximes, adreca, ubicacio
+    trimestres_disponibles, places_maximes, adreca, ubicacio, data_execucio
   } = req.body;
 
   if (!titol || !modalitat || !sector) {
@@ -67,7 +67,8 @@ const createTaller = async (req, res) => {
       trimestres_disponibles,
       places_maximes: capacitat,
       adreca,
-      ubicacio
+      ubicacio,
+      data_execucio
     });
 
     await Log.create({

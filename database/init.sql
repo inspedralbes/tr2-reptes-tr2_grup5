@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS tallers (
     places_restants INT DEFAULT 12,
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
-    actiu TINYINT(1) DEFAULT 1
+    estat_taller ENUM('inscripcio', 'actiu', 'inactiu', 'confirmacio') DEFAULT 'inactiu',
+    data_execucio DATE DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- 6. Taula: peticions
@@ -156,5 +157,16 @@ CREATE TABLE IF NOT EXISTS solicituds_registre (
     estat ENUM('pendent', 'acceptada', 'rebutjada') DEFAULT 'pendent',
     data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- 22. Taula: configuracio
+CREATE TABLE IF NOT EXISTS configuracio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    clau VARCHAR(50) UNIQUE NOT NULL,
+    valor VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO configuracio (clau, valor) VALUES 
+('enrollment_start', '2024-01-01'),
+('enrollment_end', '2024-01-31');
 
 SET FOREIGN_KEY_CHECKS = 1;

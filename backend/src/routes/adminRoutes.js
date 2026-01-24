@@ -52,4 +52,10 @@ router.post("/matching/auto", matchingController.executeAutoAssignment);
 // --- RUTES PER A ESTADÍSTIQUES ---
 router.get("/stats/dashboard", statsController.getDashboardStats);
 
+// --- RUTES PER A CONFIGURACIÓ GLOBAL ---
+const configController = require("../controllers/admin/configController");
+router.get("/config/enrollment", configController.getEnrollmentStatus);
+router.post("/config/enrollment", configController.toggleEnrollmentStatus); // Deprecated but kept
+router.post("/config/enrollment/dates", configController.updateEnrollmentDates); // New
+
 module.exports = router;

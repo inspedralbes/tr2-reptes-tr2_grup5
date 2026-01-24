@@ -60,6 +60,11 @@
           <input v-model="formData.ubicacio" type="text">
         </div>
 
+        <div class="form-group">
+          <label>Data Prevista d'Execució</label>
+          <input v-model="formData.data_execucio" type="date">
+        </div>
+
         <div class="form-group checkbox">
           <label class="switch-label">
             <input type="checkbox" v-model="formData.actiu" :true-value="1" :false-value="0">
@@ -110,7 +115,11 @@ const { data: taller, pending, error } = await useFetch(`http://localhost:1700/a
 // Omplir el formulari quan les dades estiguin llestes
 watchEffect(() => {
   if (taller.value) {
-    formData.value = { ...taller.value };
+    const data = { ...taller.value };
+    if (data.data_execucio) {
+      data.data_execucio = new Date(data.data_execucio).toISOString().split('T')[0];
+    }
+    formData.value = data;
   }
 });
 

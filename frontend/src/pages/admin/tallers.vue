@@ -2,9 +2,20 @@
   <div class="page">
     <div class="header-actions">
       <h2>Catàleg de Tallers</h2>
-      <NuxtLink to="/admin/tallers/FormTallers">
-        <button class="btn-primary">Crear Taller</button>
-      </NuxtLink>
+      
+      <div class="header-group">
+        <div class="toggle-container" @click="toggleEnrollment">
+          <span class="toggle-label">Inscripcions:</span>
+          <div class="toggle-switch" :class="{ 'on': isEnrollmentOpen }">
+            <div class="toggle-circle"></div>
+          </div>
+          <span class="status-text">{{ isEnrollmentOpen ? 'Obertes' : 'Tancades' }}</span>
+        </div>
+
+        <NuxtLink to="/admin/tallers/FormTallers">
+          <button class="btn-primary">Crear Taller</button>
+        </NuxtLink>
+      </div>
     </div>
 
     <div v-if="pending" class="loading">Carregant tallers...</div>
@@ -30,6 +41,11 @@
             <div class="detail-row">
               <span class="label">Sector:</span>
               <span class="value">{{ taller.sector }}</span>
+            </div>
+            
+            <div class="detail-row" v-if="taller.data_execucio">
+              <span class="label">Data:</span>
+              <span class="value">{{ formatDate(taller.data_execucio) }}</span>
             </div>
 
             <div class="places-container">
@@ -111,6 +127,45 @@ const editTaller = (id) => {
   navigateTo(`/admin/tallers/editTallers?id=${id}`)
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+// --- ESTAT DEL PERÍODE D'INSCRIPCIÓ ---
+const isEnrollmentOpen = ref(false);
+
+const fetchEnrollmentStatus = async () => {
+  try {
+    const data = await $fetch('http://localhost:1700/api/admin/config/enrollment', {
+      headers: { Authorization: token.value ? `Bearer ${token.value}` : '' }
+    });
+    isEnrollmentOpen.value = data.isOpen;
+  } catch (err) {
+    console.error('Error fetching enrollment status:', err);
+  }
+};
+
+const toggleEnrollment = async () => {
+  try {
+    const newState = !isEnrollmentOpen.value;
+    const data = await $fetch('http://localhost:1700/api/admin/config/enrollment', {
+      method: 'POST',
+      body: { isOpen: newState },
+      headers: { Authorization: token.value ? `Bearer ${token.value}` : '' }
+    });
+    isEnrollmentOpen.value = data.isOpen;
+  } catch (err) {
+    console.error('Error toggling enrollment:', err);
+    alert('No s\'han pogut actualitzar les inscripcions. Intenta-ho més tard.');
+  }
+};
+
+onMounted(() => {
+  fetchEnrollmentStatus();
+});
+
 </script>
 
 <style scoped>
@@ -118,6 +173,19 @@ const editTaller = (id) => {
 .page { padding: 30px; max-width: 1400px; margin: 0 auto; }
 .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 .header-actions h2 { font-size: 1.8rem; color: #1a202c; font-weight: 700; margin: 0; }
+.header-group { display: flex; align-items: center; gap: 20px; }
+
+/* Toggle Styles */
+.toggle-container { display: flex; align-items: center; background: white; padding: 8px 16px; border-radius: 12px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; user-select: none; }
+.toggle-container:hover { border-color: #cbd5e1; }
+.toggle-label { font-size: 0.9rem; font-weight: 600; color: #64748b; margin-right: 12px; }
+.toggle-switch { width: 44px; height: 24px; background-color: #cbd5e1; border-radius: 999px; position: relative; transition: background-color 0.3s; margin-right: 10px; }
+.toggle-switch.on { background-color: #10b981; }
+.toggle-circle { width: 18px; height: 18px; background-color: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.toggle-switch.on .toggle-circle { transform: translateX(20px); }
+.status-text { font-size: 0.85rem; font-weight: 700; color: #64748b; min-width: 60px; }
+.toggle-switch.on + .status-text { color: #10b981; }
+
 .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); transition: all 0.2s ease; }
 .tallers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
 .taller-card { background: white; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
