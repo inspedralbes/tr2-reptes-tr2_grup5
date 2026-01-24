@@ -103,7 +103,7 @@ const formData = ref({
 });
 
 // 1. Carregar dades inicials del taller
-const { data: taller, pending, error } = await useFetch(`http://localhost:1700/api/admin/tallers/${route.query.id}`, {
+const { data: taller, pending, error } = await useFetch(`/api/admin/tallers/${route.query.id}`, {
   headers: { Authorization: `Bearer ${token.value}` }
 });
 
@@ -118,7 +118,7 @@ watchEffect(() => {
 const handleUpdate = async () => {
   saving.value = true;
   try {
-    await $fetch(`http://localhost:1700/api/admin/tallers/${route.query.id}`, {
+    await $fetch(`/api/admin/tallers/${route.query.id}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token.value}` },
       body: formData.value

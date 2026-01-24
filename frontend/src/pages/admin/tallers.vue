@@ -96,7 +96,7 @@ const getRemainingClass = (taller) => {
 
 const deleteTaller = async (id) => {
   try {
-    await $fetch(`http://localhost:1700/api/admin/tallers/${id}`, {
+    await $fetch(`/api/admin/tallers/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: token ? `Bearer ${token}` : ''

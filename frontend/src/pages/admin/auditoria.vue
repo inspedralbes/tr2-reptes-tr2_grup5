@@ -46,7 +46,7 @@
 <script setup>
 const token = useCookie('authToken');
 
-const { data: logs, pending, error } = await useFetch('http://localhost:1700/api/admin/logs', {
+const { data: logs, pending, error } = await useFetch('/api/admin/logs', {
   headers: { Authorization: `Bearer ${token.value}` },
   initialCache: false
 });

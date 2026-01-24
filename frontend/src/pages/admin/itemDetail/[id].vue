@@ -137,11 +137,10 @@
 <script setup>
 const route = useRoute()
 const activeTab = ref('info') 
-const backendBase = 'http://localhost:1700'
 const token = useCookie('authToken').value
 const centreId = route.params.id
 
-const { data: centre, pending } = await useFetch(`${backendBase}/api/admin/centres/${centreId}`, {
+const { data: centre, pending } = await useFetch(`/api/admin/centres/${centreId}`, {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
 })
 

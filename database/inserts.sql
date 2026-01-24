@@ -1,3 +1,4 @@
+SET NAMES 'utf8mb4';
 USE enginy_db;
 
 -- 1. TAULA: usuaris

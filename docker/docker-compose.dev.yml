@@ -43,7 +43,7 @@ services:
       database:
         condition: service_healthy
     ports:
-      - "${PORT_BACKEND:-1700}:${PORT_BACKEND:-1700}"
+      - "${PORT_BACKEND_EXTERNAL:-1701}:${PORT_BACKEND:-1700}"
     volumes:
       - ../backend:/app
       - /app/node_modules

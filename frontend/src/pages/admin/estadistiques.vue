@@ -140,7 +140,7 @@
 <script setup>
 const token = useCookie('authToken');
 
-const { data: stats, pending, error } = await useFetch('http://localhost:1700/api/admin/stats/dashboard', {
+const { data: stats, pending, error } = await useFetch('/api/admin/stats/dashboard', {
     headers: { Authorization: `Bearer ${token.value}` },
     initialCache: false 
 });

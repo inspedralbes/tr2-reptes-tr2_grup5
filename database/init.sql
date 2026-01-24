@@ -1,4 +1,6 @@
 -- Estructura de la base de datos para MySQL
+-- Forcem UTF-8 per a tota la sessió i evitem mojibake ( accents, ñ, etc.)
+SET NAMES 'utf8mb4';
 
 CREATE DATABASE IF NOT EXISTS enginy_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE enginy_db;
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS professors (
     cognoms VARCHAR(100),
     FOREIGN KEY (user_id) REFERENCES usuaris(id) ON DELETE CASCADE,
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) 
 
 -- 5. Taula: tallers
 CREATE TABLE IF NOT EXISTS tallers (

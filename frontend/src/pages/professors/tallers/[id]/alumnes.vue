@@ -95,7 +95,7 @@ const submitting = ref(false);
 const studentsForm = ref([]);
 
 // 1. Fetch taller info
-const { data: tallers } = await useFetch('http://localhost:1700/api/professors/tallers', {
+const { data: tallers } = await useFetch('/api/professors/tallers', {
   headers: { Authorization: `Bearer ${token.value}` }
 });
 
@@ -106,7 +106,7 @@ const taller = computed(() => {
 
 // 2. Fetch llista existent (endpoint d'alumnes, no assistència)
 // Utilitzem getAlumnes que està permès per Docents
-const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
+const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`/api/professors/tallers/${detalleId}/alumnes`, {
   headers: { Authorization: `Bearer ${token.value}` }
 });
 
@@ -140,7 +140,7 @@ const closeModal = () => {
 const deleteStudent = async (studentId) => {
     if (!confirm("Segur que vols eliminar aquest alumne de la llista?")) return;
     try {
-        await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes/${studentId}`, {
+        await $fetch(`/api/professors/tallers/${detalleId}/alumnes/${studentId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token.value}` }
         });
@@ -154,7 +154,7 @@ const submitAssistencia = async () => {
   submitting.value = true;
   try {
     // Aquest endpoint és el correcte per Docents
-    await $fetch(`http://localhost:1700/api/professors/tallers/${detalleId}/alumnes`, {
+    await $fetch(`/api/professors/tallers/${detalleId}/alumnes`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
       body: {

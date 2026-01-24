@@ -130,7 +130,7 @@ const fetchPeticions = async () => {
   error.value = null
   try {
     const token = tokenCookie.value
-    const data = await $fetch('http://localhost:1700/api/admin/peticions', {
+    const data = await $fetch('/api/admin/peticions', {
       headers: {
         Authorization: token ? `Bearer ${token}` : ''
       }
@@ -173,7 +173,7 @@ const updateTallerStatus = async (peticioId, tallerId, estat) => {
   actionLoading.value = true
   try {
     const token = tokenCookie.value;
-    await $fetch(`http://localhost:1700/api/admin/peticions/${peticioId}/tallers/${tallerId}/estat`, {
+    await $fetch(`/api/admin/peticions/${peticioId}/tallers/${tallerId}/estat`, {
       method: 'PUT',
       headers: { Authorization: token ? `Bearer ${token}` : '' },
       body: { estat }
@@ -197,7 +197,7 @@ const executeAutoAssignment = async () => {
   
   try {
     const token = tokenCookie.value
-    const result = await $fetch('http://localhost:1700/api/admin/matching/auto', {
+    const result = await $fetch('/api/admin/matching/auto', {
       method: 'POST',
       headers: { Authorization: token ? `Bearer ${token}` : '' }
     })

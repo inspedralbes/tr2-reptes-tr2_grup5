@@ -86,7 +86,7 @@ const submitForm = async () => {
 
   try {
     
-    const response = await $fetch('http://localhost:1700/api/admin/tallers', {
+    const response = await $fetch('/api/admin/tallers', {
       method: 'POST',
       body: taller
     })

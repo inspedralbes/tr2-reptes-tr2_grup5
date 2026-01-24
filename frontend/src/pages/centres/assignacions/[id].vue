@@ -88,7 +88,7 @@ const route = useRoute()
 const tokenCookie = useCookie('authToken')
 
 // Consultamos el detalle usando el ID que viene en la URL
-const { data: assignacio, pending, error } = await useFetch(`http://localhost:1700/api/centre/assignacions/${route.params.id}`, {
+const { data: assignacio, pending, error } = await useFetch(`/api/centre/assignacions/${route.params.id}`, {
   server: false,
   headers: {
     Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''

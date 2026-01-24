@@ -75,7 +75,6 @@ const mostrarCentres = ref(true)
 const searchTerm = ref('')
 const isExiting = ref(false) // Estado para la transición de salida
 
-const backendBase = ''
 const token = useCookie('authToken').value
 
 // EVENT LISTENER DE NAVEGACIÓN
@@ -91,7 +90,7 @@ const handleNavigation = async (id) => {
 }
 
 // Fetch Centres
-const { data: centres } = await useFetch(`${backendBase}/api/admin/centres`, {
+const { data: centres } = await useFetch('/api/admin/centres', {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
 })
 
@@ -107,7 +106,7 @@ const centresList = computed(() => {
 })
 
 // Fetch Usuaris
-const { data: users } = await useFetch(`${backendBase}/api/admin/usuaris`, {
+const { data: users } = await useFetch('/api/admin/usuaris', {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
 })
 

@@ -82,7 +82,7 @@ const header = useHeaderStore()
 header.setHeaderCentres()
 const tokenCookie = useCookie('authToken')
 
-const { data: assignacions, pending, error, refresh } = await useFetch('http://localhost:1700/api/centre/assignacions', {
+const { data: assignacions, pending, error, refresh } = await useFetch('/api/centre/assignacions', {
   server: false,
   headers: {
     Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
