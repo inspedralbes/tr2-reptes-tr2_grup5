@@ -42,6 +42,7 @@ export const useHeaderStore = defineStore('header', {
         title: 'Panell Professor',
         buttons: [
           { label: 'Panell de Control', route: '/professors/tallers' },
+          { label: 'Assistència', route: '/professors/assistencia' },
           { label: 'Avaluacions', route: '/professors/avaluacions' },
           { label: 'Sortir', route: '/login' }
         ]

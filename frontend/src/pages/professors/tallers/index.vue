@@ -43,43 +43,8 @@
 
       <hr>
 
-      <!-- SECCIÓ 2: REFERENT -->
-      <div style="margin-bottom: 40px;">
-        <h2>Control d'Assistència (Referent)</h2>
-        <p>Verifica l'assistència dels tallers on ets referent.</p>
-
-        <table v-if="referentTallers.length > 0" border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
-          <thead>
-            <tr style="background: #eee;">
-              <th>ID Detall</th>
-              <th>Taller</th>
-              <th>Ubicació</th>
-              <th>Trimestre</th>
-              <th>Docent</th>
-              <th>Accions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="taller in referentTallers" :key="taller.detall_id">
-              <td>{{ taller.detall_id }}</td>
-              <td>
-                <strong>{{ taller.titol }}</strong><br>
-                <small>{{ taller.modalitat }}</small>
-              </td>
-              <td>{{ taller.ubicacio }}</td>
-              <td>{{ taller.trimestre }}</td>
-              <td>{{ taller.docent_nom || 'Pendent' }}</td>
-              <td>
-                <button @click="goToAssistencia(taller)">Passar Llista</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-         <p v-else>
-            No ets referent de cap taller.
-         </p>
-      </div>
-
+      <!-- SECCIÓ 2: REFERENT (MOVED TO /professors/assistencia) -->
+      
     </div>
   </div>
 </template>

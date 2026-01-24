@@ -65,7 +65,7 @@ const assistenciaList = ref([]);
 const tallerInfo = ref(null);
 
 const goBack = () => {
-    router.push('/professors/tallers');
+    router.push('/professors/assistencia');
 }
 
 const loadData = async () => {
