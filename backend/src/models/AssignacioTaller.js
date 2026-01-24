@@ -121,14 +121,14 @@ const AssignacioTaller = {
       ORDER BY p.data_creacio DESC
     `, [centre_id]);
     const rows = result[0];
-    
+
     // 2. Retornem els resultats
     return rows;
-  }
-};
-// --- Mètode per obtenir el detall individual ---
-getById: async (id) => {
-  const [rows] = await db.query(`
+  },
+
+  // B) --- Obtenir el detall d'una assignació per ID ---
+  getById: async (id) => {
+    const result = await db.query(`
       SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
              pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio,
              p.centre_id
@@ -136,22 +136,29 @@ getById: async (id) => {
       JOIN peticions p ON pd.peticio_id = p.id
       JOIN tallers t ON pd.taller_id = t.id
       WHERE pd.id = ?
-  `, [id]);
-  return rows[0]; 
-},
+    `, [id]);
+    const rows = result[0];
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return null;
+  },
 
-isReferent: async (peticio_detall_id, professor_id) => {
-  const [rows] = await db.query(`
-      SELECT 1 
+  // C) --- Comprovar si un professor és referent d'una assignació ---
+  isReferent: async (peticio_detall_id, professor_id) => {
+    const result = await db.query(`
+      SELECT 1
       FROM peticio_detalls pd_target
       JOIN peticio_detalls pd_ref ON pd_target.taller_id = pd_ref.taller_id
       JOIN professors p ON p.id = ?
       JOIN usuaris u ON p.user_id = u.id
       LEFT JOIN referents_assignats ra ON ra.peticio_detall_id = pd_ref.id
-      WHERE pd_target.id = ? 
+      WHERE pd_target.id = ?
       AND (ra.professor_id = ? OR (pd_ref.docent_email = u.email AND pd_ref.es_preferencia_referent = 1))
-  `, [professor_id, peticio_detall_id, professor_id]);
-  return rows.length > 0;
-}
+    `, [professor_id, peticio_detall_id, professor_id]);
+    const rows = result[0];
+    return rows && rows.length > 0;
+  }
+};
 
 module.exports = AssignacioTaller;

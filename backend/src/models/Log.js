@@ -93,21 +93,6 @@ const Log = {
       // 4. En cas d'error, només ho registrem per consola (no trenquem l'execució principal)
       console.error("Error creant log d'auditoria:", error.message);
     }
-  },
-
-  getAll: async () => {
-    try {
-      const [rows] = await db.query(`
-        SELECT l.*, u.email as usuari_email
-        FROM logs_auditoria l
-        LEFT JOIN usuaris u ON l.usuari_id = u.id
-        ORDER BY l.data_registre DESC
-      `);
-      return rows;
-    } catch (error) {
-      console.error("Error obtenint logs d'auditoria:", error.message);
-      return [];
-    }
   }
 };
 

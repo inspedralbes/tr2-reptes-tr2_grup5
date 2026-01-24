@@ -51,7 +51,10 @@ app.use("/api/admin", verifyToken, verifyRole(rolesAdmin), adminRoutes);
 // 7. Configurem les rutes de centres
 app.use("/api/centre", centreRoutes);
 
-// 8. Configurem les rutes de sol·licituds de registre
+// 8. Configurem les rutes de professors
+app.use("/api/professor", professorRoutes);
+
+// 9. Configurem les rutes de sol·licituds de registre
 app.use("/api/solicituds-registre", solicitudRegistreRoutes);
 
 // A) --- Ruta arrel per comprovar que l'API funciona ---
