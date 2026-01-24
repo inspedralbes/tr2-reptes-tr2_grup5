@@ -1,61 +1,215 @@
 <template>
-  <header v-if="header.showHeader">
-    <h1>{{ header.title }}</h1>
-    <div class="buttons">
+  <aside
+    v-if="header.showHeader"
+    class="fixed top-0 left-0 bottom-0 w-[280px] bg-[#022B3A] z-50 flex flex-col shadow-2xl overflow-hidden border-r border-white/5 font-sans"
+  >
+    <!-- 1. Logo & Brand -->
+    <header class="p-8 pb-6">
+      <div class="flex items-center gap-3">
+        <div class="bg-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-[#022B3A] shadow-lg shadow-black/40">
+          E
+        </div>
+        <div>
+          <h1 class="font-black text-xl tracking-tighter text-white leading-none mb-1 uppercase">ENGINY</h1>
+          <p class="text-[9px] font-black text-[#1F7A8C] uppercase tracking-widest opacity-80">
+            {{ roleLabel }}
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Menu Navigation -->
+    <nav class="flex-1 px-4 mt-4 space-y-4 overflow-y-auto scrollbar-hide">
+      <div>
+        <p class="px-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Menú Principal</p>
+        <ul class="space-y-1.5">
+          <li v-for="(btn, i) in menuItems" :key="obtenirClauBoto(btn, i)">
+            <NuxtLink
+              :to="btn.route"
+              :class="[
+                'relative w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden no-underline',
+                isActive(btn)
+                  ? 'bg-gradient-to-r from-[#1F7A8C] to-[#1A6B7A] text-white shadow-lg shadow-[#1F7A8C]/25 translate-x-1'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
+              ]"
+            >
+              <div
+                v-if="isActive(btn)"
+                class="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[2px_0_15px_rgba(255,255,255,0.6)]"
+              />
+              <div :class="['flex items-center gap-4 relative z-10 transition-all', isActive(btn) ? 'pl-3' : '']">
+                <component
+                  :is="getIcon(btn)"
+                  :size="20"
+                  :strokeWidth="isActive(btn) ? 2.5 : 1.5"
+                  :class="isActive(btn) ? 'text-white drop-shadow-sm' : 'text-white/40 group-hover:text-white transition-colors'"
+                />
+                <span :class="['text-sm tracking-tight', isActive(btn) ? 'font-black' : 'font-medium']">
+                  {{ btn.label }}
+                </span>
+              </div>
+              <div
+                v-if="isActive(btn)"
+                class="relative z-10 w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+              />
+            </NuxtLink>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- 3. User Profile & Logout -->
+    <footer class="mt-auto p-4 space-y-2 bg-black/10 border-t border-white/5">
+      <div class="flex items-center gap-3 px-4 py-2">
+        <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white font-black text-xs border border-white/10">
+          {{ userInitials }}
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-sm font-black text-white truncate">{{ userName }}</p>
+          <p class="text-[9px] font-bold text-white/30 uppercase truncate tracking-wider">{{ userRoleDisplay }}</p>
+        </div>
+      </div>
       <button
-        v-for="(btn, i) in header.buttons"
-        :key="obtenirClauBoto(btn, i)"
-        @click="navegar(btn)"
+        @click="handleLogout"
+        class="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all font-black text-[10px] uppercase tracking-[0.2em]"
       >
-        {{ btn.label }}
+        <LogOut :size="14" />
+        SORTIR
       </button>
-    </div>
-  </header>
+    </footer>
+  </aside>
 </template>
 
 <script setup>
-// ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
-// ======================================
+import {
+  Library,
+  Users,
+  BarChart3,
+  MessageSquare,
+  History,
+  UserCheck,
+  List,
+  GraduationCap,
+  BookOpen,
+  LogOut
+} from 'lucide-vue-next';
+
 const header = useHeaderStore();
+const route = useRoute();
+const tokenCookie = useCookie('authToken');
 
-// ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
-// ======================================
-
-// ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
-// ======================================
-
-// A) --- Obtenir una clau única per al botó en el v-for ---
-function obtenirClauBoto(btn, i) {
-  // 1. Si el botó té route, la usem com a part de la clau.
-  if (btn && btn.route) {
-    return btn.route + '-' + String(i);
+const menuItems = computed(function () {
+  const b = header.buttons || [];
+  const result = [];
+  for (let i = 0; i < b.length; i++) {
+    if (b[i].label !== 'Sortir' && b[i].route !== '/login') {
+      result.push(b[i]);
+    }
   }
-  // 2. En cas contrari, usem l'índex.
+  return result;
+});
+
+const roleLabel = computed(function () {
+  const m = menuItems.value;
+  if (m.length === 0) return (header.title || '').toUpperCase() || 'PANEL';
+  const r = m[0].route || '';
+  if (r.startsWith('/admin')) return 'ADMIN PANEL';
+  if (r.startsWith('/centres')) return 'CENTRE PANEL';
+  if (r.startsWith('/professors')) return 'DOCENT PANEL';
+  if (r.startsWith('/alumnes')) return 'ALUMNE PANEL';
+  return (header.title || 'PANEL').toUpperCase();
+});
+
+const userInitials = computed(function () {
+  const m = menuItems.value;
+  if (m.length === 0) return '—';
+  const r = (m[0].route || '');
+  if (r.startsWith('/admin')) return 'AD';
+  if (r.startsWith('/centres')) return 'CE';
+  if (r.startsWith('/professors')) return 'PR';
+  if (r.startsWith('/alumnes')) return 'AL';
+  return '—';
+});
+
+const userName = computed(function () {
+  const m = menuItems.value;
+  if (m.length === 0) return 'Usuari';
+  const r = m[0].route || '';
+  if (r.startsWith('/admin')) return 'Joan Domènech';
+  if (r.startsWith('/centres')) return 'IES Joan Maragall';
+  if (r.startsWith('/professors')) return 'Marc Vidal';
+  if (r.startsWith('/alumnes')) return 'Alumne';
+  return 'Usuari';
+});
+
+const userRoleDisplay = computed(function () {
+  const m = menuItems.value;
+  if (m.length === 0) return header.title || '—';
+  const r = m[0].route || '';
+  if (r.startsWith('/admin')) return 'Administrador';
+  if (r.startsWith('/centres')) return 'Gestió de Centre';
+  if (r.startsWith('/professors')) return 'Docent Referent';
+  if (r.startsWith('/alumnes')) return 'Portal Alumne';
+  return header.title || '—';
+});
+
+function obtenirClauBoto(btn, i) {
+  if (btn && btn.route) return btn.route + '-' + String(i);
   return 'btn-' + String(i);
 }
 
-// A) --- Navegar a la ruta del botó i gestionar logout ---
+function isActive(btn) {
+  const path = route.path;
+  if (path === btn.route) return true;
+  if (btn.route && btn.route !== '/' && path.startsWith(btn.route + '/')) return true;
+  return false;
+}
+
+function getIcon(btn) {
+  const r = (btn && btn.route) || '';
+  if (r === '/admin/tallers') return Library;
+  if (r === '/admin/peticions') return MessageSquare;
+  if (r === '/admin/assignacions') return List;
+  if (r === '/admin/usuaris') return Users;
+  if (r === '/admin/estadistiques') return BarChart3;
+  if (r === '/admin/auditoria') return History;
+  if (r === '/centres/peticions') return UserCheck;
+  if (r === '/centres/assignacions') return List;
+  if (r === '/centres/professorat') return GraduationCap;
+  if (r === '/professors/tallers') return BookOpen;
+  if (r === '/professors/assistencia') return List;
+  if (r === '/professors/avaluacions') return BarChart3;
+  if (r.startsWith('/alumnes/enquesta')) return MessageSquare;
+  if (r.startsWith('/alumnes/info')) return Library;
+  return List;
+}
+
 function navegar(btn) {
-  // 1. Intentem processar la navegació i el logout si cal.
   try {
     if (btn && btn.route === '/login') {
-      // 2. En logout, eliminem el token del localStorage (client).
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('authToken');
       }
-      // 3. Amaguem el header.
       header.setHeader({ showHeader: false });
     }
-  } catch (e) {
-    // 4. Ignorem errors.
-  }
-  // 5. Navegem a la ruta del botó.
+  } catch (e) {}
   navigateTo(btn.route);
+}
+
+function handleLogout() {
+  const sortirBtn = (header.buttons || []).find(function (b) {
+    return b.route === '/login' || b.label === 'Sortir';
+  });
+  navegar(sortirBtn || { route: '/login' });
 }
 </script>
 
 <style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </style>

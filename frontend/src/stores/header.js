@@ -1,16 +1,35 @@
 import { defineStore } from 'pinia'
 
+// Store per al títol, visibilitat i botons del capçal.
 export const useHeaderStore = defineStore('header', {
-  state: () => ({
-    title: '',
-    showHeader: true,
-    buttons: [] // { label, route }
-  }),
+  state: function () {
+    return {
+      title: '',
+      showHeader: true,
+      buttons: [] // Elements amb { label, route }
+    };
+  },
   actions: {
+    // A) --- Configurar el capçal amb títol, visibilitat i botons ---
     setHeader(options) {
-      this.title = options.title || ''
-      this.showHeader = options.showHeader !== undefined ? options.showHeader : true
-      this.buttons = options.buttons || []
+      // 1. Títol: si es passa, s'assigna; si no, cadena buida.
+      if (options.title !== undefined && options.title !== null) {
+        this.title = options.title;
+      } else {
+        this.title = '';
+      }
+      // 2. showHeader: si es passa, s'usa; si no, true per defecte.
+      if (options.showHeader !== undefined) {
+        this.showHeader = options.showHeader;
+      } else {
+        this.showHeader = true;
+      }
+      // 3. Botons: si es passa un array, s'usa; si no, array buit.
+      if (options.buttons !== undefined && options.buttons !== null && Array.isArray(options.buttons)) {
+        this.buttons = options.buttons;
+      } else {
+        this.buttons = [];
+      }
     },
     setHeaderAdmin() {
       this.setHeader({
@@ -24,7 +43,7 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Auditoria', route: '/admin/auditoria' },
           { label: 'Sortir', route: '/login' }
         ]
-      })
+      });
     },
     setHeaderCentres() {
       this.setHeader({
@@ -35,7 +54,7 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Professorat', route: '/centres/professorat' },
           { label: 'Sortir', route: '/login' }
         ]
-      })
+      });
     },
     setHeaderProfessors() {
       this.setHeader({
@@ -46,7 +65,7 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Avaluacions', route: '/professors/avaluacions' },
           { label: 'Sortir', route: '/login' }
         ]
-      })
+      });
     },
     setHeaderAlumnes() {
       this.setHeader({
@@ -56,11 +75,11 @@ export const useHeaderStore = defineStore('header', {
           { label: 'Informació', route: '/alumnes/info' },
           { label: 'Sortir', route: '/login' }
         ]
-      })
+      });
     },
     resetHeader() {
-      this.title = ''
-      this.buttons = []
+      this.title = '';
+      this.buttons = [];
     }
   }
-})
+});

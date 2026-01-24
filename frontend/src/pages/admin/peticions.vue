@@ -1,127 +1,269 @@
 <template>
-  <div class="page">
-    <div class="header-section">
-      <div class="header-top">
-        <h2>Gestió de Peticions de Tallers</h2>
-        <button
-          class="btn-auto-assign"
-          @click="executeAutoAssignment"
-          :disabled="autoAssignLoading"
-          title="Executar assignació automàtica de tallers"
-        >
-          <span v-if="autoAssignLoading">⏳ Processant...</span>
-          <span v-else>⚡ Executar Assignació Automàtica</span>
-        </button>
+  <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col min-h-[calc(100vh-200px)]">
+    
+    <!-- 1. CONTROL BAR -->
+    <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <div class="relative flex-1 max-w-md group w-full ml-1">
+        <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
+        <input 
+          type="text" 
+          placeholder="Cerca per títol, centre o projecte..."
+          v-model="searchQuery"
+          class="w-full bg-[#E1E5F2]/10 border border-transparent rounded-lg pl-11 pr-4 py-2.5 text-[11px] font-bold focus:bg-white focus:border-[#BFDBF7] focus:ring-4 focus:ring-[#1F7A8C]/5 outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
+        />
       </div>
-      <div v-if="assignmentResult" :class="classeResultatAssignacio">
-        <strong>{{ assignmentResult.message }}</strong>
-        <div v-if="assignmentResult.summary" class="summary-details">
-          Assignades: {{ assignmentResult.summary.success }} |
-          Rebutjades: {{ assignmentResult.summary.rejected }} |
-          Errors: {{ assignmentResult.summary.errors }}
+
+      <div class="flex items-center gap-2 bg-[#E1E5F2]/30 p-1 rounded-lg border border-[#BFDBF7]/20 w-full md:w-auto justify-center">
+        <div class="flex items-center gap-1">
+          <button 
+            @click="viewMode = 'grid'"
+            :class="['p-2 rounded-md shadow-sm border transition-all', viewMode === 'grid' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"
+          >
+            <LayoutGrid :size="14" />
+          </button>
+          <button 
+            @click="viewMode = 'list'"
+            :class="['p-2 rounded-md shadow-sm border transition-all', viewMode === 'list' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"
+          >
+            <List :size="14" />
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="mostraLoading" class="loading">
-      <div class="spinner"></div>
-      Carregant peticions...
-    </div>
-
-    <div v-else-if="errorFetch" class="error">
-      <span class="error-icon">⚠️</span>
-      Error carregant les peticions: {{ textError }}
-    </div>
-
-    <div v-else class="table-container">
-      <table v-if="hiHaDetalls">
-        <thead>
-          <tr>
-            <th>Centre</th>
-            <th>Taller</th>
-            <th>Trimestre</th>
-            <th>Participants</th>
-            <th>Prioritat</th>
-            <th>Estat</th>
-            <th class="actions-header">Accions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="detall in detallsPeticions" :key="clauDetall(detall)" class="main-row">
-            <td>
-              <div class="centre-name">{{ detall.nom_centre }}</div>
-              <div class="meta">Sol·licitat el {{ formatDate(detall.data_creacio) }}</div>
-            </td>
-            <td>
-              <div class="taller-info">
-                <span class="modalitat-badge">{{ detall.modalitat }}</span>
-                <span class="taller-title">{{ detall.titol }}</span>
-              </div>
-              <div v-if="detall.descripcio" class="descripcio-text">
-                <strong>💡 Descripció:</strong> {{ detall.descripcio }}
-              </div>
-              <div v-if="detall.es_preferencia_referent" class="preferencia-referent-section">
-                <div class="ref-tag">
-                  Preferència Referent
-                </div>
-                <div v-if="detall.docent_nom" class="docent-info">
-                  <strong>Professor:</strong> {{ detall.docent_nom }}
-                  <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
-                </div>
-                <div v-else class="docent-info missing">
-                  <strong>Professor:</strong> <em>No especificat</em>
-                </div>
-              </div>
-              <div v-else-if="detall.docent_nom" class="docent-info">
-                <strong>Docent:</strong> {{ detall.docent_nom }}
-                <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
-              </div>
-            </td>
-            <td><span class="trimestre-tag">{{ detall.trimestre }}</span></td>
-            <td><span class="count-pill">{{ detall.num_participants }}</span></td>
-            <td>
-              <span class="priority-badge" :class="'prio-level-' + detall.prioritat">
-                {{ detall.prioritat }}
-              </span>
-            </td>
-            <td>
-              <span :class="classeEstatBadge(detall)">
-                {{ textEstat(detall) }}
-              </span>
-            </td>
-            <td class="actions-cell">
-              <div v-if="esPendent(detall)" class="taller-btn-group">
-                <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
-                  ✓ Assignar
-                </button>
-                <button class="btn-action reject" title="Rebutjar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'REBUTJADA')" :disabled="actionLoading">
-                  ✕ Rebutjar
-                </button>
-              </div>
-              <span v-else class="no-actions">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-else class="no-data">
-        <p>No hi ha detalls de peticions de tallers enregistrats.</p>
+    <!-- Résultat assignació automàtica -->
+    <div v-if="assignmentResult" :class="[classeResultatAssignacio, 'p-4 rounded-xl font-bold text-sm']">
+      <strong>{{ assignmentResult.message }}</strong>
+      <div v-if="assignmentResult.summary" class="mt-2 text-xs opacity-90">
+        Assignades: {{ assignmentResult.summary.success }} | Rebutjades: {{ assignmentResult.summary.rejected }} | Errors: {{ assignmentResult.summary.errors }}
       </div>
     </div>
+
+    <!-- ACTION BUTTON -->
+    <div class="flex justify-end -mt-4">
+      <button 
+        @click="executeAutoAssignment"
+        :disabled="autoAssignLoading"
+        class="flex items-center gap-2 px-6 py-3 bg-[#022B3A] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1F7A8C] transition-all shadow-lg shadow-[#022B3A]/20 group disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <Sparkles :size="16" class="text-[#fbb02d] group-hover:text-white transition-colors" />
+        <span v-if="autoAssignLoading">Processant...</span>
+        <span v-else>Assignar automàticament</span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="mostraLoading" class="flex-1 flex flex-col items-center justify-center py-20">
+      <div class="w-10 h-10 border-4 border-[#E1E5F2] border-t-[#1F7A8C] rounded-full animate-spin mb-4"></div>
+      <p class="text-[#022B3A]/60 text-sm font-bold">Carregant peticions...</p>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="errorFetch" class="flex-1 flex flex-col items-center justify-center py-20">
+      <span class="text-4xl mb-4">⚠️</span>
+      <p class="text-red-600 font-bold">Error carregant les peticions: {{ textError }}</p>
+    </div>
+
+    <!-- 2. REQUESTS CONTENT -->
+    <div v-else class="flex-1">
+      <div v-if="!hiHaDetalls" class="text-center py-20 text-[#022B3A]/50 font-medium">
+        No hi ha detalls de peticions de tallers enregistrats.
+      </div>
+
+      <div v-else-if="filteredRequests.length === 0" class="text-center py-20 text-[#022B3A]/50 font-medium">
+        No hi ha resultats per la cerca.
+      </div>
+
+      <div v-else :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
+        
+        <template v-for="req in currentRequests" :key="clauDetall(req)">
+          
+          <!-- LIST VIEW -->
+          <div 
+            v-if="viewMode === 'list'"
+            class="bg-white rounded-xl border border-[#E1E5F2] overflow-hidden flex flex-col md:flex-row md:items-center justify-between hover:shadow-lg transition-all hover:border-[#BFDBF7] group"
+          >
+            <div :class="['w-14 md:w-16 flex-shrink-0 flex items-center justify-center border-r py-6 md:py-0 self-stretch transition-all duration-300', getPriorityStyles(req.prioritat || 5)]">
+              <span class="text-3xl font-black leading-none tracking-tighter">{{ req.prioritat ?? '—' }}</span>
+            </div>
+
+            <div class="flex items-center gap-4 flex-1 min-w-0 p-4">
+              <div :class="['w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center font-black text-xs border tracking-widest transition-colors', getModalitatStyles(req.modalitat)]">
+                {{ req.modalitat || '—' }}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-black text-[#022B3A] truncate">{{ req.titol }}</h3>
+                  <Star v-if="req.es_preferencia_referent" :size="12" class="text-[#fbb02d] fill-[#fbb02d]" />
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <Building2 :size="12" class="text-[#022B3A]/20" />
+                  <p class="text-[11px] font-medium text-[#8E9AAF] truncate">{{ req.nom_centre }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="hidden lg:flex items-center gap-8 flex-shrink-0 px-4">
+              <div class="flex flex-col items-end min-w-[80px]">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Data</span>
+                <span class="text-xs font-bold text-[#022B3A]">{{ formatDate(req.data_creacio) }}</span>
+              </div>
+              <div class="flex flex-col items-end min-w-[70px]">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Referent</span>
+                <span :class="['text-xs font-bold', req.es_preferencia_referent ? 'text-[#7CB518]' : 'text-[#022B3A]']">
+                  {{ req.es_preferencia_referent ? 'Sí' : 'No' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 md:border-l md:border-[#F1F4F9] p-4 md:pl-6">
+              <div v-if="esPendent(req)" class="flex gap-2">
+                <button @click="handleApprove(req)" :disabled="actionLoading" class="p-2.5 bg-[#F0F7E9] text-[#7CB518] border border-[#7CB518]/20 rounded-lg hover:bg-[#7CB518] hover:text-white transition-all shadow-sm disabled:opacity-50">
+                  <Check :size="16" :strokeWidth="2.5" />
+                </button>
+                <button @click="handleReject(req)" :disabled="actionLoading" class="p-2.5 bg-red-50 text-red-500 border border-red-200 rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm disabled:opacity-50">
+                  <X :size="16" :strokeWidth="2.5" />
+                </button>
+              </div>
+              <span v-else class="text-[#94A3B8] text-sm">—</span>
+            </div>
+          </div>
+
+          <!-- GRID VIEW -->
+          <div 
+            v-else
+            class="bg-white rounded-2xl border border-[#BFDBF7] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out group flex flex-col h-full overflow-hidden relative"
+          >
+            <div :class="['absolute top-0 left-0 w-12 h-12 rounded-br-2xl border-b border-r flex items-center justify-center z-10 transition-all duration-300', getPriorityStyles(req.prioritat || 5)]">
+              <span class="text-2xl font-black leading-none tracking-tighter">{{ req.prioritat ?? '—' }}</span>
+            </div>
+
+            <div class="p-6 pt-16 pb-4 flex justify-between items-center">
+              <span :class="['px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.15em] border transition-colors', getModalitatStyles(req.modalitat)]">
+                {{ req.modalitat || '—' }}
+              </span>
+              <span :class="['px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border', getEstatStyles(req.estat)]">
+                {{ textEstat(req) }}
+              </span>
+            </div>
+
+            <div class="px-6 pb-6 flex-1">
+              <h3 class="text-xl font-black text-[#022B3A] mb-1 leading-tight group-hover:text-[#1F7A8C] transition-colors">
+                {{ req.titol }}
+              </h3>
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-1.5 h-1.5 bg-[#1F7A8C] rounded-full"></div>
+                <p class="text-[10px] font-black text-[#022B3A]/40 uppercase tracking-widest">{{ req.num_participants ?? 0 }} Participants</p>
+              </div>
+
+              <div class="w-full h-px bg-[#F1F4F9] mb-6"></div>
+
+              <div class="space-y-4 px-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3 text-[#022B3A]/30">
+                    <Building2 :size="16" :strokeWidth="1.5" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.15em]">Centre</span>
+                  </div>
+                  <span class="text-[12px] font-black text-[#022B3A] text-right">{{ req.nom_centre }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3 text-[#022B3A]/30">
+                    <Calendar :size="16" :strokeWidth="1.5" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.15em]">Trimestre</span>
+                  </div>
+                  <span class="text-[12px] font-black text-[#022B3A]">{{ req.trimestre || '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3 text-[#022B3A]/30">
+                    <Star :size="16" :strokeWidth="1.5" :class="req.es_preferencia_referent ? 'text-[#fbb02d] fill-[#fbb02d]' : ''" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.15em]">Referent</span>
+                  </div>
+                  <span :class="['text-[12px] font-black', req.es_preferencia_referent ? 'text-[#7CB518]' : 'text-[#022B3A]']">
+                    {{ req.es_preferencia_referent ? 'Sí' : 'No' }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3 text-[#022B3A]/30">
+                    <Clock :size="16" :strokeWidth="1.5" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.15em]">Sol·licitud</span>
+                  </div>
+                  <span class="text-[12px] font-black text-[#022B3A]">{{ formatDate(req.data_creacio) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="esPendent(req)" class="px-6 py-4 bg-[#E1E5F2]/5 border-t border-[#BFDBF7]/30 flex items-center gap-4">
+              <button @click="handleApprove(req)" :disabled="actionLoading" class="flex-1 flex items-center justify-center py-3 bg-[#F0F7E9]/80 text-[#7CB518] border border-[#7CB518]/20 rounded-xl hover:bg-[#7CB518] hover:text-white transition-all shadow-sm active:scale-95 group disabled:opacity-50">
+                <Check :size="20" :strokeWidth="2.5" class="group-hover:scale-110 transition-transform" />
+              </button>
+              <button @click="handleReject(req)" :disabled="actionLoading" class="flex-1 flex items-center justify-center py-3 bg-red-50/80 text-red-500 border border-red-200 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95 group disabled:opacity-50">
+                <X :size="20" :strokeWidth="2.5" class="group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+            <div v-else class="px-6 py-4 bg-[#E1E5F2]/5 border-t border-[#BFDBF7]/30 flex items-center justify-center">
+              <span class="text-[#94A3B8] text-sm">—</span>
+            </div>
+          </div>
+          
+        </template>
+      </div>
+    </div>
+
+    <!-- 3. PAGINATION -->
+    <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
+      <button 
+        @click="goToPage(currentPage - 1)"
+        :disabled="currentPage === 1"
+        class="p-3 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20 transition-all shadow-sm"
+      >
+        <ChevronLeft :size="16" :strokeWidth="2.5" />
+      </button>
+      <div class="flex items-center gap-2 px-2">
+        <button
+          v-for="page in totalPages"
+          :key="page"
+          @click="goToPage(page)"
+          :class="['w-10 h-10 flex items-center justify-center rounded-xl text-[12px] font-black transition-all border', currentPage === page ? 'bg-[#1F7A8C] text-white border-[#1F7A8C] shadow-lg shadow-[#1F7A8C]/20 scale-105' : 'bg-white border-[#BFDBF7]/60 text-[#022B3A]/40 hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20']"
+        >
+          {{ page }}
+        </button>
+      </div>
+      <button 
+        @click="goToPage(currentPage + 1)"
+        :disabled="currentPage === totalPages"
+        class="p-3 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20 transition-all shadow-sm"
+      >
+        <ChevronRight :size="16" :strokeWidth="2.5" />
+      </button>
+    </div>
+
+    <!-- Footer Info -->
+    <div class="p-8 bg-white/50 rounded-2xl border border-dashed border-[#BFDBF7] flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
+      <div class="flex items-center gap-3 text-[#022B3A]/40 text-[10px] font-bold italic uppercase tracking-widest">
+        <Info :size="16" />
+        Escala de color progressiva: Verds (prioritat inicial) fins a Vermells (prioritat crítica 10).
+      </div>
+      <div class="flex items-center gap-4">
+        <span v-if="totalPages > 1" class="text-[9px] font-bold text-[#022B3A]/30 uppercase tracking-widest">
+          Pàgina {{ currentPage }} de {{ totalPages }}
+        </span>
+        <div class="flex items-center gap-2">
+          <span class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Detalls visibles:</span>
+          <span class="px-3 py-1 bg-[#1F7A8C] text-white rounded-lg font-black text-xs shadow-sm">{{ filteredRequests.length }}</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-// ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
-// ======================================
-import { ref, onMounted } from 'vue';
+import { Search, LayoutGrid, List, Check, X, Calendar, Building2, Clock, Info, Star, ChevronLeft, ChevronRight, Sparkles } from 'lucide-vue-next';
 
 const header = useHeaderStore();
 header.setHeaderAdmin();
 
-// ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
-// ======================================
 const tokenCookie = useCookie('authToken');
 const actionLoading = ref(false);
 const autoAssignLoading = ref(false);
@@ -130,12 +272,15 @@ const detallsPeticions = ref([]);
 const pending = ref(true);
 const error = ref(null);
 
+const searchQuery = ref('');
+const viewMode = ref('grid');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
+
 const mostraLoading = computed(function () {
-  if (pending.value && detallsPeticions.value.length === 0) {
-    return true;
-  } else {
-    return false;
-  }
+  return pending.value && detallsPeticions.value.length === 0;
 });
 
 const errorFetch = computed(function () {
@@ -143,81 +288,109 @@ const errorFetch = computed(function () {
 });
 
 const textError = computed(function () {
-  if (error.value && error.value.message) {
-    return error.value.message;
-  }
-  return '';
+  return (error.value && error.value.message) ? error.value.message : '';
 });
 
 const hiHaDetalls = computed(function () {
-  let d = detallsPeticions.value;
-  if (d && d.length > 0) {
-    return true;
-  } else {
-    return false;
-  }
+  return detallsPeticions.value && detallsPeticions.value.length > 0;
 });
 
 const classeResultatAssignacio = computed(function () {
   if (assignmentResult.value && assignmentResult.value.success) {
-    return 'assignment-result success';
-  } else {
-    return 'assignment-result error';
+    return 'bg-[#dcfce7] text-[#15803d] border-l-4 border-[#22c55e]';
   }
+  return 'bg-[#fee2e2] text-[#b91c1c] border-l-4 border-[#ef4444]';
 });
 
-// ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
-// ======================================
+const filteredRequests = computed(function () {
+  const q = (searchQuery.value || '').toLowerCase().trim();
+  let list = detallsPeticions.value || [];
+  if (q) {
+    list = list.filter(function (d) {
+      const titol = (d.titol || '').toLowerCase();
+      const centre = (d.nom_centre || '').toLowerCase();
+      return titol.indexOf(q) >= 0 || centre.indexOf(q) >= 0;
+    });
+  }
+  return list.slice().sort(function (a, b) { return (a.prioritat || 0) - (b.prioritat || 0); });
+});
 
-// A) --- Obtenir els detalls de peticions des de l'API ---
+const totalPages = computed(function () {
+  return Math.max(1, Math.ceil(filteredRequests.value.length / itemsPerPage));
+});
+
+const currentRequests = computed(function () {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredRequests.value.slice(start, start + itemsPerPage);
+});
+
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+}
+
+function getModalitatStyles(modalitat) {
+  return 'bg-[#E1E5F2]/40 text-[#022B3A]/50 border-[#BFDBF7]/40';
+}
+
+function getPriorityStyles(priority) {
+  const p = Number(priority) || 5;
+  if (p <= 2) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/30';
+  if (p <= 4) return 'bg-[#FFF9EA] text-[#D4C51F] border-[#D4C51F]/30';
+  if (p <= 6) return 'bg-[#FFF4E0] text-[#FBB02D] border-[#FBB02D]/30';
+  if (p <= 8) return 'bg-[#FFECE2] text-[#FB6107] border-[#FB6107]/30';
+  return 'bg-[#FFECEC] text-[#FF4D4D] border-[#FF4D4D]/30';
+}
+
+function getEstatStyles(estat) {
+  const e = (estat || 'PENDENT').toLowerCase();
+  if (e === 'assignada') return 'bg-[#dcfce7]/80 text-[#15803d] border-[#22c55e]/30';
+  if (e === 'rebutjada') return 'bg-[#fee2e2]/80 text-[#b91c1c] border-[#ef4444]/30';
+  return 'bg-[#fef3c7]/80 text-[#92400e] border-[#f59e0b]/30';
+}
+
+function handleApprove(detall) {
+  updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA');
+}
+
+function handleReject(detall) {
+  updateTallerStatus(detall.peticio_id, detall.taller_id, 'REBUTJADA');
+}
+
 async function fetchPeticions() {
-  // 1. Activem pending i netegem error.
   pending.value = true;
   error.value = null;
   try {
-    let tok = tokenCookie.value;
-    let data = await $fetch('/api/admin/peticions', {
-      headers: {
-        Authorization: tok ? 'Bearer ' + tok : ''
-      }
-    });
-    // 2. Aplaniem les peticions: per cada petició, per cada detall, afegim a una llista.
-    let llista = [];
+    const tok = tokenCookie.value;
+    const data = await $fetch('/api/admin/peticions', { headers: { Authorization: tok ? 'Bearer ' + tok : '' } });
+    const llista = [];
     for (let i = 0; i < data.length; i++) {
-      let peticio = data[i];
-      let detalls = peticio.detalls;
-      if (!detalls) detalls = [];
+      const peticio = data[i];
+      let detalls = peticio.detalls || [];
       for (let j = 0; j < detalls.length; j++) {
-        let detall = detalls[j];
-        let ob = {};
-        ob.peticio_id = peticio.id;
-        ob.nom_centre = peticio.nom_centre;
-        ob.data_creacio = peticio.data_creacio;
-        ob.id = detall.id;
-        ob.taller_id = detall.taller_id;
-        ob.modalitat = detall.modalitat;
-        ob.titol = detall.titol;
-        ob.descripcio = detall.descripcio;
-        ob.trimestre = detall.trimestre;
-        ob.num_participants = detall.num_participants;
-        ob.prioritat = detall.prioritat;
-        ob.estat = detall.estat;
-        ob.es_preferencia_referent = detall.es_preferencia_referent;
-        ob.docent_nom = detall.docent_nom;
-        ob.docent_email = detall.docent_email;
-        llista.push(ob);
+        const d = detalls[j];
+        llista.push({
+          peticio_id: peticio.id,
+          nom_centre: peticio.nom_centre,
+          data_creacio: peticio.data_creacio,
+          id: d.id,
+          taller_id: d.taller_id,
+          modalitat: d.modalitat,
+          titol: d.titol,
+          descripcio: d.descripcio,
+          trimestre: d.trimestre,
+          num_participants: d.num_participants,
+          prioritat: d.prioritat,
+          estat: d.estat,
+          es_preferencia_referent: d.es_preferencia_referent,
+          docent_nom: d.docent_nom,
+          docent_email: d.docent_email
+        });
       }
     }
-    // 3. Ordenem per prioritat (bombolla o simple: comparem prioritat).
     for (let a = 0; a < llista.length - 1; a++) {
       for (let b = a + 1; b < llista.length; b++) {
-        let pa = llista[a].prioritat || 0;
-        let pb = llista[b].prioritat || 0;
-        if (pa > pb) {
-          let tmp = llista[a];
-          llista[a] = llista[b];
-          llista[b] = tmp;
+        if ((llista[a].prioritat || 0) > (llista[b].prioritat || 0)) {
+          const tmp = llista[a]; llista[a] = llista[b]; llista[b] = tmp;
         }
       }
     }
@@ -230,39 +403,23 @@ async function fetchPeticions() {
   }
 }
 
-onMounted(function () {
-  fetchPeticions();
-});
+onMounted(function () { fetchPeticions(); });
 
-// A) --- Formatar la data ---
 function formatDate(dateStr) {
   if (!dateStr) return '—';
-  let d = new Date(dateStr);
-  let opts = {};
-  opts.day = '2-digit';
-  opts.month = '2-digit';
-  opts.year = 'numeric';
-  return d.toLocaleDateString('ca-ES', opts);
+  return new Date(dateStr).toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// A) --- Actualitzar l'estat d'un taller dins una petició ---
 async function updateTallerStatus(peticioId, tallerId, estat) {
-  // 1. Missatge de confirmació segons l'estat.
-  let confirmMsg = '';
-  if (estat === 'ASSIGNADA') {
-    confirmMsg = 'Vols marcar aquest taller com a ASSIGNAT?';
-  } else {
-    confirmMsg = 'Vols REBUTJAR aquesta sol·licitud?';
-  }
+  const confirmMsg = estat === 'ASSIGNADA' ? 'Vols marcar aquest taller com a ASSIGNAT?' : 'Vols REBUTJAR aquesta sol·licitud?';
   if (!confirm(confirmMsg)) return;
-
   actionLoading.value = true;
   try {
-    let tok = tokenCookie.value;
+    const tok = tokenCookie.value;
     await $fetch('/api/admin/peticions/' + peticioId + '/tallers/' + tallerId + '/estat', {
       method: 'PUT',
       headers: { Authorization: tok ? 'Bearer ' + tok : '' },
-      body: { estat: estat }
+      body: { estat }
     });
     await fetchPeticions();
   } catch (err) {
@@ -273,273 +430,37 @@ async function updateTallerStatus(peticioId, tallerId, estat) {
   }
 }
 
-// A) --- Executar l'assignació automàtica ---
 async function executeAutoAssignment() {
-  if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) {
-    return;
-  }
-
+  if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) return;
   autoAssignLoading.value = true;
   assignmentResult.value = null;
-
   try {
-    let tok = tokenCookie.value;
-    let result = await $fetch('/api/admin/matching/auto', {
-      method: 'POST',
-      headers: { Authorization: tok ? 'Bearer ' + tok : '' }
-    });
-
-    let ob = {};
-    ob.success = true;
-    ob.message = 'Assignació automàtica completada!';
-    ob.summary = result.summary;
-    assignmentResult.value = ob;
-
+    const tok = tokenCookie.value;
+    const result = await $fetch('/api/admin/matching/auto', { method: 'POST', headers: { Authorization: tok ? 'Bearer ' + tok : '' } });
+    assignmentResult.value = { success: true, message: 'Assignació automàtica completada!', summary: result.summary };
     await fetchPeticions();
-
-    setTimeout(function () {
-      assignmentResult.value = null;
-    }, 8000);
+    setTimeout(() => { assignmentResult.value = null; }, 8000);
   } catch (err) {
     console.error('Error executant assignació automàtica:', err);
-    let ob = {};
-    ob.success = false;
-    let msg = 'No s\'ha pogut executar l\'assignació automàtica.';
-    if (err && err.data && err.data.message) {
-      msg = err.data.message;
-    }
-    ob.message = 'Error: ' + msg;
-    assignmentResult.value = ob;
+    assignmentResult.value = {
+      success: false,
+      message: 'Error: ' + (err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.')
+    };
   } finally {
     autoAssignLoading.value = false;
   }
 }
 
-// A) --- Clau única per al detall ---
 function clauDetall(detall) {
   return String(detall.peticio_id) + '-' + String(detall.taller_id);
 }
 
-// A) --- Retornar la classe de l'estat badge ---
-function classeEstatBadge(detall) {
-  let e = detall.estat;
-  if (!e) e = 'PENDENT';
-  return 'status-badge ' + e.toLowerCase();
-}
-
-// A) --- Retornar el text d'estat ---
 function textEstat(detall) {
-  if (detall.estat) {
-    return detall.estat;
-  } else {
-    return 'PENDENT';
-  }
+  return detall.estat || 'PENDENT';
 }
 
-// A) --- Comprovar si el detall és PENDENT ---
 function esPendent(detall) {
-  let e = detall.estat;
-  if (!e) e = 'PENDENT';
-  if (e === 'PENDENT') {
-    return true;
-  } else {
-    return false;
-  }
+  const e = detall.estat || 'PENDENT';
+  return e === 'PENDENT';
 }
 </script>
-
-<style scoped>
-.page { padding: 30px; max-width: 1200px; margin: 0 auto; }
-
-.header-section {
-  margin-bottom: 30px;
-}
-
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
-
-.btn-auto-assign {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
-}
-
-.btn-auto-assign:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
-}
-
-.btn-auto-assign:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.assignment-result {
-  padding: 16px 20px;
-  border-radius: 10px;
-  margin-top: 15px;
-  font-size: 0.95rem;
-}
-
-.assignment-result.success {
-  background: #dcfce7;
-  color: #15803d;
-  border-left: 4px solid #22c55e;
-}
-
-.assignment-result.error {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-left: 4px solid #ef4444;
-}
-
-.summary-details {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-
-.table-container {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
-
-table { width: 100%; border-collapse: collapse; }
-th {
-  background: #f8fafc;
-  padding: 16px;
-  text-align: left;
-  color: #64748b;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.main-row { cursor: pointer; transition: background 0.2s; }
-.main-row:hover { background: #f1f5f9; }
-.main-row.is-expanded { background: #f8fafc; }
-
-td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
-
-.actions-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.no-actions { color: #94a3b8; font-size: 0.85rem; }
-
-.centre-name { font-weight: 700; color: #334155; font-size: 1rem; }
-.meta { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
-.trimestre-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
-.count-pill { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
-
-.status-badge {
-  padding: 5px 12px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.status-badge.pendent { background: #fef3c7; color: #92400e; }
-.status-badge.assignada { background: #dcfce7; color: #15803d; }
-.status-badge.rebutjada { background: #fee2e2; color: #b91c1c; }
-
-.taller-info { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.modalitat-badge {
-  font-size: 0.65rem;
-  font-weight: 800;
-  background: #f1f5f9;
-  color: #64748b;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.descripcio-text {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-top: 8px;
-  padding: 8px;
-  background: #f8fafc;
-  border-radius: 4px;
-}
-.priority-badge {
-  display: inline-block;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #1e293b;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-}
-.prio-level-1 { background: #dbeafe; color: #1e40af; }
-
-.preferencia-referent-section {
-  margin-top: 12px;
-  padding: 12px;
-  background: #fef3c7;
-  border-left: 3px solid #f59e0b;
-  border-radius: 6px;
-}
-.ref-tag {
-  color: #059669;
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 8px;
-  display: block;
-}
-.docent-info {
-  font-size: 0.85rem;
-  color: #334155;
-  margin-top: 6px;
-}
-.docent-info.missing {
-  color: #94a3b8;
-  font-style: italic;
-}
-.docent-info small {
-  color: #64748b;
-  font-size: 0.8rem;
-}
-
-.taller-btn-group { display: flex; gap: 8px; }
-
-.btn-action {
-  padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; transition: transform 0.1s;
-  font-size: 0.85rem;
-}
-.btn-action.approve { background: #10b981; }
-.btn-action.reject { background: #ef4444; }
-.btn-action:hover { transform: scale(1.1); }
-.btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.loading { text-align: center; padding: 100px; color: #64748b; }
-.spinner {
-  width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
-  border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-</style>

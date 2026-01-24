@@ -12,9 +12,9 @@ export default defineNuxtRouteMiddleware((to, from) => {
         return;
     }
 
-    // 2. Si no hi ha token i la ruta no és pública, cap al login
+    // 2. Si no hi ha token i la ruta no és pública, cap a l’index (benvinguda)
     if (!token) {
-        return navigateTo('/login');
+        return navigateTo('/');
     }
 
     // 3. Descodifiquem el token per saber el rol

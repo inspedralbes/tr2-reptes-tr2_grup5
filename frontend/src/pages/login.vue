@@ -1,49 +1,123 @@
 <template>
-  <div class="login-container">
-    <h1>Iniciar Sessió</h1>
-    <form @submit.prevent="handleLogin">
-      <div class="form-group">
-        <label for="email">Correu electrònic:</label>
-        <input
-          v-model="form.email"
-          type="email"
-          id="email"
-          placeholder="exemple@correu.com"
-          required
-        />
+  <main class="min-h-screen bg-[#E1E5F2] flex flex-col items-center justify-center p-6 font-sans relative">
+    
+    <!-- Botó superior esquerra: INICI (executa goBack) -->
+    <button 
+      @click="goBack"
+      type="button"
+      class="absolute top-8 left-8 flex items-center gap-2 text-[#022B3A]/40 hover:text-[#1F7A8C] transition-all group z-20"
+    >
+      <div class="p-2 rounded-lg bg-white/50 group-hover:bg-white border border-transparent group-hover:border-[#BFDBF7]/60 transition-all shadow-sm">
+        <Home :size="18" />
       </div>
+      <span class="text-[10px] font-black uppercase tracking-widest">Inici</span>
+    </button>
 
-      <div class="form-group">
-        <label for="password">Contrasenya:</label>
-        <input
-          v-model="form.password"
-          type="password"
-          id="password"
-          placeholder="********"
-          required
-        />
-      </div>
+    <!-- Contenidor principal centrat -->
+    <div class="w-full max-w-[340px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      <!-- Capçalera: títol i subtítol -->
+      <header class="mb-12 flex flex-col items-center text-center">
+        <h1 class="text-5xl font-light text-[#022B3A] tracking-tighter">
+          Entra a <span class="font-extrabold text-[#1F7A8C]">ENGINY</span>
+        </h1>
+        <p class="text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.5em] mt-4">
+          Plataforma de Gestió Educativa
+        </p>
+      </header>
 
-      <div class="actions">
-        <button type="submit" :disabled="loading">
+      <!-- Formulari -->
+      <form @submit.prevent="handleLogin" class="space-y-6">
+        
+        <!-- Camp: Usuari (vinculat a form.email) -->
+        <div class="space-y-2">
+          <label for="email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">
+            Usuari
+          </label>
+          <div class="relative group">
+            <User 
+              :size="16" 
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" 
+            />
+            <input 
+              id="email"
+              v-model="form.email"
+              type="email"
+              class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
+              placeholder="exemple@correu.com"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Camp: Contrasenya (vinculat a form.password) -->
+        <div class="space-y-2">
+          <label for="password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">
+            Contrasenya
+          </label>
+          <div class="relative group">
+            <Lock 
+              :size="16" 
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" 
+            />
+            <input 
+              id="password"
+              v-model="form.password"
+              type="password"
+              class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Missatge d'error (lògica del Codi A) -->
+        <p v-if="errorMessage" class="text-sm text-red-600 mt-1">{{ errorMessage }}</p>
+
+        <!-- Botó submit: textBoto ("Carregant..." o "Entrar al Panell") segons loading -->
+        <button 
+          type="submit"
+          :disabled="loading"
+          class="w-full bg-[#1F7A8C] text-white font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl hover:bg-[#022B3A] hover:shadow-2xl hover:shadow-[#022B3A]/20 transition-all active:scale-[0.98] mt-4 shadow-lg shadow-[#1F7A8C]/10 h-[56px] flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+        >
           {{ textBoto }}
         </button>
+      </form>
 
-        <NuxtLink to="/register" class="btn-secondary">Registra't</NuxtLink>
-
-        <button type="button" class="btn-secondary" @click="goBack">
-          Tornar enrere
-        </button>
+      <!-- Divisor -->
+      <div class="relative flex items-center justify-center my-10" role="separator">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-[#022B3A]/10"></div>
+        </div>
+        <span class="relative px-4 bg-[#E1E5F2] text-[#022B3A]/30 text-[10px] font-black uppercase tracking-widest">
+          o
+        </span>
       </div>
 
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-    </form>
-  </div>
+      <!-- Botó secundari: Nou Registre → /register -->
+      <div class="space-y-3">
+        <NuxtLink 
+          to="/register"
+          class="w-full flex items-center justify-center gap-3 py-4 bg-white/50 border border-[#BFDBF7]/60 text-[#022B3A] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all active:scale-[0.98] group block"
+        >
+          <UserPlus 
+            :size="14" 
+            class="text-[#1F7A8C] group-hover:scale-110 transition-transform" 
+          />
+          Nou Registre
+        </NuxtLink>
+      </div>
+
+    </div>
+
+  </main>
 </template>
 
 <script setup>
+import { Home, User, Lock, UserPlus } from 'lucide-vue-next';
+
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Metadades i layout
 // ======================================
 definePageMeta({
   layout: false
@@ -52,7 +126,6 @@ definePageMeta({
 // ======================================
 // Estat Reactiu i Refs (Variables i Formularis)
 // ======================================
-const router = useRouter();
 const form = ref({
   email: '',
   password: ''
@@ -62,10 +135,9 @@ const errorMessage = ref('');
 
 const textBoto = computed(function () {
   if (loading.value) {
-    return 'Connectant...';
-  } else {
-    return 'Entrar';
+    return 'Carregant...';
   }
+  return 'Entrar al Panell';
 });
 
 // ======================================
@@ -133,94 +205,12 @@ const handleLogin = async function () {
   }
 };
 
-// A) --- Tornar enrere a la pàgina anterior ---
-const goBack = function () {
-  // 1. Cridem el mètode back del router.
-  router.back();
-};
+// A) --- Anar a la pàgina d’inici (botó Inici) ---
+function goBack() {
+  navigateTo('/');
+}
 </script>
 
 <style scoped>
-.login-container {
-  max-width: 460px;
-  margin: 3rem auto;
-  padding: 22px 20px 20px 26px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid #e9f2ff;
-  box-shadow: 0 6px 20px rgba(15, 30, 70, 0.06);
-  position: relative;
-}
-
-.login-container::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
-  background: linear-gradient(180deg, #2b63b6, #4a8fe6);
-}
-
-.login-container h1 {
-  margin: 0 0 16px 12px;
-  color: #1e4f9a;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-  display: flex;
-  flex-direction: column;
-}
-
-label {
-  margin-bottom: 6px;
-  color: #55617a;
-  font-weight: 600;
-}
-
-input[type="email"],
-input[type="password"] {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #e6eef9;
-  background: #fbfdff;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 1rem;
-  align-items: center;
-}
-
-button[type="submit"] {
-  background: #2b63b6;
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: #55617a;
-  border: 1px solid #e6eef9;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background: #f6f9ff;
-}
-
-.error {
-  color: #d33;
-  margin-top: 1rem;
-  font-size: 0.95rem;
-}
+/* Fons #E1E5F2 i colors de marca a les classes Tailwind. */
 </style>

@@ -3,7 +3,8 @@ export default defineNuxtConfig({
   srcDir: 'src/',
 
   modules: [
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss'
   ],
 
   routeRules: {
