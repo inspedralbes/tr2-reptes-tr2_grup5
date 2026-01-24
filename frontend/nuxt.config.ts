@@ -18,8 +18,9 @@ export default defineNuxtConfig({
         usePolling: true
       },
       hmr: {
+        host: 'localhost',
         port: 24678,
-        clientPort: 24678,
+        clientPort: 24678
       }
     }
   }

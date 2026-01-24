@@ -44,14 +44,23 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useHeaderStore } from '@/stores/header' 
+import { computed, onMounted, ref } from 'vue'
+import { useHeaderStore } from '@/stores/header'
 
-const headerStore = useHeaderStore()
-headerStore.setHeaderAdmin()
+const storeRef = ref(null)
+const navItems = computed(() => storeRef.value?.buttons?.filter(b => b.label !== 'Sortir') ?? [])
+const logoutItem = computed(() => storeRef.value?.buttons?.find(b => b.label === 'Sortir') ?? null)
 
-const navItems = computed(() => headerStore.buttons.filter(b => b.label !== 'Sortir'))
-const logoutItem = computed(() => headerStore.buttons.find(b => b.label === 'Sortir'))
+onMounted(() => {
+  const s = useHeaderStore()
+  storeRef.value = s
+  const path = useRoute().path
+  if (path.startsWith('/admin')) s.setHeaderAdmin()
+  else if (path.startsWith('/centres')) s.setHeaderCentres()
+  else if (path.startsWith('/professors')) s.setHeaderProfessors()
+  else if (path.startsWith('/alumnes')) s.setHeaderAlumnes()
+  else s.setHeaderAdmin()
+})
 
 const getIcon = (label) => {
   const emojis = { 

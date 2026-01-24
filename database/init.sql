@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS professors (
     cognoms VARCHAR(100),
     FOREIGN KEY (user_id) REFERENCES usuaris(id) ON DELETE CASCADE,
     FOREIGN KEY (centre_id) REFERENCES centres(id) ON DELETE CASCADE
-) 
+) ENGINE=InnoDB;
 
 -- 5. Taula: tallers
 CREATE TABLE IF NOT EXISTS tallers (
