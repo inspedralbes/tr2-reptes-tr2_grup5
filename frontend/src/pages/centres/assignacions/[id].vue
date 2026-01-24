@@ -84,27 +84,45 @@
 </template>
 
 <script setup>
-const route = useRoute()
-const tokenCookie = useCookie('authToken')
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const route = useRoute();
+const tokenCookie = useCookie('authToken');
 
-// Consultamos el detalle usando el ID que viene en la URL
-const { data: assignacio, pending, error } = await useFetch(`/api/centre/assignacions/${route.params.id}`, {
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const resFetch = await useFetch('/api/centre/assignacions/' + route.params.id, {
   server: false,
   headers: {
-    Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
+    Authorization: tokenCookie.value ? 'Bearer ' + tokenCookie.value : ''
   }
-})
+});
 
-// Función auxiliar para formatear fechas
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'Data pendent'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ca-ES', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
+const assignacio = computed(function () {
+  let d = resFetch.data;
+  if (d && d.value) return d.value;
+  return null;
+});
+
+const pending = resFetch.pending;
+const error = resFetch.error;
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Formatar la data per a la sessió ---
+function formatDate(dateStr) {
+  if (!dateStr) return 'Data pendent';
+  let date = new Date(dateStr);
+  let opts = {};
+  opts.weekday = 'long';
+  opts.year = 'numeric';
+  opts.month = 'long';
+  opts.day = 'numeric';
+  return date.toLocaleDateString('ca-ES', opts);
 }
 </script>
 

@@ -85,34 +85,69 @@
 </template>
 
 <script setup>
-const header = useHeaderStore()
-header.setHeaderProfessors()
-const router = useRouter()
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const header = useHeaderStore();
+header.setHeaderProfessors();
+const router = useRouter();
 const token = useCookie('authToken');
 
-const { data: tallers, pending, error } = await useFetch('/api/professors/tallers', {
-  headers: { Authorization: token.value ? `Bearer ${token.value}` : '' }
-})
-
-const assignedTallers = computed(() => {
-  if (!tallers.value) return [];
-  return tallers.value.filter(t => t.permissions && t.permissions.canManageList);
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const resFetch = await useFetch('/api/professors/tallers', {
+  headers: { Authorization: token.value ? 'Bearer ' + token.value : '' }
 });
 
-const referentTallers = computed(() => {
-  if (!tallers.value) return [];
-  return tallers.value.filter(t => t.permissions && t.permissions.canTakeAttendance);
+const tallers = computed(function () {
+  let d = resFetch.data;
+  if (d && d.value) return d.value;
+  return [];
 });
 
-const goToAlumnes = (taller) => {
+const pending = resFetch.pending;
+const error = resFetch.error;
+
+const assignedTallers = computed(function () {
+  let arr = tallers.value;
+  if (!arr) return [];
+  let resultat = [];
+  for (let i = 0; i < arr.length; i++) {
+    let t = arr[i];
+    if (t.permissions && t.permissions.canManageList) {
+      resultat.push(t);
+    }
+  }
+  return resultat;
+});
+
+const referentTallers = computed(function () {
+  let arr = tallers.value;
+  if (!arr) return [];
+  let resultat = [];
+  for (let i = 0; i < arr.length; i++) {
+    let t = arr[i];
+    if (t.permissions && t.permissions.canTakeAttendance) {
+      resultat.push(t);
+    }
+  }
+  return resultat;
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+function goToAlumnes(taller) {
   if (taller && taller.detall_id) {
-    router.push(`/professors/tallers/${taller.detall_id}/alumnes`);
+    router.push('/professors/tallers/' + taller.detall_id + '/alumnes');
   }
 }
 
-const goToAssistencia = (taller) => {
+function goToAssistencia(taller) {
   if (taller && taller.detall_id) {
-    router.push(`/professors/assistencia/${taller.detall_id}`);
+    router.push('/professors/assistencia/' + taller.detall_id);
   }
 }
 </script>

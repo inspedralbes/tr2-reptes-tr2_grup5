@@ -78,16 +78,37 @@
 </template>
 
 <script setup>
-const header = useHeaderStore()
-header.setHeaderCentres()
-const tokenCookie = useCookie('authToken')
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const header = useHeaderStore();
+header.setHeaderCentres();
 
-const { data: assignacions, pending, error, refresh } = await useFetch('/api/centre/assignacions', {
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const tokenCookie = useCookie('authToken');
+
+const resFetch = await useFetch('/api/centre/assignacions', {
   server: false,
   headers: {
-    Authorization: tokenCookie.value ? `Bearer ${tokenCookie.value}` : ''
+    Authorization: tokenCookie.value ? 'Bearer ' + tokenCookie.value : ''
   }
-})
+});
+
+const assignacions = computed(function () {
+  let d = resFetch.data;
+  if (d && d.value) return d.value;
+  return [];
+});
+
+const pending = resFetch.pending;
+const error = resFetch.error;
+const refresh = resFetch.refresh;
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
 </script>
 
 <style scoped>

@@ -12,19 +12,19 @@
       </div>
 
       <nav class="sidebar-nav">
-        <NuxtLink 
-          v-for="item in navItems" 
-          :key="item.route" 
-          :to="item.route" 
+        <NuxtLink
+          v-for="item in navItems"
+          :key="item.route"
+          :to="item.route"
           class="nav-link"
         >
-          <span class="nav-icon">{{ getIcon(item.label) }}</span>
+          <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
         </NuxtLink>
 
         <div class="nav-divider"></div>
 
-        <NuxtLink :to="logoutItem?.route || '/login'" class="nav-link logout-link">
+        <NuxtLink :to="rutaLogout" class="nav-link logout-link">
           <span class="nav-icon">🚪</span>
           <span class="nav-label">Sortir</span>
         </NuxtLink>
@@ -44,38 +44,100 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useHeaderStore } from '@/stores/header'
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+import { computed, onMounted, ref } from 'vue';
+import { useHeaderStore } from '@/stores/header';
 
-const storeRef = ref(null)
-const navItems = computed(() => storeRef.value?.buttons?.filter(b => b.label !== 'Sortir') ?? [])
-const logoutItem = computed(() => storeRef.value?.buttons?.find(b => b.label === 'Sortir') ?? null)
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const storeRef = ref(null);
 
-onMounted(() => {
-  const s = useHeaderStore()
-  storeRef.value = s
-  const path = useRoute().path
-  if (path.startsWith('/admin')) s.setHeaderAdmin()
-  else if (path.startsWith('/centres')) s.setHeaderCentres()
-  else if (path.startsWith('/professors')) s.setHeaderProfessors()
-  else if (path.startsWith('/alumnes')) s.setHeaderAlumnes()
-  else s.setHeaderAdmin()
-})
-
-const getIcon = (label) => {
-  const emojis = { 
-    'Catàleg': '📂', 
-    'Assignacions': '📅', 
-    'Usuaris/Centres': '👥', 
-    'Estadístiques': '📈', 
-    'Auditoria': '🛡️' 
+const navItems = computed(function () {
+  // 1. Inicialitzem el resultat buit.
+  let resultat = [];
+  // 2. Obtenim els botons del store si existeixen.
+  if (storeRef.value && storeRef.value.buttons) {
+    let btons = storeRef.value.buttons;
+    for (let i = 0; i < btons.length; i++) {
+      if (btons[i].label !== 'Sortir') {
+        let it = btons[i];
+        let ic = '•';
+        if (it.label === 'Catàleg') {
+          ic = '📂';
+        } else if (it.label === 'Assignacions') {
+          ic = '📅';
+        } else if (it.label === 'Usuaris/Centres') {
+          ic = '👥';
+        } else if (it.label === 'Estadístiques') {
+          ic = '📈';
+        } else if (it.label === 'Auditoria') {
+          ic = '🛡️';
+        }
+        let ob = {};
+        ob.route = it.route;
+        ob.label = it.label;
+        ob.icon = ic;
+        resultat.push(ob);
+      }
+    }
   }
-  return emojis[label] || '•'
-}
+  return resultat;
+});
+
+const logoutItem = computed(function () {
+  // 1. Inicialitzem a null.
+  let trobat = null;
+  // 2. Recorrem els botons amb un bucle for.
+  if (storeRef.value && storeRef.value.buttons) {
+    let btons = storeRef.value.buttons;
+    for (let i = 0; i < btons.length; i++) {
+      if (btons[i].label === 'Sortir') {
+        trobat = btons[i];
+        break;
+      }
+    }
+  }
+  return trobat;
+});
+
+const rutaLogout = computed(function () {
+  let item = logoutItem.value;
+  if (item && item.route) {
+    return item.route;
+  } else {
+    return '/login';
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+onMounted(function () {
+  // 1. Obtenim el store del header i l'assignem a storeRef.
+  const s = useHeaderStore();
+  storeRef.value = s;
+  // 2. Obtenim la ruta actual i configurem el header segons el camí.
+  const path = useRoute().path;
+  if (path.startsWith('/admin')) {
+    s.setHeaderAdmin();
+  } else if (path.startsWith('/centres')) {
+    s.setHeaderCentres();
+  } else if (path.startsWith('/professors')) {
+    s.setHeaderProfessors();
+  } else if (path.startsWith('/alumnes')) {
+    s.setHeaderAlumnes();
+  } else {
+    s.setHeaderAdmin();
+  }
+});
 </script>
 
 <style scoped>
-body{
+body {
   margin: 0;
 }
 .admin-layout {
@@ -149,7 +211,6 @@ body{
   color: #3b82f6 !important;
 }
 
-/* El canvi clau: Estil per al botó sortir */
 .nav-divider {
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
@@ -157,7 +218,7 @@ body{
 }
 
 .logout-link {
-  color: #f87171 !important; /* Color vermellós suau */
+  color: #f87171 !important;
 }
 
 .logout-link:hover {

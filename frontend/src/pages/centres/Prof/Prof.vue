@@ -8,7 +8,7 @@
       </div>
 
       <div class="form-group">
-        <label for="centre">Nom del centre parrica:</label>
+        <label for="centre">Nom del centre corresponent:</label>
         <input type="text" id="centre" v-model="form.centre" required />
       </div>
 
@@ -28,20 +28,29 @@
 </template>
 
 <script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const header = useHeaderStore();
+header.setHeaderCentres();
 
-const header = useHeaderStore()
-header.setHeaderCentres()
-
-const form = reactive({
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const form = ref({
   nom: '',
   centre: '',
   email: '',
   password: ''
-})
+});
 
-const submitForm = () => {
-  console.log('Form data:', form)
-  // Aquí iría la lógica para enviar los datos al backend
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Enviar el formulari (pendent de connectar al backend) ---
+function submitForm() {
+  console.log('Dades del formulari:', form.value);
 }
 </script>
 

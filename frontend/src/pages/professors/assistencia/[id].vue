@@ -82,12 +82,18 @@ const loadData = async () => {
      // Idealment, tindríem un endpoint /api/professors/tallers/:id
      // Intentem treure el titol de la llista general si està carregada o fem fetch.
      // Farem un fetch a tallers i buscarem aquest ID. No és súper eficient però reutilitzem endpoints existents.
-     const tallers = await $fetch('/api/professors/tallers', {
-        headers: { Authorization: `Bearer ${token.value}` }
+     let tallers = await $fetch('/api/professors/tallers', {
+        headers: { Authorization: 'Bearer ' + token.value }
      });
-     const found = tallers.find(t => t.detall_id == detallId);
-     if (found) {
-         tallerInfo.value = found;
+     let trobat = null;
+     for (let i = 0; i < tallers.length; i++) {
+        if (tallers[i].detall_id == detallId) {
+           trobat = tallers[i];
+           break;
+        }
+     }
+     if (trobat) {
+        tallerInfo.value = trobat;
      }
 
   } catch (err) {
@@ -101,7 +107,11 @@ const loadData = async () => {
 const toggleAssistencia = async (student, isChecked) => {
   try {
     // Optimistic update
-    student.ha_assistit = isChecked ? 1 : 0;
+    if (isChecked) {
+      student.ha_assistit = 1;
+    } else {
+      student.ha_assistit = 0;
+    }
     
     await $fetch(`/api/professors/assistencia/${student.id}`, {
       method: 'PUT',
@@ -111,7 +121,11 @@ const toggleAssistencia = async (student, isChecked) => {
     
   } catch (err) {
     console.error("Error actualitzant assistència", err);
-    student.ha_assistit = !isChecked ? 1 : 0; // Revert
+    if (isChecked) {
+      student.ha_assistit = 0;
+    } else {
+      student.ha_assistit = 1;
+    }
     alert("Error actualitzant l'estat.");
   }
 }

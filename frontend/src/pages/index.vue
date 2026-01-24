@@ -1,4 +1,11 @@
+<template>
+  <div></div>
+</template>
+
 <script setup>
-// Redirect root to login so the login page is the first view
-navigateTo('/login')
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+// 1. Redirigim la ruta arrel a /login.
+navigateTo('/login');
 </script>

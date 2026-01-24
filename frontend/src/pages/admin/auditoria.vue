@@ -4,17 +4,17 @@
       <h2>Auditoria del Sistema</h2>
     </div>
 
-    <div v-if="pending" class="loading-state">
+    <div v-if="pendent" class="loading-state">
       <div class="spinner"></div>
       <p>Carregant logs d'auditoria...</p>
     </div>
 
-    <div v-else-if="error" class="error-state">
-      <p>Error carregant els logs: {{ error.message }}</p>
+    <div v-else-if="errorFetch" class="error-state">
+      <p>Error carregant els logs: {{ textError }}</p>
     </div>
 
     <div v-else class="content">
-      <div v-if="logs && logs.length > 0" class="table-wrapper">
+      <div v-if="hiHaLogs" class="table-wrapper">
         <table class="logs-table">
           <thead>
             <tr>
@@ -27,11 +27,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="log in logs" :key="log.id">
+            <tr v-for="log in llistaLogs" :key="log.id">
               <td>{{ formatDate(log.data_registre) }}</td>
               <td><span class="badge-accio">{{ log.accio }}</span></td>
-              <td>{{ log.taula_afectada || '—' }}</td>
-              <td>{{ log.usuari_email || '—' }}</td>
+              <td>{{ taulaLog(log) }}</td>
+              <td>{{ usuariLog(log) }}</td>
               <td class="cell-text" :title="log.valor_anterior">{{ truncate(log.valor_anterior, 80) }}</td>
               <td class="cell-text" :title="log.valor_nou">{{ truncate(log.valor_nou, 80) }}</td>
             </tr>
@@ -44,28 +44,96 @@
 </template>
 
 <script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
 const token = useCookie('authToken');
 
-const { data: logs, pending, error } = await useFetch('/api/admin/logs', {
-  headers: { Authorization: `Bearer ${token.value}` },
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const respostaFetch = await useFetch('/api/admin/logs', {
+  headers: { Authorization: 'Bearer ' + token.value },
   initialCache: false
 });
 
-function formatDate (valor) {
+const llistaLogs = computed(function () {
+  let d = respostaFetch.data;
+  if (d && d.value) {
+    return d.value;
+  }
+  return [];
+});
+
+const pendent = computed(function () {
+  if (respostaFetch.pending) {
+    return respostaFetch.pending.value;
+  }
+  return false;
+});
+
+const errorFetch = computed(function () {
+  if (respostaFetch.error && respostaFetch.error.value) {
+    return true;
+  }
+  return false;
+});
+
+const textError = computed(function () {
+  if (respostaFetch.error && respostaFetch.error.value && respostaFetch.error.value.message) {
+    return respostaFetch.error.value.message;
+  }
+  return '';
+});
+
+const hiHaLogs = computed(function () {
+  let l = llistaLogs.value;
+  if (l && l.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Formatar la data del log ---
+function formatDate(valor) {
   if (!valor) return '—';
-  const d = new Date(valor);
-  return d.toLocaleString('ca-CA', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  let d = new Date(valor);
+  let opts = {};
+  opts.day = '2-digit';
+  opts.month = '2-digit';
+  opts.year = 'numeric';
+  opts.hour = '2-digit';
+  opts.minute = '2-digit';
+  return d.toLocaleString('ca-CA', opts);
 }
 
-function truncate (text, max) {
+// A) --- Retornar text de la taula o guió ---
+function taulaLog(log) {
+  if (log.taula_afectada) {
+    return log.taula_afectada;
+  } else {
+    return '—';
+  }
+}
+
+// A) --- Retornar email usuari o guió ---
+function usuariLog(log) {
+  if (log.usuari_email) {
+    return log.usuari_email;
+  } else {
+    return '—';
+  }
+}
+
+// A) --- Retallar el text a una longitud màxima ---
+function truncate(text, max) {
   if (!text) return '—';
-  const str = String(text);
+  let str = String(text);
   if (str.length <= max) return str;
   return str.slice(0, max) + '...';
 }

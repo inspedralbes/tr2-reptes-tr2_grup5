@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <div class="header-actions">
-      <h2>Gestió de Llista - {{ taller?.titol }}</h2>
+      <h2>Gestió de Llista - {{ titolTaller }}</h2>
       <div class="actions">
         <button class="btn-primary" @click="openModal" :disabled="!taller">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
@@ -53,7 +53,7 @@
     <!-- MODAL -->
     <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
-        <h3>Afegir Alumnes ({{ taller?.num_participants }} places totals)</h3>
+        <h3>Afegir Alumnes ({{ placesTaller }} places totals)</h3>
         <form @submit.prevent="submitAssistencia">
           <div class="students-form-grid">
             <div v-for="(student, index) in studentsForm" :key="index" class="student-row">
@@ -74,7 +74,7 @@
           <div class="modal-actions">
             <button type="button" class="btn-secondary" @click="closeModal">Cancel·lar</button>
             <button type="submit" class="btn-primary" :disabled="submitting">
-              {{ submitting ? 'Enviant...' : 'Enviar Llista' }}
+              {{ textBotoEnviar }}
             </button>
           </div>
         </form>
@@ -85,93 +85,157 @@
 </template>
 
 <script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
 const route = useRoute();
 const router = useRouter();
-const detalleId = route.params.id; 
+const detalleId = route.params.id;
 
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
 const token = useCookie('authToken');
 const showModal = ref(false);
 const submitting = ref(false);
 const studentsForm = ref([]);
 
-// 1. Fetch taller info
-const { data: tallers } = await useFetch('/api/professors/tallers', {
-  headers: { Authorization: `Bearer ${token.value}` }
+const resTallers = await useFetch('/api/professors/tallers', {
+  headers: { Authorization: 'Bearer ' + token.value }
 });
 
-const taller = computed(() => {
-  if (!tallers.value) return null;
-  return tallers.value.find(t => t.detall_id == detalleId);
+const resAssistencia = await useFetch('/api/professors/tallers/' + detalleId + '/alumnes', {
+  headers: { Authorization: 'Bearer ' + token.value }
 });
 
-// 2. Fetch llista existent (endpoint d'alumnes, no assistència)
-// Utilitzem getAlumnes que està permès per Docents
-const { data: assistencia, refresh: refreshAssistencia, pending, error } = await useFetch(`/api/professors/tallers/${detalleId}/alumnes`, {
-  headers: { Authorization: `Bearer ${token.value}` }
+const assistencia = computed(function () {
+  let d = resAssistencia.data;
+  if (d && d.value) return d.value;
+  return [];
 });
 
-const openModal = () => {
+const taller = computed(function () {
+  let d = resTallers.data;
+  if (!d || !d.value) return null;
+  let arr = d.value;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].detall_id == detalleId) {
+      return arr[i];
+    }
+  }
+  return null;
+});
+
+const pending = resAssistencia.pending;
+const error = resAssistencia.error;
+const refreshAssistencia = resAssistencia.refresh;
+
+const titolTaller = computed(function () {
+  if (taller.value && taller.value.titol) {
+    return taller.value.titol;
+  }
+  return '';
+});
+
+const placesTaller = computed(function () {
+  if (taller.value && taller.value.num_participants) {
+    return taller.value.num_participants;
+  }
+  return 0;
+});
+
+const textBotoEnviar = computed(function () {
+  if (submitting.value) {
+    return 'Enviant...';
+  } else {
+    return 'Enviar Llista';
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+function openModal() {
   if (!taller.value) return;
-  
-  const total = taller.value.num_participants || 0;
-  // Calculem quants en falten
-  const current = assistencia.value ? assistencia.value.length : 0;
-  const remaining = total - current;
+
+  let total = 0;
+  if (taller.value.num_participants) {
+    total = taller.value.num_participants;
+  }
+  let current = 0;
+  if (assistencia.value && assistencia.value.length) {
+    current = assistencia.value.length;
+  }
+  let remaining = total - current;
 
   if (remaining <= 0) {
-      alert("La llista està plena.");
-      return;
+    alert('La llista està plena.');
+    return;
   }
-  
-  studentsForm.value = Array.from({ length: remaining }, () => ({
-    nom: '',
-    cognoms: '',
-    email: '',
-    ha_assistit: true // Default intern
-  }));
-  
+
+  let nova = [];
+  for (let i = 0; i < remaining; i++) {
+    let ob = {};
+    ob.nom = '';
+    ob.cognoms = '';
+    ob.email = '';
+    ob.ha_assistit = true;
+    nova.push(ob);
+  }
+  studentsForm.value = nova;
   showModal.value = true;
-};
-
-const closeModal = () => {
-  showModal.value = false;
-};
-
-const deleteStudent = async (studentId) => {
-    if (!confirm("Segur que vols eliminar aquest alumne de la llista?")) return;
-    try {
-        await $fetch(`/api/professors/tallers/${detalleId}/alumnes/${studentId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token.value}` }
-        });
-        refreshAssistencia();
-    } catch (e) {
-        alert("Error eliminant alumne: " + e.message);
-    }
 }
 
-const submitAssistencia = async () => {
+function closeModal() {
+  showModal.value = false;
+}
+
+async function deleteStudent(studentId) {
+  if (!confirm('Segur que vols eliminar aquest alumne de la llista?')) return;
+  try {
+    await $fetch('/api/professors/tallers/' + detalleId + '/alumnes/' + studentId, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token.value }
+    });
+    refreshAssistencia();
+  } catch (e) {
+    let msg = 'Error eliminant alumne: ';
+    if (e && e.message) {
+      msg = msg + e.message;
+    }
+    alert(msg);
+  }
+}
+
+async function submitAssistencia() {
   submitting.value = true;
   try {
-    // Aquest endpoint és el correcte per Docents
-    await $fetch(`/api/professors/tallers/${detalleId}/alumnes`, {
+    await $fetch('/api/professors/tallers/' + detalleId + '/alumnes', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token.value}` },
+      headers: { Authorization: 'Bearer ' + token.value },
       body: {
         alumnes: studentsForm.value
       }
     });
-    
     await refreshAssistencia();
     closeModal();
     alert('Llista enviada correctament!');
   } catch (err) {
-    console.error(err);
-    alert('Error enviant la llista: ' + (err.data?.message || err.message));
+    console.error('Error enviant llista:', err);
+    let msg = 'Error enviant la llista: ';
+    if (err && err.data && err.data.message) {
+      msg = msg + err.data.message;
+    } else if (err && err.message) {
+      msg = msg + err.message;
+    } else {
+      msg = msg + 'Error desconegut';
+    }
+    alert(msg);
   } finally {
     submitting.value = false;
   }
-};
+}
 </script>
 
 <style scoped>

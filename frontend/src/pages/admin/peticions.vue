@@ -3,9 +3,9 @@
     <div class="header-section">
       <div class="header-top">
         <h2>Gestió de Peticions de Tallers</h2>
-        <button 
-          class="btn-auto-assign" 
-          @click="executeAutoAssignment" 
+        <button
+          class="btn-auto-assign"
+          @click="executeAutoAssignment"
           :disabled="autoAssignLoading"
           title="Executar assignació automàtica de tallers"
         >
@@ -13,28 +13,28 @@
           <span v-else>⚡ Executar Assignació Automàtica</span>
         </button>
       </div>
-      <div v-if="assignmentResult" class="assignment-result" :class="assignmentResult.success ? 'success' : 'error'">
+      <div v-if="assignmentResult" :class="classeResultatAssignacio">
         <strong>{{ assignmentResult.message }}</strong>
         <div v-if="assignmentResult.summary" class="summary-details">
-          Assignades: {{ assignmentResult.summary.success }} | 
-          Rebutjades: {{ assignmentResult.summary.rejected }} | 
+          Assignades: {{ assignmentResult.summary.success }} |
+          Rebutjades: {{ assignmentResult.summary.rejected }} |
           Errors: {{ assignmentResult.summary.errors }}
         </div>
       </div>
     </div>
 
-    <div v-if="pending && !detallsPeticions.length" class="loading">
+    <div v-if="mostraLoading" class="loading">
       <div class="spinner"></div>
       Carregant peticions...
     </div>
-    
-    <div v-else-if="error" class="error">
+
+    <div v-else-if="errorFetch" class="error">
       <span class="error-icon">⚠️</span>
-      Error carregant les peticions: {{ error.message }}
+      Error carregant les peticions: {{ textError }}
     </div>
 
     <div v-else class="table-container">
-      <table v-if="detallsPeticions && detallsPeticions.length > 0">
+      <table v-if="hiHaDetalls">
         <thead>
           <tr>
             <th>Centre</th>
@@ -47,7 +47,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="detall in detallsPeticions" :key="`${detall.peticio_id}-${detall.taller_id}`" class="main-row">
+          <tr v-for="detall in detallsPeticions" :key="clauDetall(detall)" class="main-row">
             <td>
               <div class="centre-name">{{ detall.nom_centre }}</div>
               <div class="meta">Sol·licitat el {{ formatDate(detall.data_creacio) }}</div>
@@ -65,7 +65,7 @@
                   Preferència Referent
                 </div>
                 <div v-if="detall.docent_nom" class="docent-info">
-                  <strong>Professor:</strong> {{ detall.docent_nom }} 
+                  <strong>Professor:</strong> {{ detall.docent_nom }}
                   <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
                 </div>
                 <div v-else class="docent-info missing">
@@ -73,7 +73,7 @@
                 </div>
               </div>
               <div v-else-if="detall.docent_nom" class="docent-info">
-                <strong>Docent:</strong> {{ detall.docent_nom }} 
+                <strong>Docent:</strong> {{ detall.docent_nom }}
                 <small v-if="detall.docent_email">({{ detall.docent_email }})</small>
               </div>
             </td>
@@ -85,12 +85,12 @@
               </span>
             </td>
             <td>
-              <span :class="['status-badge', (detall.estat || 'PENDENT').toLowerCase()]">
-                {{ detall.estat || 'PENDENT' }}
+              <span :class="classeEstatBadge(detall)">
+                {{ textEstat(detall) }}
               </span>
             </td>
             <td class="actions-cell">
-              <div v-if="(detall.estat || 'PENDENT') === 'PENDENT'" class="taller-btn-group">
+              <div v-if="esPendent(detall)" class="taller-btn-group">
                 <button class="btn-action approve" title="Assignar Taller" @click="updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA')" :disabled="actionLoading">
                   ✓ Assignar
                 </button>
@@ -111,119 +111,239 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+import { ref, onMounted } from 'vue';
 
-const header = useHeaderStore()
-header.setHeaderAdmin()
+const header = useHeaderStore();
+header.setHeaderAdmin();
 
-const tokenCookie = useCookie('authToken')
-const actionLoading = ref(false)
-const autoAssignLoading = ref(false)
-const assignmentResult = ref(null)
-const detallsPeticions = ref([])
-const pending = ref(true)
-const error = ref(null)
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const tokenCookie = useCookie('authToken');
+const actionLoading = ref(false);
+const autoAssignLoading = ref(false);
+const assignmentResult = ref(null);
+const detallsPeticions = ref([]);
+const pending = ref(true);
+const error = ref(null);
 
-// Funció per obtenir els detalls de peticions (el backend retorna peticions amb detalls)
-const fetchPeticions = async () => {
-  pending.value = true
-  error.value = null
+const mostraLoading = computed(function () {
+  if (pending.value && detallsPeticions.value.length === 0) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+const errorFetch = computed(function () {
+  return error.value !== null;
+});
+
+const textError = computed(function () {
+  if (error.value && error.value.message) {
+    return error.value.message;
+  }
+  return '';
+});
+
+const hiHaDetalls = computed(function () {
+  let d = detallsPeticions.value;
+  if (d && d.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+const classeResultatAssignacio = computed(function () {
+  if (assignmentResult.value && assignmentResult.value.success) {
+    return 'assignment-result success';
+  } else {
+    return 'assignment-result error';
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Obtenir els detalls de peticions des de l'API ---
+async function fetchPeticions() {
+  // 1. Activem pending i netegem error.
+  pending.value = true;
+  error.value = null;
   try {
-    const token = tokenCookie.value
-    const data = await $fetch('/api/admin/peticions', {
+    let tok = tokenCookie.value;
+    let data = await $fetch('/api/admin/peticions', {
       headers: {
-        Authorization: token ? `Bearer ${token}` : ''
+        Authorization: tok ? 'Bearer ' + tok : ''
       }
-    })
-    // Aplanar les peticions per obtenir tots els detalls com a llista principal
-    detallsPeticions.value = data.flatMap(peticio => 
-      (peticio.detalls || []).map(detall => ({
-        ...detall,
-        peticio_id: peticio.id,
-        nom_centre: peticio.nom_centre,
-        data_creacio: peticio.data_creacio
-      }))
-    ).sort((a, b) => (a.prioritat || 0) - (b.prioritat || 0))
+    });
+    // 2. Aplaniem les peticions: per cada petició, per cada detall, afegim a una llista.
+    let llista = [];
+    for (let i = 0; i < data.length; i++) {
+      let peticio = data[i];
+      let detalls = peticio.detalls;
+      if (!detalls) detalls = [];
+      for (let j = 0; j < detalls.length; j++) {
+        let detall = detalls[j];
+        let ob = {};
+        ob.peticio_id = peticio.id;
+        ob.nom_centre = peticio.nom_centre;
+        ob.data_creacio = peticio.data_creacio;
+        ob.id = detall.id;
+        ob.taller_id = detall.taller_id;
+        ob.modalitat = detall.modalitat;
+        ob.titol = detall.titol;
+        ob.descripcio = detall.descripcio;
+        ob.trimestre = detall.trimestre;
+        ob.num_participants = detall.num_participants;
+        ob.prioritat = detall.prioritat;
+        ob.estat = detall.estat;
+        ob.es_preferencia_referent = detall.es_preferencia_referent;
+        ob.docent_nom = detall.docent_nom;
+        ob.docent_email = detall.docent_email;
+        llista.push(ob);
+      }
+    }
+    // 3. Ordenem per prioritat (bombolla o simple: comparem prioritat).
+    for (let a = 0; a < llista.length - 1; a++) {
+      for (let b = a + 1; b < llista.length; b++) {
+        let pa = llista[a].prioritat || 0;
+        let pb = llista[b].prioritat || 0;
+        if (pa > pb) {
+          let tmp = llista[a];
+          llista[a] = llista[b];
+          llista[b] = tmp;
+        }
+      }
+    }
+    detallsPeticions.value = llista;
   } catch (err) {
-    console.error('Error fetching peticions:', err)
-    error.value = err
+    console.error('Error fetching peticions:', err);
+    error.value = err;
   } finally {
-    pending.value = false
+    pending.value = false;
   }
 }
 
-onMounted(() => {
-  fetchPeticions()
-})
+onMounted(function () {
+  fetchPeticions();
+});
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('ca-ES', {
-    day: '2-digit', month: '2-digit', year: 'numeric'
-  })
+// A) --- Formatar la data ---
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  let d = new Date(dateStr);
+  let opts = {};
+  opts.day = '2-digit';
+  opts.month = '2-digit';
+  opts.year = 'numeric';
+  return d.toLocaleDateString('ca-ES', opts);
 }
 
-const updateTallerStatus = async (peticioId, tallerId, estat) => {
-  const confirmMsg = estat === 'ASSIGNADA' 
-    ? 'Vols marcar aquest taller com a ASSIGNAT?' 
-    : 'Vols REBUTJAR aquesta sol·licitud?'
-    
-  if (!confirm(confirmMsg)) return
+// A) --- Actualitzar l'estat d'un taller dins una petició ---
+async function updateTallerStatus(peticioId, tallerId, estat) {
+  // 1. Missatge de confirmació segons l'estat.
+  let confirmMsg = '';
+  if (estat === 'ASSIGNADA') {
+    confirmMsg = 'Vols marcar aquest taller com a ASSIGNAT?';
+  } else {
+    confirmMsg = 'Vols REBUTJAR aquesta sol·licitud?';
+  }
+  if (!confirm(confirmMsg)) return;
 
-  actionLoading.value = true
+  actionLoading.value = true;
   try {
-    const token = tokenCookie.value;
-    await $fetch(`/api/admin/peticions/${peticioId}/tallers/${tallerId}/estat`, {
+    let tok = tokenCookie.value;
+    await $fetch('/api/admin/peticions/' + peticioId + '/tallers/' + tallerId + '/estat', {
       method: 'PUT',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-      body: { estat }
-    })
-    await fetchPeticions()
+      headers: { Authorization: tok ? 'Bearer ' + tok : '' },
+      body: { estat: estat }
+    });
+    await fetchPeticions();
   } catch (err) {
-    console.error('Error actualitzant estat:', err)
-    alert('No s\'ha pogut actualitzar l\'estat.')
+    console.error('Error actualitzant estat:', err);
+    alert('No s\'ha pogut actualitzar l\'estat.');
   } finally {
-    actionLoading.value = false
+    actionLoading.value = false;
   }
 }
 
-const executeAutoAssignment = async () => {
+// A) --- Executar l'assignació automàtica ---
+async function executeAutoAssignment() {
   if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) {
-    return
+    return;
   }
 
-  autoAssignLoading.value = true
-  assignmentResult.value = null
-  
+  autoAssignLoading.value = true;
+  assignmentResult.value = null;
+
   try {
-    const token = tokenCookie.value
-    const result = await $fetch('/api/admin/matching/auto', {
+    let tok = tokenCookie.value;
+    let result = await $fetch('/api/admin/matching/auto', {
       method: 'POST',
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
-    })
-    
-    assignmentResult.value = {
-      success: true,
-      message: `Assignació automàtica completada!`,
-      summary: result.summary
-    }
-    
-    // Actualitzar la llista de peticions
-    await fetchPeticions()
-    
-    // Ocultar el missatge després de 8 segons
-    setTimeout(() => {
-      assignmentResult.value = null
-    }, 8000)
-    
+      headers: { Authorization: tok ? 'Bearer ' + tok : '' }
+    });
+
+    let ob = {};
+    ob.success = true;
+    ob.message = 'Assignació automàtica completada!';
+    ob.summary = result.summary;
+    assignmentResult.value = ob;
+
+    await fetchPeticions();
+
+    setTimeout(function () {
+      assignmentResult.value = null;
+    }, 8000);
   } catch (err) {
-    console.error('Error executant assignació automàtica:', err)
-    assignmentResult.value = {
-      success: false,
-      message: `Error: ${err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.'}`
+    console.error('Error executant assignació automàtica:', err);
+    let ob = {};
+    ob.success = false;
+    let msg = 'No s\'ha pogut executar l\'assignació automàtica.';
+    if (err && err.data && err.data.message) {
+      msg = err.data.message;
     }
+    ob.message = 'Error: ' + msg;
+    assignmentResult.value = ob;
   } finally {
-    autoAssignLoading.value = false
+    autoAssignLoading.value = false;
+  }
+}
+
+// A) --- Clau única per al detall ---
+function clauDetall(detall) {
+  return String(detall.peticio_id) + '-' + String(detall.taller_id);
+}
+
+// A) --- Retornar la classe de l'estat badge ---
+function classeEstatBadge(detall) {
+  let e = detall.estat;
+  if (!e) e = 'PENDENT';
+  return 'status-badge ' + e.toLowerCase();
+}
+
+// A) --- Retornar el text d'estat ---
+function textEstat(detall) {
+  if (detall.estat) {
+    return detall.estat;
+  } else {
+    return 'PENDENT';
+  }
+}
+
+// A) --- Comprovar si el detall és PENDENT ---
+function esPendent(detall) {
+  let e = detall.estat;
+  if (!e) e = 'PENDENT';
+  if (e === 'PENDENT') {
+    return true;
+  } else {
+    return false;
   }
 }
 </script>
@@ -231,8 +351,8 @@ const executeAutoAssignment = async () => {
 <style scoped>
 .page { padding: 30px; max-width: 1200px; margin: 0 auto; }
 
-.header-section { 
-  margin-bottom: 30px; 
+.header-section {
+  margin-bottom: 30px;
 }
 
 .header-top {
@@ -292,7 +412,6 @@ h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
   opacity: 0.9;
 }
 
-/* Taula Principal */
 .table-container {
   background: white;
   border-radius: 16px;
@@ -302,13 +421,13 @@ h2 { color: #1e293b; font-weight: 850; font-size: 1.8rem; margin: 0; }
 }
 
 table { width: 100%; border-collapse: collapse; }
-th { 
-  background: #f8fafc; 
-  padding: 16px; 
-  text-align: left; 
-  color: #64748b; 
-  font-size: 0.75rem; 
-  text-transform: uppercase; 
+th {
+  background: #f8fafc;
+  padding: 16px;
+  text-align: left;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -319,9 +438,9 @@ th {
 
 td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 
-.actions-cell { 
-  display: flex; 
-  justify-content: center; 
+.actions-cell {
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 .no-actions { color: #94a3b8; font-size: 0.85rem; }
@@ -331,69 +450,33 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 .trimestre-tag { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
 .count-pill { background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
 
-/* Status Badges */
-.status-badge { 
-  padding: 5px 12px; 
-  border-radius: 12px; 
-  font-size: 0.7rem; 
-  font-weight: 800; 
+.status-badge {
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
 }
 .status-badge.pendent { background: #fef3c7; color: #92400e; }
 .status-badge.assignada { background: #dcfce7; color: #15803d; }
 .status-badge.rebutjada { background: #fee2e2; color: #b91c1c; }
 
-/* Grid de Tallers (Desplegable) */
-.details-row { background: #f8fafc; }
-.details-content { padding: 30px; border-left: 5px solid #3b82f6; }
-.details-header h4 { margin: 0 0 15px 0; color: #1e293b; font-weight: 800; font-size: 1.1rem; }
-
-.tallers-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-
-.taller-card {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  transition: transform 0.2s;
-}
-
-/* Secció Prioritat */
-.priority-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 70px;
-  border-right: 2px solid #f1f5f9;
-  margin-right: 20px;
-  padding-right: 10px;
-}
-.prio-label { font-size: 0.6rem; font-weight: 800; color: #94a3b8; }
-.prio-num { font-size: 1.6rem; font-weight: 900; color: #1e293b; line-height: 1; }
-
-.prio-level-1 .prio-num { color: #3b82f6; } /* Color blau per prioritat 1 */
-
-.taller-main-info { flex: 1; }
-.taller-title { font-weight: 700; color: #334155; font-size: 1.05rem; }
 .taller-info { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.modalitat-badge { 
-  font-size: 0.65rem; 
-  font-weight: 800; 
-  background: #f1f5f9; 
-  color: #64748b; 
-  padding: 2px 6px; 
-  border-radius: 4px; 
+.modalitat-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
-.descripcio-text { 
-  font-size: 0.85rem; 
-  color: #64748b; 
-  margin-top: 8px; 
-  padding: 8px; 
-  background: #f8fafc; 
-  border-radius: 4px; 
+.descripcio-text {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 4px;
 }
 .priority-badge {
   display: inline-block;
@@ -410,7 +493,6 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 }
 .prio-level-1 { background: #dbeafe; color: #1e40af; }
 
-.taller-details { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: #64748b; }
 .preferencia-referent-section {
   margin-top: 12px;
   padding: 12px;
@@ -418,9 +500,9 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
   border-left: 3px solid #f59e0b;
   border-radius: 6px;
 }
-.ref-tag { 
-  color: #059669; 
-  font-weight: 700; 
+.ref-tag {
+  color: #059669;
+  font-weight: 700;
   font-size: 0.9rem;
   margin-bottom: 8px;
   display: block;
@@ -439,8 +521,6 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
   font-size: 0.8rem;
 }
 
-/* Botons d'acció */
-.taller-status-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .taller-btn-group { display: flex; gap: 8px; }
 
 .btn-action {
@@ -453,11 +533,10 @@ td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; }
 .btn-action:hover { transform: scale(1.1); }
 .btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* Estats de càrrega */
 .loading { text-align: center; padding: 100px; color: #64748b; }
-.spinner { 
-  width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; 
-  border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; 
+.spinner {
+  width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
+  border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 

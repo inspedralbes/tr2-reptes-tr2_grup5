@@ -58,7 +58,7 @@
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card-bottom">
         <div class="modal-header">
-          <h3>{{ editingId ? 'Editar Docent' : 'Registrar Nou Docent' }}</h3>
+          <h3>{{ titolModal }}</h3>
           <button @click="closeModal" class="close-x">×</button>
         </div>
         
@@ -81,7 +81,7 @@
           <div class="modal-footer">
             <button type="button" @click="closeModal" class="btn-secondary">Cancel·lar</button>
             <button type="submit" class="btn-primary" :disabled="loading">
-              {{ editingId ? 'Guardar canvis' : 'Registrar Docent' }}
+              {{ textBotoModal }}
             </button>
           </div>
         </form>
@@ -91,9 +91,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+import { ref, computed, onMounted } from 'vue';
 
-const professors = ref([])
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const professors = ref([]);
 const loading = ref(false)
 const editingId = ref(null)
 const showModal = ref(false)
@@ -102,48 +108,106 @@ const searchQuery = ref('')
 
 const form = ref({ nom: '', cognoms: '', email: '' })
 
-const filteredProfessors = computed(() => {
-  if (!searchQuery.value) return professors.value
-  const q = searchQuery.value.toLowerCase()
-  return professors.value.filter(p => 
-    p.nom.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
-  )
+const titolModal = computed(function () {
+  if (editingId.value) {
+    return 'Editar Docent';
+  } else {
+    return 'Registrar Nou Docent';
+  }
 })
 
-const fetchProfessors = async () => {
+const textBotoModal = computed(function () {
+  if (editingId.value) {
+    return 'Guardar canvis';
+  } else {
+    return 'Registrar Docent';
+  }
+})
+
+const filteredProfessors = computed(function () {
+  if (!searchQuery.value) return professors.value;
+  let q = searchQuery.value.toLowerCase();
+  let arr = professors.value;
+  let resultat = [];
+  for (let i = 0; i < arr.length; i++) {
+    let p = arr[i];
+    let nom = '';
+    if (p.nom) nom = p.nom.toLowerCase();
+    let email = '';
+    if (p.email) email = p.email.toLowerCase();
+    if (nom.indexOf(q) >= 0 || email.indexOf(q) >= 0) {
+      resultat.push(p);
+    }
+  }
+  return resultat;
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+async function fetchProfessors() {
   try {
-    const token = tokenCookie.value
+    let token = tokenCookie.value;
     professors.value = await $fetch('/api/centre/professors', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-  } catch (e) { console.error(e) }
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+  } catch (e) {
+    console.error('Error carregant professors:', e);
+  }
 }
 
-const handleSave = async () => {
-  loading.value = true
+async function handleSave() {
+  loading.value = true;
   try {
-    const token = tokenCookie.value
-    const method = editingId.value ? 'PUT' : 'POST'
-    const url = '/api/centre/professors'
-    const finalUrl = editingId.value ? `${url}/${editingId.value}` : url
-    await $fetch(finalUrl, { method, headers: { 'Authorization': `Bearer ${token}` }, body: form.value })
-    closeModal()
-    fetchProfessors()
-  } catch (e) { console.error(e) } finally { loading.value = false }
+    let token = tokenCookie.value;
+    let method = 'POST';
+    if (editingId.value) {
+      method = 'PUT';
+    }
+    let url = '/api/centre/professors';
+    let finalUrl = url;
+    if (editingId.value) {
+      finalUrl = url + '/' + editingId.value;
+    }
+    await $fetch(finalUrl, { method: method, headers: { 'Authorization': 'Bearer ' + token }, body: form.value });
+    closeModal();
+    fetchProfessors();
+  } catch (e) {
+    console.error('Error desant docent:', e);
+  } finally {
+    loading.value = false;
+  }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('Eliminar docent?')) return
+async function handleDelete(id) {
+  if (!confirm('Eliminar docent?')) return;
   try {
-    const token = tokenCookie.value
-    await $fetch(`/api/centre/professors/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }})
-    fetchProfessors()
-  } catch (e) { console.error(e) }
+    let token = tokenCookie.value;
+    await $fetch('/api/centre/professors/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+    fetchProfessors();
+  } catch (e) {
+    console.error('Error eliminant docent:', e);
+  }
 }
 
-const openModal = () => { showModal.value = true }
-const closeModal = () => { showModal.value = false; editingId.value = null; form.value = { nom: '', cognoms: '', email: '' } }
-const prepareEdit = (prof) => { editingId.value = prof.id; form.value = { ...prof }; showModal.value = true }
+function openModal() {
+  showModal.value = true;
+}
+function closeModal() {
+  showModal.value = false;
+  editingId.value = null;
+  form.value.nom = '';
+  form.value.cognoms = '';
+  form.value.email = '';
+}
+function prepareEdit(prof) {
+  editingId.value = prof.id;
+  form.value.nom = prof.nom;
+  form.value.cognoms = prof.cognoms;
+  form.value.email = prof.email;
+  showModal.value = true;
+}
 
 onMounted(fetchProfessors)
 </script>

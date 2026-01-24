@@ -10,7 +10,7 @@
       </header>
 
       <div class="tallers-grid">
-        <div v-for="taller in tallers" :key="taller.id" :class="['taller-card', { selected: isSelected(taller.id) }]">
+        <div v-for="taller in tallers" :key="taller.id" :class="classeTallerCard(taller)">
           <div class="card-header">
             <span class="modality-tag">Projecte {{ taller.modalitat }}</span>
             <span class="sector-tag">{{ taller.sector }}</span>
@@ -25,8 +25,8 @@
             </div>
           </div>
           <div class="card-footer">
-            <button @click="toggleTaller(taller)" :class="['btn-select', { active: isSelected(taller.id) }]">
-              {{ isSelected(taller.id) ? '✓ Seleccionat' : '+ Afegir' }}
+            <button @click="toggleTaller(taller)" :class="classeBtnSelect(taller)">
+              {{ textBotoSelect(taller) }}
             </button>
           </div>
         </div>
@@ -52,7 +52,7 @@
             <div class="item-header">
               <h3>{{ getTallerTitol(t.taller_id) }}</h3>
             </div>
-            
+
             <div class="form-row">
               <div class="form-group">
                 <label>Trimestre *</label>
@@ -72,11 +72,11 @@
               </div>
               <div class="form-group">
                 <label>Prioritat (1-10) *</label>
-                <input 
-                  type="number" 
-                  v-model.number="t.prioritat" 
-                  min="1" 
-                  max="10" 
+                <input
+                  type="number"
+                  v-model.number="t.prioritat"
+                  min="1"
+                  max="10"
                   placeholder="1 = Mínima, 10 = Màxima"
                   required
                 >
@@ -120,21 +120,27 @@
 
         <div class="form-submit">
           <button type="submit" class="btn-submit" :disabled="submitting">
-            {{ submitting ? 'Enviant...' : 'Confirmar Sol·licitud' }}
+            {{ textBotoSubmit }}
           </button>
         </div>
       </form>
     </div>
 
-    <div v-if="message" :class="['alert', messageType]">
+    <div v-if="message" :class="classeAlert">
       {{ message }}
     </div>
   </div>
 </template>
 
 <script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
 import { ref, onMounted } from 'vue';
 
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
 const currentStep = ref(1);
 const tokenCookie = useCookie('authToken');
 const tallers = ref([]);
@@ -152,111 +158,207 @@ const newDocent = ref({
   email: ''
 });
 
-const handleSaveDocent = async (tallerIndex) => {
-  if (!newDocent.value.nom || !newDocent.value.email){
-    alert ("El nom i el mail són obligatoris");
-    return;
-  };
-
-  try{
-    const token = tokenCookie.value;
-    const payload = {
-      ...newDocent.value,
-      centre_id: centre.value.id
-    };
-    const savedProf = await $fetch('/api/centre/professors', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: payload
-    });
-    professors.value.push (savedProf);
-    newDocent.value = {
-      nom: '',
-      cognoms: '',
-      email: ''
-    };
-    activeDocentFormIndex.value = null;
-  } catch (error) {
-    console.error('Error guardant el docent:', error);
-  }
-};
-
 const form = ref({
   tallers: []
 });
 
-const fetchData = async () => {
+const textBotoSubmit = computed(function () {
+  if (submitting.value) {
+    return 'Enviant...';
+  } else {
+    return 'Confirmar Sol·licitud';
+  }
+});
+
+const classeAlert = computed(function () {
+  return 'alert ' + messageType.value;
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Desar un nou docent i afegir-lo a la llista ---
+async function handleSaveDocent(tallerIndex) {
+  if (!newDocent.value.nom || !newDocent.value.email) {
+    alert('El nom i el mail són obligatoris');
+    return;
+  }
+
   try {
-    const token = tokenCookie.value;
-    const headers = { 'Authorization': `Bearer ${token}` };
-    
-    const [resTallers, resProfs, resCentre] = await Promise.all([
-      $fetch('/api/centre/tallers', { headers }),
-      $fetch('/api/centre/professors', { headers }),
-      $fetch('/api/centre/perfil', { headers })
-    ]);
-    
-    tallers.value = resTallers;
-    professors.value = resProfs;
-    centre.value = resCentre;
+    let token = tokenCookie.value;
+    let payload = {};
+    payload.nom = newDocent.value.nom;
+    payload.cognoms = newDocent.value.cognoms;
+    payload.email = newDocent.value.email;
+    payload.centre_id = centre.value.id;
+
+    let savedProf = await $fetch('/api/centre/professors', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: payload
+    });
+    professors.value.push(savedProf);
+    newDocent.value.nom = '';
+    newDocent.value.cognoms = '';
+    newDocent.value.email = '';
+    activeDocentFormIndex.value = null;
+  } catch (error) {
+    console.error('Error guardant el docent:', error);
+  }
+}
+
+// A) --- Carregar tallers, professors i perfil del centre ---
+async function fetchData() {
+  try {
+    let token = tokenCookie.value;
+    let headers = { 'Authorization': 'Bearer ' + token };
+    let prom1 = $fetch('/api/centre/tallers', { headers });
+    let prom2 = $fetch('/api/centre/professors', { headers });
+    let prom3 = $fetch('/api/centre/perfil', { headers });
+    let res = await Promise.all([prom1, prom2, prom3]);
+    tallers.value = res[0];
+    professors.value = res[1];
+    centre.value = res[2];
   } catch (error) {
     console.error('Error carregant dades:', error);
   }
-};
+}
 
-const isSelected = (id) => selectedTallers.value.some(t => t.id === id);
+// A) --- Comprovar si un taller està seleccionat ---
+function isSelected(id) {
+  let arr = selectedTallers.value;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) {
+      return true;
+    }
+  }
+  return false;
+}
 
-const toggleTaller = (taller) => {
-  const index = selectedTallers.value.findIndex(t => t.id === taller.id);
+// A) --- Afegir o treure un taller de la selecció ---
+function toggleTaller(taller) {
+  let index = -1;
+  let arr = selectedTallers.value;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].id === taller.id) {
+      index = i;
+      break;
+    }
+  }
   if (index > -1) {
-    selectedTallers.value.splice(index, 1);
+    let nova = [];
+    for (let i = 0; i < arr.length; i++) {
+      if (i !== index) {
+        nova[nova.length] = arr[i];
+      }
+    }
+    selectedTallers.value = nova;
   } else {
-    selectedTallers.value.push(taller);
+    let nova = [];
+    for (let i = 0; i < arr.length; i++) {
+      nova[nova.length] = arr[i];
+    }
+    nova[nova.length] = taller;
+    selectedTallers.value = nova;
   }
-};
+}
 
-const nextStep = () => {
-  form.value.tallers = selectedTallers.value.map(t => ({
-    taller_id: t.id,
-    trimestre: '',
-    num_participants: 1,
-    docent_nom: '',
-    docent_email: '',
-    prioritat: 1,
-    es_preferencia_referent: false,
-    descripcio: ''
-  }));
+// A) --- Passar al pas 2 i preparar form.tallers ---
+function nextStep() {
+  let sel = selectedTallers.value;
+  let nova = [];
+  for (let i = 0; i < sel.length; i++) {
+    let t = sel[i];
+    let ob = {};
+    ob.taller_id = t.id;
+    ob.trimestre = '';
+    ob.num_participants = 1;
+    ob.docent_nom = '';
+    ob.docent_email = '';
+    ob.prioritat = 1;
+    ob.es_preferencia_referent = false;
+    ob.descripcio = '';
+    nova[nova.length] = ob;
+  }
+  form.value.tallers = nova;
   currentStep.value = 2;
-};
+}
 
-const getTallerTitol = (id) => tallers.value.find(t => t.id === id)?.titol || 'Taller';
-
-const updateDocentEmail = (tallerFormObj) => {
-  const prof = professors.value.find(p => `${p.nom} ${p.cognoms}` === tallerFormObj.docent_nom);
-  if (prof) {
-    tallerFormObj.docent_email = prof.email;
+// A) --- Obtenir el títol d'un taller per id ---
+function getTallerTitol(id) {
+  let arr = tallers.value;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) {
+      return arr[i].titol;
+    }
   }
-};
+  return 'Taller';
+}
 
-const handleSubmit = async () => {
+// A) --- Actualitzar l'email del docent al formulari ---
+function updateDocentEmail(tallerFormObj) {
+  let nomComplet = tallerFormObj.docent_nom;
+  let arr = professors.value;
+  for (let i = 0; i < arr.length; i++) {
+    let p = arr[i];
+    let nc = p.nom + ' ' + p.cognoms;
+    if (nc === nomComplet) {
+      tallerFormObj.docent_email = p.email;
+      return;
+    }
+  }
+}
+
+// A) --- Retornar la classe de la targeta del taller ---
+function classeTallerCard(taller) {
+  if (isSelected(taller.id)) {
+    return 'taller-card selected';
+  } else {
+    return 'taller-card';
+  }
+}
+
+// A) --- Retornar la classe del botó de selecció ---
+function classeBtnSelect(taller) {
+  if (isSelected(taller.id)) {
+    return 'btn-select active';
+  } else {
+    return 'btn-select';
+  }
+}
+
+// A) --- Retornar el text del botó de selecció ---
+function textBotoSelect(taller) {
+  if (isSelected(taller.id)) {
+    return '✓ Seleccionat';
+  } else {
+    return '+ Afegir';
+  }
+}
+
+// A) --- Enviar la sol·licitud de peticions ---
+async function handleSubmit() {
   submitting.value = true;
   try {
-    const token = tokenCookie.value;
+    let token = tokenCookie.value;
     await $fetch('/api/centre/peticions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 'Authorization': 'Bearer ' + token },
       body: form.value
     });
     message.value = 'Sol·licitud enviada!';
     messageType.value = 'success';
-    setTimeout(() => window.location.reload(), 2000);
+    setTimeout(function () {
+      window.location.reload();
+    }, 2000);
   } catch (error) {
     message.value = 'Error en enviar.';
     messageType.value = 'error';
   } finally {
     submitting.value = false;
   }
-};
+}
 
 onMounted(fetchData);
 </script>
@@ -280,10 +382,10 @@ onMounted(fetchData);
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
 .form-group { display: flex; flex-direction: column; }
 .checkbox-group { justify-content: center; }
-.checkbox-label { 
-  display: flex; 
-  align-items: center; 
-  gap: 8px; 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
   font-weight: 600;
   color: #334155;

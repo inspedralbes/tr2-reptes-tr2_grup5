@@ -7,26 +7,26 @@
       </NuxtLink>
     </div>
 
-    <div v-if="pending" class="loading">Carregant tallers...</div>
-    <div v-else-if="error" class="error">Error carregant els tallers: {{ error.message }}</div>
-    
+    <div v-if="pendent" class="loading">Carregant tallers...</div>
+    <div v-else-if="errorFetch" class="error">Error carregant els tallers: {{ textError }}</div>
+
     <div v-else class="content-container">
-      <div v-if="tallers && tallers.length > 0" class="tallers-grid">
+      <div v-if="hiHaTallers" class="tallers-grid">
         <div v-for="taller in tallers" :key="taller.id" class="taller-card">
           <div class="card-header">
-            <div class="modality-badge" :class="'mod-' + taller.modalitat">
+            <div class="modality-badge" :class="classeModalitat(taller)">
               Projecte {{ taller.modalitat }}
             </div>
-            <div class="status-indicator" :title="taller.actiu ? 'Actiu' : 'Arxivat'">
-              <span :class="taller.actiu ? 'dot active' : 'dot archived'"></span>
-              {{ taller.actiu ? 'Actiu' : 'Arxivat' }}
+            <div class="status-indicator" :title="textEstat(taller)">
+              <span :class="classePunt(taller)"></span>
+              {{ textEstat(taller) }}
             </div>
           </div>
-          
+
           <div class="card-content">
             <h3 class="taller-title">{{ taller.titol }}</h3>
-            <p class="description">{{ taller.descripcio || 'Sense descripció disponible.' }}</p>
-            
+            <p class="description">{{ descripcioTaller(taller) }}</p>
+
             <div class="detail-row">
               <span class="label">Sector:</span>
               <span class="value">{{ taller.sector }}</span>
@@ -39,7 +39,7 @@
               </div>
               <div class="remaining-box">
                 <span class="rem-label">PLACES RESTANTS</span>
-                <span class="rem-value">{{ taller.places_restants ?? taller.places_maximes }}</span>
+                <span class="rem-value">{{ placesRestants(taller) }}</span>
               </div>
             </div>
 
@@ -48,7 +48,7 @@
               <span class="value">{{ taller.trimestres_disponibles }}</span>
             </div>
           </div>
-          
+
           <div class="card-footer">
             <span class="taller-id">#{{ taller.id }}</span>
             <div class="actions">
@@ -74,48 +74,126 @@
 </template>
 
 <script setup>
-const header = useHeaderStore()
-header.setHeaderAdmin()
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const header = useHeaderStore();
+header.setHeaderAdmin();
 
-// Fem la petició al backend per obtenir els tallers (només des del client)
-const token = useCookie('authToken').value
-const { data: tallers, pending, error, refresh } = await useFetch('/api/admin/tallers', {
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const token = useCookie('authToken').value;
+const respostaFetch = await useFetch('/api/admin/tallers', {
   server: false,
   headers: {
-    Authorization: token ? `Bearer ${token}` : ''
+    Authorization: token ? 'Bearer ' + token : ''
   }
-})
+});
 
-const getRemainingClass = (taller) => {
-  const restants = taller.places_restants ?? taller.places_maximes;
-  
-  if (restants === 0) return 'critical';
-  if (restants < 5) return 'warning';
-  return 'good';
-};
+const tallers = computed(function () {
+  if (respostaFetch.data && respostaFetch.data.value) {
+    return respostaFetch.data.value;
+  }
+  return [];
+});
 
-const deleteTaller = async (id) => {
+const pendent = computed(function () {
+  if (respostaFetch.pending) {
+    return respostaFetch.pending.value;
+  }
+  return false;
+});
+
+const errorFetch = computed(function () {
+  if (respostaFetch.error && respostaFetch.error.value) {
+    return true;
+  }
+  return false;
+});
+
+const textError = computed(function () {
+  if (respostaFetch.error && respostaFetch.error.value && respostaFetch.error.value.message) {
+    return respostaFetch.error.value.message;
+  }
+  return '';
+});
+
+const hiHaTallers = computed(function () {
+  let t = tallers.value;
+  if (t && t.length > 0) {
+    return true;
+  }
+  return false;
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Retornar la classe CSS de modalitat per al taller ---
+function classeModalitat(taller) {
+  return 'mod-' + taller.modalitat;
+}
+
+// A) --- Retornar el text d'estat (Actiu/Arxivat) ---
+function textEstat(taller) {
+  if (taller.actiu) {
+    return 'Actiu';
+  } else {
+    return 'Arxivat';
+  }
+}
+
+// A) --- Retornar la classe del punt d'estat ---
+function classePunt(taller) {
+  if (taller.actiu) {
+    return 'dot active';
+  } else {
+    return 'dot archived';
+  }
+}
+
+// A) --- Retornar la descripció o text per defecte ---
+function descripcioTaller(taller) {
+  if (taller.descripcio) {
+    return taller.descripcio;
+  } else {
+    return 'Sense descripció disponible.';
+  }
+}
+
+// A) --- Retornar les places restants ---
+function placesRestants(taller) {
+  if (taller.places_restants !== undefined && taller.places_restants !== null) {
+    return taller.places_restants;
+  } else {
+    return taller.places_maximes;
+  }
+}
+
+// A) --- Eliminar un taller ---
+async function deleteTaller(id) {
   try {
-    await $fetch(`/api/admin/tallers/${id}`, {
+    await $fetch('/api/admin/tallers/' + id, {
       method: 'DELETE',
       headers: {
-        Authorization: token ? `Bearer ${token}` : ''
+        Authorization: token ? 'Bearer ' + token : ''
       }
     });
-    refresh();
-  } catch (error) {
-    console.error('Error eliminant taller:', error);
+    respostaFetch.refresh();
+  } catch (err) {
+    console.error('Error eliminant taller:', err);
   }
-};
+}
 
-const editTaller = (id) => {
-  navigateTo(`/admin/tallers/editTallers?id=${id}`)
-};
-
+// A) --- Navegar a l'edició del taller ---
+function editTaller(id) {
+  navigateTo('/admin/tallers/editTallers?id=' + id);
+}
 </script>
 
 <style scoped>
-/* (Estils exactament iguals que l'anterior) */
 .page { padding: 30px; max-width: 1400px; margin: 0 auto; }
 .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 .header-actions h2 { font-size: 1.8rem; color: #1a202c; font-weight: 700; margin: 0; }

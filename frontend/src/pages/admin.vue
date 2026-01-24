@@ -5,7 +5,7 @@
         <h1 class="main-title">Gestió del Projecte</h1>
         <div class="title-underline"></div>
       </div>
-      
+
       <div class="admin-meta d-none d-md-block">
         <span class="badge-date">{{ currentDate }}</span>
       </div>
@@ -18,9 +18,21 @@
 </template>
 
 <script setup>
-// Per si vols mostrar la data actual al costat del títol
-const currentDate = new Date().toLocaleDateString('ca-ES', { 
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const currentDate = computed(function () {
+  let d = new Date();
+  let opts = {};
+  opts.weekday = 'long';
+  opts.year = 'numeric';
+  opts.month = 'long';
+  opts.day = 'numeric';
+  return d.toLocaleDateString('ca-ES', opts);
 });
 </script>
 
@@ -31,7 +43,7 @@ body {
 }
 .admin-main-view {
   font-family: 'Inter', sans-serif;
-  padding: 1rem; /* Espaiat respecte a la sidebar */
+  padding: 1rem;
 }
 
 .admin-header {
@@ -71,7 +83,6 @@ body {
 }
 
 .admin-body {
-  /* Animació perquè el contingut que canvia aparegui suau */
   animation: slideUp 0.4s ease-out;
 }
 

@@ -5,12 +5,16 @@
 </template>
 
 <script setup>
-const header = useHeaderStore()
-header.setHeaderProfessors()
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const header = useHeaderStore();
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+// 1. Configurem el header per a la secció de professors.
+header.setHeaderProfessors();
 </script>
 
-<style scoped>
-.page {
-  /* Common styles for profes pages if any */
-}
-</style>
+

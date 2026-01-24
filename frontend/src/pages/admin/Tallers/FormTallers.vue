@@ -5,28 +5,27 @@
       <p class="subtitle">Defineix l'oferta formativa per al proper curs</p>
 
       <form @submit.prevent="submitForm" class="taller-form">
-        
-        <!-- SECCIÓ 1: IDENTIFICACIÓ -->
+
         <div class="section">
           <h3>Identificació i Contingut</h3>
-          
+
           <div class="form-group">
             <label for="titol">Títol del Taller *</label>
-            <input 
-              type="text" 
-              id="titol" 
-              v-model="form.titol" 
+            <input
+              type="text"
+              id="titol"
+              v-model="form.titol"
               placeholder="Ex: Introducció a la Robòtica"
-              required 
+              required
             />
           </div>
 
           <div class="form-group">
             <label for="descripcio">Descripció Pedagògica</label>
-            <textarea 
-              id="descripcio" 
-              v-model="form.descripcio" 
-              rows="4" 
+            <textarea
+              id="descripcio"
+              v-model="form.descripcio"
+              rows="4"
               placeholder="Detalla els objectius i continguts..."
             ></textarea>
           </div>
@@ -42,28 +41,26 @@
           </div>
         </div>
 
-        <!-- SECCIÓ 2: LOGÍSTICA I MODALITAT -->
         <div class="section">
           <h3>Modalitat i Logística</h3>
 
           <div class="form-group">
             <label>Modalitat *</label>
             <div class="radio-group">
-              <label class="radio-card" :class="{ active: form.modalitat === 'A' }">
+              <label class="radio-card" :class="classeRadioA">
                 <input type="radio" value="A" v-model="form.modalitat" />
                 <span>Modalitat A</span>
               </label>
-              <label class="radio-card" :class="{ active: form.modalitat === 'B' }">
+              <label class="radio-card" :class="classeRadioB">
                 <input type="radio" value="B" v-model="form.modalitat" />
                 <span>Modalitat B</span>
               </label>
-              <label class="radio-card" :class="{ active: form.modalitat === 'C' }">
+              <label class="radio-card" :class="classeRadioC">
                 <input type="radio" value="C" v-model="form.modalitat" />
                 <span>Modalitat C</span>
               </label>
             </div>
-            
-            <!-- Càlcul automàtic de durada -->
+
             <div v-if="form.modalitat" class="info-box">
               <p><strong>Durada estimada:</strong> {{ duradaCalculada }}</p>
             </div>
@@ -74,7 +71,7 @@
               <label>Places Màximes</label>
               <input type="number" v-model.number="form.places_maximes" min="1" />
             </div>
-            
+
             <div class="form-group half">
               <label>Trimestres Disponibles *</label>
               <div class="checkbox-group">
@@ -98,13 +95,12 @@
 
         <div class="actions">
           <button type="submit" class="btn-submit" :disabled="loading">
-            {{ loading ? 'Creant Taller...' : 'Crear Taller' }}
+            {{ textBoto }}
           </button>
         </div>
       </form>
     </div>
 
-    <!-- Custom Sweet Alert Overlay -->
     <div v-if="showSuccessModal" class="modal-overlay">
       <div class="modal-content">
         <div class="success-icon">✓</div>
@@ -116,107 +112,155 @@
   </div>
 </template>
 
-<script>
-import { useHeaderStore } from '@/stores/header'
-import { defineComponent, reactive, ref, computed } from 'vue'
+<script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+import { useHeaderStore } from '@/stores/header';
 
-export default defineComponent({
-  name: 'FormTallers',
-  setup() {
-    const header = useHeaderStore()
-    header.setHeaderAdmin()
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const header = useHeaderStore();
+header.setHeaderAdmin();
 
-    // --- STATE ---
-    const loading = ref(false)
-    const showSuccessModal = ref(false)
-    
-    const sectors = [
-      "Agroalimentari", "Manufacturer", "Energia i Aigua", "Construcció",
-      "Comerç i Turisme", "Transport", "Hoteleria", "Informació i Comunicació",
-      "Financer", "Immobiliari", "Professional"
-    ]
+const loading = ref(false);
+const showSuccessModal = ref(false);
 
-    const form = reactive({
-      titol: '',
-      descripcio: '',
-      sector: '',
-      modalitat: '',
-      places_maximes: 12,
-      trimestres: [],
-      ubicacio: '',
-      adreca: ''
-    })
+const sectors = [
+  'Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció',
+  'Comerç i Turisme', 'Transport', 'Hoteleria', 'Informació i Comunicació',
+  'Financer', 'Immobiliari', 'Professional'
+];
 
-    // --- COMPUTED ---
-    const duradaCalculada = computed(() => {
-      if (['A', 'B'].includes(form.modalitat)) return "20 hores (10 sessions de 2 hores)"
-      if (form.modalitat === 'C') return "30 hores (10 sessions de 3 hores)"
-      return "Selecciona una modalitat"
-    })
+const form = ref({
+  titol: '',
+  descripcio: '',
+  sector: '',
+  modalitat: '',
+  places_maximes: 12,
+  trimestres: [],
+  ubicacio: '',
+  adreca: ''
+});
 
-    // --- METHODS ---
-    const submitForm = async () => {
-      // Validacions Frontend
-      if (!form.titol || !form.sector || !form.modalitat) {
-        alert("Si us plau, omple tots els camps obligatoris (*)")
-        return
-      }
-      if (form.trimestres.length === 0) {
-        alert("Has de seleccionar almenys un trimestre.")
-        return
-      }
-      if (form.places_maximes < 1) {
-        alert("Les places màximes han de ser com a mínim 1.")
-        return
-      }
-
-      loading.value = true
-      
-      try {
-        const payload = {
-          ...form,
-          trimestres_disponibles: form.trimestres.join(', ')
-        }
-
-        await $fetch('/api/admin/tallers', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + useCookie('authToken').value
-          },
-          body: payload
-        })
-
-        showSuccessModal.value = true
-        
-        // Reset form
-        Object.assign(form, {
-          titol: '', descripcio: '', sector: '', modalitat: '',
-          places_maximes: 12, trimestres: [], ubicacio: '', adreca: ''
-        })
-      } catch (err) {
-        alert("Error al crear el taller: " + (err.response?._data?.message || err.message))
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const closeModal = () => {
-      showSuccessModal.value = false
-      navigateTo('/admin/tallers')
-    }
-
-    // Retornem tot el que necessita el template
-    return {
-      loading,
-      showSuccessModal,
-      sectors,
-      form,
-      duradaCalculada,
-      submitForm,
-      closeModal
-    }
+const duradaCalculada = computed(function () {
+  if (form.value.modalitat === 'A' || form.value.modalitat === 'B') {
+    return '20 hores (10 sessions de 2 hores)';
   }
-})
+  if (form.value.modalitat === 'C') {
+    return '30 hores (10 sessions de 3 hores)';
+  }
+  return 'Selecciona una modalitat';
+});
+
+const textBoto = computed(function () {
+  if (loading.value) {
+    return 'Creant Taller...';
+  } else {
+    return 'Crear Taller';
+  }
+});
+
+const classeRadioA = computed(function () {
+  if (form.value.modalitat === 'A') {
+    return 'radio-card active';
+  } else {
+    return 'radio-card';
+  }
+});
+
+const classeRadioB = computed(function () {
+  if (form.value.modalitat === 'B') {
+    return 'radio-card active';
+  } else {
+    return 'radio-card';
+  }
+});
+
+const classeRadioC = computed(function () {
+  if (form.value.modalitat === 'C') {
+    return 'radio-card active';
+  } else {
+    return 'radio-card';
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Enviar el formulari de crear taller ---
+async function submitForm() {
+  // 1. Validacions de camps obligatoris.
+  if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
+    alert('Si us plau, omple tots els camps obligatoris (*)');
+    return;
+  }
+  if (form.value.trimestres.length === 0) {
+    alert('Has de seleccionar almenys un trimestre.');
+    return;
+  }
+  if (form.value.places_maximes < 1) {
+    alert('Les places màximes han de ser com a mínim 1.');
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    // 2. Construïm el payload assignant propietats una a una.
+    let trimestresStr = form.value.trimestres.join(', ');
+    let payload = {};
+    payload.titol = form.value.titol;
+    payload.descripcio = form.value.descripcio;
+    payload.sector = form.value.sector;
+    payload.modalitat = form.value.modalitat;
+    payload.places_maximes = form.value.places_maximes;
+    payload.trimestres_disponibles = trimestresStr;
+    payload.ubicacio = form.value.ubicacio;
+    payload.adreca = form.value.adreca;
+
+    let token = useCookie('authToken').value;
+    await $fetch('/api/admin/tallers', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      },
+      body: payload
+    });
+
+    showSuccessModal.value = true;
+
+    // 3. Restablim el formulari camp a camp.
+    form.value.titol = '';
+    form.value.descripcio = '';
+    form.value.sector = '';
+    form.value.modalitat = '';
+    form.value.places_maximes = 12;
+    form.value.trimestres = [];
+    form.value.ubicacio = '';
+    form.value.adreca = '';
+  } catch (err) {
+    let missatge = 'Error al crear el taller: ';
+    if (err && err.response && err.response._data && err.response._data.message) {
+      missatge = missatge + err.response._data.message;
+    } else if (err && err.message) {
+      missatge = missatge + err.message;
+    } else {
+      missatge = missatge + 'Error desconegut';
+    }
+    alert(missatge);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// A) --- Tancar el modal i navegar al llistat ---
+function closeModal() {
+  showSuccessModal.value = false;
+  navigateTo('/admin/tallers');
+}
 </script>
 
 <style scoped>
@@ -326,7 +370,6 @@ input:focus, select:focus, textarea:focus {
 .btn-submit:hover { transform: translateY(-2px); }
 .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);

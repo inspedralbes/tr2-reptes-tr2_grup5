@@ -7,26 +7,26 @@
       </div>
     </div>
 
-    <div v-if="pending" class="loading-state">
+    <div v-if="pendent" class="loading-state">
       <div class="spinner"></div>
       <p>Calculant dades d'activitat confirmada...</p>
     </div>
 
-    <div v-else-if="stats && stats.data" class="dashboard-grid">
-      
+    <div v-else-if="hiHaStats" class="dashboard-grid">
+
       <section class="stat-section">
         <div class="section-header">
           <span class="icon">🏫</span>
           <h3>Impacte en Centres</h3>
         </div>
-        
+
         <div class="centres-container">
           <div class="kpi-column">
             <div class="kpi-card">
               <span class="label">Centres amb Activitat</span>
               <span class="value">{{ stats.data.centres.solicitants }}</span>
             </div>
-            
+
             <div class="kpi-card highlight">
               <span class="label">Total Alumnes Registrats</span>
               <span class="value">{{ stats.data.centres.totalAlumnes }}</span>
@@ -43,9 +43,9 @@
           <div class="priority-box">
             <h4>Rànquing de Centres (Basat en Alumnes Inscrits)</h4>
             <div class="ranking-list">
-              <p v-if="!stats.data.centres.ranking?.length" class="empty-msg">Encara no hi ha tallers amb llista d'assistència.</p>
-              
-              <div v-for="(c, index) in stats.data.centres.ranking" :key="c.nom_centre" class="ranking-item">
+              <p v-if="!hiHaRanking" class="empty-msg">Encara no hi ha tallers amb llista d'assistència.</p>
+
+              <div v-for="(c, index) in rankingCentres" :key="c.nom_centre" class="ranking-item">
                 <div class="rank-badge">{{ index + 1 }}</div>
                 <div class="rank-info">
                   <div class="rank-header-row">
@@ -58,14 +58,11 @@
                     Participen <strong>{{ c.total_alumnes_planificats }}</strong> alumnes en total
                     <span class="real-count">({{ c.alumnes_reals }} presents)</span>
                   </span>
-                  
+
                   <div class="progress-bar-container">
-                    <div 
-                      class="progress-bar-fill" 
-                      :style="{ 
-                        width: c.percentatge_asistencia + '%',
-                        backgroundColor: getBarColor(c.percentatge_asistencia)
-                      }"
+                    <div
+                      class="progress-bar-fill"
+                      :style="estilBarra(c)"
                     ></div>
                   </div>
                 </div>
@@ -88,9 +85,9 @@
         <div class="tallers-container">
           <div class="info-list">
             <h4>Tallers amb més execució</h4>
-            <div v-if="!stats.data.tallers.mesSolicitats?.length" class="empty-msg">Sense dades d'execució.</div>
-            
-            <div v-for="(t, index) in stats.data.tallers.mesSolicitats" :key="t.titol" class="list-row taller-row">
+            <div v-if="!hiHaMesSolicitats" class="empty-msg">Sense dades d'execució.</div>
+
+            <div v-for="(t, index) in mesSolicitats" :key="t.titol" class="list-row taller-row">
               <div class="row-left">
                 <span class="row-index">#{{ index + 1 }}</span>
                 <div class="row-content">
@@ -138,35 +135,122 @@
 </template>
 
 <script setup>
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
 const token = useCookie('authToken');
 
-const { data: stats, pending, error } = await useFetch('/api/admin/stats/dashboard', {
-    headers: { Authorization: `Bearer ${token.value}` },
-    initialCache: false 
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const respostaFetch = await useFetch('/api/admin/stats/dashboard', {
+  headers: { Authorization: 'Bearer ' + token.value },
+  initialCache: false
 });
 
-// Neteja de caràcters per problemes de codificació (UTF-8)
-const formatText = (text) => {
+const stats = computed(function () {
+  let d = respostaFetch.data;
+  if (d && d.value) {
+    return d.value;
+  }
+  return null;
+});
+
+const pendent = computed(function () {
+  if (respostaFetch.pending) {
+    return respostaFetch.pending.value;
+  }
+  return false;
+});
+
+const hiHaStats = computed(function () {
+  let s = stats.value;
+  if (s && s.data) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+const rankingCentres = computed(function () {
+  let s = stats.value;
+  if (!s || !s.data || !s.data.centres || !s.data.centres.ranking) {
+    return [];
+  }
+  return s.data.centres.ranking;
+});
+
+const hiHaRanking = computed(function () {
+  let r = rankingCentres.value;
+  if (r && r.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+const mesSolicitats = computed(function () {
+  let s = stats.value;
+  if (!s || !s.data || !s.data.tallers || !s.data.tallers.mesSolicitats) {
+    return [];
+  }
+  return s.data.tallers.mesSolicitats;
+});
+
+const hiHaMesSolicitats = computed(function () {
+  let m = mesSolicitats.value;
+  if (m && m.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Neteja de caràcters per problemes de codificació ---
+function formatText(text) {
   if (!text) return 'N/A';
-  return text.replace(/Ã¨/g, 'è').replace(/Ã/g, 'à').replace(/Â²/g, '²');
-};
+  let t = text;
+  t = t.replace(/Ã¨/g, 'è');
+  t = t.replace(/Ã/g, 'à');
+  t = t.replace(/Â²/g, '²');
+  return t;
+}
 
-const formatModalitat = (mod) => {
-  const map = { 'B': 'Híbrida', 'P': 'Presencial', 'V': 'Virtual' };
-  return map[mod] || mod || 'N/A';
-};
+// A) --- Formatar la modalitat ---
+function formatModalitat(mod) {
+  if (mod === 'B') return 'Híbrida';
+  if (mod === 'P') return 'Presencial';
+  if (mod === 'V') return 'Virtual';
+  if (mod) return mod;
+  return 'N/A';
+}
 
-const getBarColor = (p) => {
+// A) --- Retornar el color de la barra segons el percentatge ---
+function getBarColor(p) {
   if (p >= 80) return '#10b981';
   if (p >= 50) return '#3b82f6';
   return '#f59e0b';
-};
+}
 
-const getStatusClass = (p) => {
+// A) --- Retornar l'objecte d'estil per la barra de progrés ---
+function estilBarra(c) {
+  let p = c.percentatge_asistencia;
+  let ob = {};
+  ob.width = String(p) + '%';
+  ob.backgroundColor = getBarColor(p);
+  return ob;
+}
+
+// A) --- Retornar la classe d'estat segons el percentatge ---
+function getStatusClass(p) {
   if (p >= 80) return 'status-high';
   if (p >= 50) return 'status-mid';
   return 'status-low';
-};
+}
 </script>
 
 <style scoped>
@@ -175,10 +259,8 @@ const getStatusClass = (p) => {
 .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
 .section-header h3 { margin: 0; color: #1e293b; }
 
-/* LAYOUT GRID */
 .centres-container, .tallers-container { display: grid; grid-template-columns: 320px 1fr; gap: 40px; }
 
-/* KPIs */
 .kpi-column { display: flex; flex-direction: column; gap: 15px; }
 .kpi-card { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; transition: transform 0.2s; }
 .kpi-card:hover { transform: translateY(-2px); }
@@ -189,24 +271,23 @@ const getStatusClass = (p) => {
 .kpi-card .label { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
 .kpi-card small { font-size: 0.7rem; color: #94a3b8; }
 
-/* RANKINGS (CENTRES I TALLERS) */
 .ranking-list, .info-list { display: flex; flex-direction: column; gap: 12px; }
 
-.ranking-item, .taller-row { 
-  display: flex; 
-  align-items: center; 
-  padding: 15px; 
-  background: #ffffff; 
-  border: 1px solid #e2e8f0; 
-  border-radius: 12px; 
+.ranking-item, .taller-row {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
 }
 
 .taller-row { justify-content: space-between; }
 .row-left { display: flex; align-items: center; gap: 15px; }
 
-.rank-badge, .row-index { 
-  background: #3b82f6; color: white; width: 32px; height: 32px; 
-  border-radius: 50%; display: flex; align-items: center; 
+.rank-badge, .row-index {
+  background: #3b82f6; color: white; width: 32px; height: 32px;
+  border-radius: 50%; display: flex; align-items: center;
   justify-content: center; font-weight: bold; flex-shrink: 0;
 }
 .row-index { background: #f1f5f9; color: #64748b; font-size: 0.85rem; }
@@ -217,8 +298,8 @@ const getStatusClass = (p) => {
 .row-details { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .sector-text { font-size: 0.8rem; color: #64748b; }
 
-.impact-badge { 
-  background: #e0f2fe; color: #0369a1; padding: 2px 8px; 
+.impact-badge {
+  background: #e0f2fe; color: #0369a1; padding: 2px 8px;
   border-radius: 6px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
 }
 
@@ -226,18 +307,15 @@ const getStatusClass = (p) => {
 .row-val { font-size: 1.4rem; font-weight: 800; color: #3b82f6; line-height: 1; display: block; }
 .row-val-container small { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
 
-/* BARRES PROGRESS */
 .progress-bar-container { background: #f1f5f9; height: 8px; border-radius: 10px; margin-top: 10px; overflow: hidden; }
 .progress-bar-fill { height: 100%; transition: width 1s ease-in-out; }
 
-/* METRICS GRID */
 .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .m-card { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #f1f5f9; }
 .m-card label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
 .m-card p { font-weight: 700; color: #1e293b; margin-top: 5px; font-size: 1.1rem; }
 .alert-card { border-left: 4px solid #10b981; background: #f0fdf4; }
 
-/* ESTATS UI */
 .percentage-tag { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
 .status-high { background: #dcfce7; color: #166534; }
 .status-mid { background: #dbeafe; color: #1e40af; }
@@ -247,7 +325,7 @@ const getStatusClass = (p) => {
 .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-@media (max-width: 1024px) { 
-  .centres-container, .tallers-container { grid-template-columns: 1fr; gap: 20px; } 
+@media (max-width: 1024px) {
+  .centres-container, .tallers-container { grid-template-columns: 1fr; gap: 20px; }
 }
 </style>

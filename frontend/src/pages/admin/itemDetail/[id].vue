@@ -1,13 +1,13 @@
 <template>
   <div class="page detail-page">
-    <div v-if="pending" class="loading-state">
+    <div v-if="pendent" class="loading-state">
       <div class="spinner"></div>
       <p>Carregant dades del centre...</p>
     </div>
-    
+
     <div v-else-if="centre" class="detail-container">
       <div class="top-nav">
-        <button class="btn-back" @click="$router.back()">
+        <button class="btn-back" @click="tornarEnrere">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           Tornar al llistat
         </button>
@@ -16,24 +16,24 @@
       <div class="main-card">
         <header class="detail-header">
           <div class="header-info">
-            <span class="codi-tag">{{ centre.codi_centre || 'SENSE CODI' }}</span>
+            <span class="codi-tag">{{ codiCentre }}</span>
             <h1>{{ centre.nom_centre }}</h1>
             <p class="location">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               {{ centre.municipi }}
             </p>
           </div>
-          
+
           <div class="detail-tabs">
-            <button 
-              :class="['tab-btn', { active: activeTab === 'info' }]" 
+            <button
+              :class="classeTabInfo"
               @click="activeTab = 'info'"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               Info i Tallers
             </button>
-            <button 
-              :class="['tab-btn', { active: activeTab === 'personal' }]" 
+            <button
+              :class="classeTabPersonal"
               @click="activeTab = 'personal'"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -50,18 +50,18 @@
                 <div class="info-card">
                   <div class="data-row">
                     <span class="label">Email Oficial</span>
-                    <span class="value">{{ centre.email_oficial || 'No disponible' }}</span>
+                    <span class="value">{{ emailOficial }}</span>
                   </div>
                   <div class="data-row">
                     <span class="label">Telèfon</span>
-                    <span class="value">{{ centre.telefon || '—' }}</span>
+                    <span class="value">{{ telefonCentre }}</span>
                   </div>
                 </div>
               </section>
 
               <section class="tallers-section">
-                <h3>Tallers Assignats ({{ centre.tallers?.length || 0 }})</h3>
-                <div v-if="centre.tallers?.length" class="tallers-list">
+                <h3>Tallers Assignats ({{ compteTallers }})</h3>
+                <div v-if="compteTallers > 0" class="tallers-list">
                   <div v-for="taller in centre.tallers" :key="taller.id" class="taller-item">
                     <div class="taller-icon">🎓</div>
                     <div class="taller-text">
@@ -83,15 +83,15 @@
                   <h3>Equip Docent</h3>
                 </div>
                 <div class="p-cards">
-                  <div v-for="profe in centre.professors" :key="profe.id" class="person-card teacher">
+                  <div v-for="profe in llistaProfessors" :key="profe.id" class="person-card teacher">
                     <div class="p-info">
                       <p class="p-name">{{ profe.nom }} {{ profe.cognoms }}</p>
                       <p class="p-role">Professor/a del centre</p>
                     </div>
                   </div>
-                  <div v-if="!centre.professors?.length" class="person-card teacher">
+                  <div v-if="llistaProfessorsLength === 0" class="person-card teacher">
                     <div class="p-info">
-                      <p class="p-name">{{ centre.nom_coordinador || 'Coordinador General' }}</p>
+                      <p class="p-name">{{ nomCoordinador }}</p>
                       <p class="p-role">Responsable de projectes</p>
                     </div>
                   </div>
@@ -109,19 +109,19 @@
                     <span class="stat-label">Alumnes totals</span>
                   </div>
                   <div class="stat-box secondary">
-                    <span class="stat-num">{{ centre.responsables_grups?.length || 0 }}</span>
+                    <span class="stat-num">{{ compteGrups }}</span>
                     <span class="stat-label">Grups actius</span>
                   </div>
                 </div>
 
                 <div class="alumnes-list mt-6">
-                  <div v-for="(grup, index) in centre.responsables_grups" :key="index" class="person-card student">
+                  <div v-for="(grup, index) in llistaGrups" :key="clauGrup(grup, index)" class="person-card student">
                     <div class="p-info">
                       <p class="p-name">Grup de {{ grup.nom }}</p>
                       <p class="p-role">{{ grup.n_alumnes }} alumnes • {{ grup.taller }}</p>
                     </div>
                   </div>
-                  <div v-if="!centre.responsables_grups?.length" class="empty-mini">
+                  <div v-if="llistaGrupsLength === 0" class="empty-mini">
                     No hi ha grups assignats actualment.
                   </div>
                 </div>
@@ -135,19 +135,150 @@
 </template>
 
 <script setup>
-const route = useRoute()
-const activeTab = ref('info') 
-const token = useCookie('authToken').value
-const centreId = route.params.id
+// ======================================
+// Importacions i Composables (Rutes, Cookies, Stores)
+// ======================================
+const route = useRoute();
+const activeTab = ref('info');
+const token = useCookie('authToken').value;
+const centreId = route.params.id;
 
-const { data: centre, pending } = await useFetch(`/api/admin/centres/${centreId}`, {
-  headers: token ? { Authorization: `Bearer ${token}` } : {}
-})
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const respostaFetch = await useFetch('/api/admin/centres/' + centreId, {
+  headers: token ? { Authorization: 'Bearer ' + token } : {}
+});
 
-// Càlcul dinàmic del total d'alumnes sumant els participants de cada grup
-const totalAlumnes = computed(() => {
-  return centre.value?.responsables_grups?.reduce((acc, curr) => acc + curr.n_alumnes, 0) || 0
-})
+const centre = computed(function () {
+  let d = respostaFetch.data;
+  if (d && d.value) {
+    return d.value;
+  }
+  return null;
+});
+
+const pendent = computed(function () {
+  if (respostaFetch.pending) {
+    return respostaFetch.pending.value;
+  }
+  return false;
+});
+
+const codiCentre = computed(function () {
+  if (centre.value && centre.value.codi_centre) {
+    return centre.value.codi_centre;
+  } else {
+    return 'SENSE CODI';
+  }
+});
+
+const emailOficial = computed(function () {
+  if (centre.value && centre.value.email_oficial) {
+    return centre.value.email_oficial;
+  } else {
+    return 'No disponible';
+  }
+});
+
+const telefonCentre = computed(function () {
+  if (centre.value && centre.value.telefon) {
+    return centre.value.telefon;
+  } else {
+    return '—';
+  }
+});
+
+const compteTallers = computed(function () {
+  if (centre.value && centre.value.tallers) {
+    return centre.value.tallers.length;
+  } else {
+    return 0;
+  }
+});
+
+const llistaProfessors = computed(function () {
+  if (centre.value && centre.value.professors) {
+    return centre.value.professors;
+  } else {
+    return [];
+  }
+});
+
+const llistaProfessorsLength = computed(function () {
+  return llistaProfessors.value.length;
+});
+
+const nomCoordinador = computed(function () {
+  if (centre.value && centre.value.nom_coordinador) {
+    return centre.value.nom_coordinador;
+  } else {
+    return 'Coordinador General';
+  }
+});
+
+const llistaGrups = computed(function () {
+  if (centre.value && centre.value.responsables_grups) {
+    return centre.value.responsables_grups;
+  } else {
+    return [];
+  }
+});
+
+const llistaGrupsLength = computed(function () {
+  return llistaGrups.value.length;
+});
+
+const compteGrups = computed(function () {
+  return llistaGrups.value.length;
+});
+
+const totalAlumnes = computed(function () {
+  let grups = centre.value && centre.value.responsables_grups ? centre.value.responsables_grups : [];
+  let suma = 0;
+  for (let i = 0; i < grups.length; i++) {
+    let n = grups[i].n_alumnes;
+    if (n) {
+      suma = suma + n;
+    }
+  }
+  return suma;
+});
+
+const classeTabInfo = computed(function () {
+  if (activeTab.value === 'info') {
+    return 'tab-btn active';
+  } else {
+    return 'tab-btn';
+  }
+});
+
+const classeTabPersonal = computed(function () {
+  if (activeTab.value === 'personal') {
+    return 'tab-btn active';
+  } else {
+    return 'tab-btn';
+  }
+});
+
+// ======================================
+// Lògica i Funcions (Handlers i Lifecycle)
+// ======================================
+
+// A) --- Tornar enrere al llistat ---
+function tornarEnrere() {
+  const r = useRouter();
+  r.back();
+}
+
+// A) --- Clau única per al grup al v-for ---
+function clauGrup(grup, index) {
+  if (grup && grup.nom) {
+    return 'grup-' + String(index) + '-' + grup.nom;
+  } else {
+    return 'grup-' + String(index);
+  }
+}
 </script>
 
 <style scoped>
@@ -157,18 +288,15 @@ const totalAlumnes = computed(() => {
 
 .main-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
 
-/* Capçalera */
 .detail-header { padding: 40px; background: linear-gradient(to right, #ffffff, #f8fafc); border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; }
 .codi-tag { background: #2b63b6; color: white; padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; }
 .detail-header h1 { font-size: 32px; color: #0f172a; margin: 12px 0 8px; font-weight: 800; }
 .location { display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 16px; font-weight: 500; }
 
-/* Tabs */
 .detail-tabs { display: flex; background: #f1f5f9; padding: 6px; border-radius: 14px; gap: 4px; }
 .tab-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; background: transparent; border-radius: 10px; cursor: pointer; color: #64748b; font-weight: 700; font-size: 14px; transition: all 0.2s; }
 .tab-btn.active { background: white; color: #2b63b6; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 
-/* Contingut */
 .tab-content { padding: 40px; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; }
 
@@ -185,7 +313,6 @@ const totalAlumnes = computed(() => {
 .t-name { font-weight: 700; color: #1e293b; margin: 0; }
 .t-status { font-size: 11px; color: #2b63b6; font-weight: 800; text-transform: uppercase; background: #e0f2fe; padding: 2px 8px; border-radius: 4px; }
 
-/* Personal Section */
 .personal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
 .p-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .p-icon { font-size: 24px; }
@@ -207,7 +334,6 @@ const totalAlumnes = computed(() => {
 .mt-6 { margin-top: 24px; }
 .empty-mini { font-size: 14px; color: #94a3b8; font-style: italic; padding: 10px; }
 
-/* Animacions */
 .slide-fade-enter-active { transition: all 0.3s ease-out; }
 .slide-fade-leave-active { transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1); }
 .slide-fade-enter-from { transform: translateX(20px); opacity: 0; }

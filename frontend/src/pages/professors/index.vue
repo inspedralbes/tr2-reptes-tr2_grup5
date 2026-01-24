@@ -5,10 +5,6 @@
   </div>
 </template>
 
-<script setup>
-// Header is handled by the parent layout (profes.vue)
-</script>
-
 <style scoped>
 .page {
   text-align: center;
