@@ -3,6 +3,7 @@
 // ======================================
 
 const db = require("../config/db");
+const bcrypt = require("bcryptjs");
 
 // ======================================
 // Definició de l'Esquema
@@ -47,7 +48,7 @@ const Professor = {
 
       // 4. Creem l'usuari associat al professor
       // Contrasenya per defecte: profesor123
-      const passwordHash = '$2b$10$DLh498C7i9QNbfDZSGxM/4E5ou//zPO3KcIZ5jSS';
+      const passwordHash = await bcrypt.hash('profesor123', 10);
       const rol = 'PROFESSOR';
       const resultUser = await connection.query(`
         INSERT INTO usuaris (email, password, rol)
