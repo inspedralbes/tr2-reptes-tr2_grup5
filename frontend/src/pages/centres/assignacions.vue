@@ -50,6 +50,12 @@
                 </span>
                 <span class="text-xs font-bold text-[#022B3A]">{{ assign.participants }} alumnes</span>
               </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest flex items-center gap-2">
+                  <CalendarDays :size="14" /> DATA TALLER
+                </span>
+                <span class="text-xs font-bold text-[#022B3A]">{{ assign.executionDate }}</span>
+              </div>
               <div class="w-full h-px bg-gradient-to-r from-[#F1F4F9] to-transparent"></div>
               <div class="flex items-center justify-between">
                 <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest flex items-center gap-2">
@@ -157,6 +163,7 @@ const assignments = computed(() => {
     projectLetter: (a.modalitat || '?').charAt(0).toUpperCase(), // "A", "B", "C"
     projectTitle: a.titol,
     location: a.ubicacio || 'Ubicació per confirmar',
+    executionDate: a.data_execucio ? new Date(a.data_execucio).toLocaleDateString('es-ES') : 'Data pendent',
     participants: a.num_participants || 0,
     docentName: a.docent_nom || 'Docent no assignat',
     docentEmail: a.docent_email || '—',
