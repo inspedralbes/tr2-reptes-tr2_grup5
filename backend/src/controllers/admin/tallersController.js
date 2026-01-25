@@ -24,7 +24,7 @@ const SECTORS_VALID = [
 // A) --- Obtenir tots els tallers ---
 const getAllTallers = async (req, res) => {
   try {
-    // 1. Obtenim el filtre de la query; si no ve, per defecte 'active'
+    // 1. Obtenim el filtre de la query (tot i que el model ja no filtra per 'actiu', ho mantenim per compatibilitat d'API)
     let filter = req.query.filter;
     if (!filter) {
       filter = "active";
@@ -68,6 +68,8 @@ const createTaller = async (req, res) => {
   const places_maximes = req.body.places_maximes;
   const adreca = req.body.adreca;
   const ubicacio = req.body.ubicacio;
+  // AFEGIT: data_execucio
+  const data_execucio = req.body.data_execucio;
 
   if (!titol || !modalitat || !sector) {
     return res.status(400).json({ message: "El títol, el sector i la modalitat són obligatoris" });
@@ -100,7 +102,8 @@ const createTaller = async (req, res) => {
       trimestres_disponibles: trimestres_disponibles,
       places_maximes: capacitat,
       adreca: adreca,
-      ubicacio: ubicacio
+      ubicacio: ubicacio,
+      data_execucio: data_execucio
     });
 
     // 4. Registrem el log d'auditoria
@@ -132,7 +135,7 @@ const createTaller = async (req, res) => {
 const updateTaller = async (req, res) => {
   // 1. Obtenim l'ID i les dades noves
   const id = req.params.id;
-  const newData = req.body;
+  const newData = req.body; // Això ja inclou data_execucio
 
   try {
     // 2. Obtenim les dades antigues
@@ -171,7 +174,7 @@ const updateTaller = async (req, res) => {
   }
 };
 
-// E) --- Eliminar o arxivar un taller ---
+// E) --- Eliminar un taller ---
 const deleteTaller = async (req, res) => {
   // 1. Obtenim l'ID dels paràmetres
   const id = req.params.id;
@@ -183,10 +186,11 @@ const deleteTaller = async (req, res) => {
       return res.status(404).json({ message: "Taller no trobat" });
     }
 
+    // 3. Comprovem si té dependències
     const hasDeps = await Taller.hasDependencies(id);
 
     if (hasDeps) {
-      // 3. Si té dependències, arxivem en lloc d'eliminar
+      // 4. Si té dependències, arxivem en lloc d'eliminar
       await Taller.archive(id);
       let usuariIdLog = null;
       if (req.user) {
@@ -208,8 +212,9 @@ const deleteTaller = async (req, res) => {
       return res.json({ message: "Taller arxivat correctament (té peticions associades).", archived: true });
     }
 
-    // 4. Si no té dependències, eliminem
+    // 5. Si no té dependències, eliminem
     await Taller.delete(id);
+    
     let usuariIdLog = null;
     if (req.user) {
       usuariIdLog = req.user.id;

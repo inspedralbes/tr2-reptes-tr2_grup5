@@ -30,6 +30,7 @@
             <div class="extra-info">
               <span><strong>Places:</strong> {{ taller.places_maximes }}</span>
               <span><strong>Trimestres:</strong> {{ taller.trimestres_disponibles }}</span>
+              <span v-if="taller.data_execucio"><strong>📅 Data prevista:</strong> {{ formatDate(taller.data_execucio) }}</span>
               <span v-if="taller.adreca"><strong>📍 Adreça:</strong> {{ taller.adreca }}</span>
             </div>
           </div>

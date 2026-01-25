@@ -90,6 +90,10 @@
                 <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Trimestres</span>
                 <span class="text-xs font-bold text-[#022B3A]">{{ trimestresText(taller) }}</span>
               </div>
+              <div class="flex flex-col items-end min-w-[80px]">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Execució</span>
+                <span class="text-xs font-bold text-[#022B3A]">{{ formatDate(taller.data_execucio) }}</span>
+              </div>
             </div>
 
             <div class="flex items-center justify-end gap-3 md:border-l md:border-[#F1F4F9] md:pl-6">
@@ -151,6 +155,12 @@
                     <span class="text-[9px] font-black uppercase tracking-widest">RESTANTS</span>
                   </div>
                   <span class="text-[12px] font-black text-[#022B3A]">{{ placesRestants(taller) }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2.5 text-[#B8C0CC]">
+                    <span class="text-[9px] font-black uppercase tracking-widest">DATA PREVISTA</span>
+                  </div>
+                  <span class="text-[12px] font-black text-[#022B3A]">{{ formatDate(taller.data_execucio) }}</span>
                 </div>
               </div>
 
@@ -417,6 +427,13 @@ async function deleteTaller(id) {
 // A) --- Navegar a l'edició del taller ---
 function editTaller(id) {
   navigateTo('/admin/tallers/editTallers?id=' + id);
+}
+
+// A) --- Formata la data "YYYY-MM-DD" a "DD/MM/YYYY" ---
+function formatDate(dateStr) {
+  if (!dateStr) return 'Pendent';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-ES');
 }
 </script>
 

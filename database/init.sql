@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS tallers (
     places_restants INT DEFAULT 12,
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
-    estat_taller ENUM('inscripcio', 'actiu', 'inactiu', 'confirmacio') DEFAULT 'inactiu',
-    data_execucio DATE DEFAULT NULL
+    data_execucio DATE NOT NULL,
+    actiu TINYINT(1) DEFAULT 1
 
 ) ENGINE=InnoDB;
 
