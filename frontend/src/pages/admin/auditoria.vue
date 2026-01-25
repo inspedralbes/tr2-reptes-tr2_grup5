@@ -13,6 +13,8 @@
     </div>
 
     <template v-else>
+
+
       <!-- Control Bar -->
       <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="relative flex-1 max-w-lg group w-full ml-1">

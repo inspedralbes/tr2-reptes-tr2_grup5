@@ -7,13 +7,12 @@
       <!-- Left: Title & Subtitle -->
       <div>
         <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
-          {{ pageContext.title }}
+          Calendari de <span class="text-[#1F7A8C]">Sessions</span>
         </h1>
         <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
-          {{ pageContext.subtitle }}
+          Visualització mensual de les sessions i tallers programats.
         </p>
       </div>
-
       <!-- Right: Navigation & Action -->
       <div class="flex flex-col sm:flex-row items-center gap-4">
          

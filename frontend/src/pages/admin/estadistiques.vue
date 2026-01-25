@@ -1,15 +1,14 @@
 <template>
   <div class="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
     
-    <!-- 0. PAGE HEADER (Large Title) -->
-    <div class="mb-2">
-      <div class="flex items-center gap-2 mb-1 px-1">
-        <span class="text-[9px] font-black text-[#022B3A]/20 uppercase tracking-[0.3em]">ENGINY / STATS</span>
-      </div>
-      <h1 class="text-5xl font-black text-[#022B3A] tracking-tighter leading-none">
-        Anàlisi de <span class="text-[#1F7A8C]">Estadístiques</span>
+
+
+    <!-- HEADER -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+        Anàlisi d'<span class="text-[#1F7A8C]">Estadístiques</span>
       </h1>
-      <p class="text-[#022B3A]/40 text-[11px] font-bold uppercase tracking-widest mt-3 px-1">
+      <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
         Seguiment del rendiment i impacte del projecte.
       </p>
     </div>

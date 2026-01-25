@@ -1,15 +1,7 @@
 <template>
   <div class="admin-main-view">
-    <header class="admin-header">
-      <div class="title-group">
-        <h1 class="main-title">Gestió del Projecte</h1>
-        <div class="title-underline"></div>
-      </div>
+    <!-- Header removed as per user request -->
 
-      <div class="admin-meta d-none d-md-block">
-        <span class="badge-date">{{ currentDate }}</span>
-      </div>
-    </header>
 
     <section class="admin-body">
       <NuxtPage />

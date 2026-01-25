@@ -1,6 +1,18 @@
 <template>
   <section class="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto px-6 md:px-8 py-6">
     
+
+
+    <!-- HEADER -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+        Catàleg de <span class="text-[#1F7A8C]">Tallers</span>
+      </h1>
+      <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+        Configuració de l'oferta formativa i els seus continguts.
+      </p>
+    </div>
+
     <!-- 1. Barra de control (Cerca, visualització, Crear Taller) -->
     <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
       

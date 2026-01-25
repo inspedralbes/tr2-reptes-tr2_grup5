@@ -4,27 +4,12 @@
     <!-- 1. Header Section -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
-        <div class="flex items-center gap-2 mb-2">
-           <ShieldAlert class="text-[#fb6107]" :size="20" />
-           <span class="text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.2em]">Administració</span>
-        </div>
         <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
-          Validació <span class="text-[#1F7A8C]">Registres</span>
+          Validació de <span class="text-[#1F7A8C]">Registres</span>
         </h1>
-        <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em] max-w-lg">
+        <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
           Gestiona les sol·licituds d'alta de nous centres educatius a la plataforma.
         </p>
-      </div>
-      
-      <!-- Date Widget -->
-      <div class="bg-white px-5 py-3 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex items-center gap-3">
-         <div class="p-2 bg-[#E1E5F2]/30 rounded-lg text-[#022B3A]/60">
-            <Calendar :size="16" />
-         </div>
-         <div class="text-right">
-            <p class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Data d'avui</p>
-            <p class="text-xs font-bold text-[#022B3A] capitalize">{{ currentDate }}</p>
-         </div>
       </div>
     </div>
 

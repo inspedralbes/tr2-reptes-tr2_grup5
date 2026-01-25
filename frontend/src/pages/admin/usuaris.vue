@@ -1,6 +1,18 @@
 <template>
   <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500" :class="classePageExit">
     
+
+
+    <!-- HEADER -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+        Gestió d'<span class="text-[#1F7A8C]">Usuaris</span>
+      </h1>
+      <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+        Administració de centres educatius i usuaris del sistema.
+      </p>
+    </div>
+
     <!-- 1. CONTROL BAR -->
     <div class="bg-white p-2 rounded-xl border border-[#BFDBF7] shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
       
