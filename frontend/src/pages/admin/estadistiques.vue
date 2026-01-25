@@ -140,20 +140,7 @@
 
     </div>
 
-    <!-- Final Insight Footer -->
-    <div class="p-10 bg-white border border-[#E1E5F2]/60 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-       <div class="flex items-center gap-4 text-[#022B3A]/50 text-xs font-bold">
-          <div class="p-3 bg-[#E1E5F2]/40 rounded-2xl">
-             <PieChart :size="20" />
-          </div>
-          <p class="max-w-md leading-relaxed">
-             Les dades s'actualitzen automàticament cada nit segons els registres de sessions confirmades als centres.
-          </p>
-       </div>
-       <button class="bg-[#022B3A] text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-[#022B3A]/10 hover:scale-105 hover:bg-[#1F7A8C] transition-all flex items-center gap-3">
-          Descarregar Informe Global <ArrowUpRight :size="16" />
-       </button>
-    </div>
+
   </div>
 </template>
 
