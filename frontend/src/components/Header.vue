@@ -91,7 +91,8 @@ import {
   List,
   GraduationCap,
   BookOpen,
-  LogOut
+  LogOut,
+  Calendar
 } from 'lucide-vue-next';
 
 const header = useHeaderStore();
@@ -168,6 +169,7 @@ function isActive(btn) {
 function getIcon(btn) {
   const r = (btn && btn.route) || '';
   if (r === '/admin/tallers') return Library;
+  if (r === '/admin/calendari') return Calendar;
   if (r === '/admin/peticions') return MessageSquare;
   if (r === '/admin/assignacions') return List;
   if (r === '/admin/usuaris') return Users;

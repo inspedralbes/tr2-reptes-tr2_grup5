@@ -171,4 +171,15 @@ CREATE TABLE IF NOT EXISTS solicituds_registre (
     data_enviament TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- 22. Taula: configuracio
+CREATE TABLE IF NOT EXISTS configuracio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    clau VARCHAR(50) UNIQUE NOT NULL,
+    valor VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO configuracio (clau, valor) VALUES
+('enrollment_start', '2025-01-01'),
+('enrollment_end', '2025-01-31');
+
 SET FOREIGN_KEY_CHECKS = 1;
