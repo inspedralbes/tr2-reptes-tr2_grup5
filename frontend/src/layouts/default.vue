@@ -28,6 +28,19 @@ onMounted(function () {
     s.setHeaderAdmin();
   }
 });
+
+const getIcon = (label) => {
+  const emojis = { 
+    'Catàleg': '📂',
+    'Calendari': '🗓️',
+    'Assignacions': '📅', 
+    'Usuaris/Centres': '👥', 
+    'Estadístiques': '📈', 
+    'Auditoria': '🛡️',
+    'Peticions': '📝' 
+  }
+  return emojis[label] || '🔹';
+};
 </script>
 
 <style scoped>

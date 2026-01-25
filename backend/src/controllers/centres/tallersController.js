@@ -5,6 +5,7 @@
 const db = require("../../config/db");
 const AssignacioTaller = require("../../models/AssignacioTaller");
 const Centre = require("../../models/Centre");
+const Config = require("../../models/Config");
 
 // ======================================
 // Definició de l'Esquema
@@ -19,11 +20,40 @@ const Centre = require("../../models/Centre");
 // A) --- Obtenir tots els tallers disponibles per a centres ---
 const getAllTallersDisponibles = async (req, res) => {
   try {
-    // 1. Executem la consulta
+    // 1. Validar Període d'Inscripció
+    const startConfig = await Config.get('enrollment_start');
+    const endConfig = await Config.get('enrollment_end');
+    const manualConfig = await Config.get('periode_inscripcio');
+
+    let isEnrollmentOpen = manualConfig ? manualConfig.valor === 'obert' : false;
+    
+    if (startConfig && endConfig && startConfig.valor && endConfig.valor) {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        const start = new Date(startConfig.valor);
+        const end = new Date(endConfig.valor);
+        
+        if (now >= start && now <= end) {
+            isEnrollmentOpen = true;
+        } else if (now < start || now > end) {
+            // Respectam dates si estan definides
+        }
+    }
+
+    // 2. Executem la consulta (busquem actius)
     const result = await db.query("SELECT * FROM tallers WHERE actiu = 1");
     const rows = result[0];
 
-    // 2. Retornem les files
+    // 3. Transformar estat si la inscripció està oberta
+    if (isEnrollmentOpen) {
+        const modifiedRows = rows.map(t => ({
+            ...t,
+            estat_taller: 'inscripcio' 
+        }));
+        return res.json(modifiedRows);
+    }
+    
+    // 4. Retornem les files normals
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });

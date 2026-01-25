@@ -4,6 +4,7 @@
 
 const Peticio = require("../../models/Peticio");
 const Centre = require("../../models/Centre");
+const Config = require("../../models/Config"); // Import Config model
 
 // ======================================
 // Definició de l'Esquema
@@ -19,6 +20,39 @@ const peticionsController = {
   // A) --- Crear una nova sol·licitud de tallers ---
   createPeticio: async (req, res) => {
     try {
+      // 0. Validar Període d'Inscripció
+      const config = await Config.get('periode_inscripcio');
+      const isEnrollmentOpen = config ? config.valor === 'obert' : false;
+      
+      // NOTA: Si vols ser estricte també amb dates aquí, pots replicar la lògica del tallersController
+      // Per ara, usem només la config manual o confiem que el frontend ja filtra.
+      // D'altra banda, si el frontend envia la petició, normalment assumim que es pot.
+      // Per consistència amb el missatge d'error de l'altre branca:
+      if (!isEnrollmentOpen) {
+         // Comprovem dates també per seguretat si la config manual falla
+         const startConfig = await Config.get('enrollment_start');
+         const endConfig = await Config.get('enrollment_end');
+         if (startConfig && endConfig && startConfig.valor && endConfig.valor) {
+            const now = new Date();
+            now.setHours(0,0,0,0);
+            const start = new Date(startConfig.valor);
+            const end = new Date(endConfig.valor);
+            if (now >= start && now <= end) {
+               // Estem en dates, així que permetem-ho encara que 'periode_inscripcio' no digui 'obert' explícitament
+               // (O actualitzem isEnrollmentOpen a true)
+            } else {
+               return res.status(403).json({ 
+                 message: "Aquests dies no hi han tallers per presentar, has d'esperar a que obrin les inscripcions." 
+               });
+            }
+         } else {
+             // Si no hi ha dates i manual està tancat -> Error
+             return res.status(403).json({ 
+                 message: "Aquests dies no hi han tallers per presentar, has d'esperar a que obrin les inscripcions." 
+             });
+         }
+      }
+
       // 1. Obtenim l'ID de l'usuari des del token JWT
       const user_id = req.user.id;
       const tallers = req.body.tallers;

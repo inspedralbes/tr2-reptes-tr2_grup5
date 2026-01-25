@@ -68,6 +68,7 @@ const createTaller = async (req, res) => {
   const places_maximes = req.body.places_maximes;
   const adreca = req.body.adreca;
   const ubicacio = req.body.ubicacio;
+  const data_execucio = req.body.data_execucio;
 
   if (!titol || !modalitat || !sector) {
     return res.status(400).json({ message: "El títol, el sector i la modalitat són obligatoris" });
@@ -99,8 +100,9 @@ const createTaller = async (req, res) => {
       modalitat: modalitat,
       trimestres_disponibles: trimestres_disponibles,
       places_maximes: capacitat,
-      adreca: adreca,
-      ubicacio: ubicacio
+      adreca,
+      ubicacio,
+      data_execucio
     });
 
     // 4. Registrem el log d'auditoria

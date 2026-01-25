@@ -193,6 +193,11 @@
               {{ textBoto }}
             </button>
           </div>
+
+          <div class="form-group">
+            <label>Data Prevista d'Execució</label>
+            <input type="date" v-model="form.data_execucio" />
+          </div>
         </div>
       </form>
     </div>
@@ -217,14 +222,14 @@
 
 <script setup>
 import {
-  Save,
-  Info,
   FileText,
   Settings,
   Users,
   Calendar,
   MapPin,
-  Building2
+  Building2,
+  Save,
+  Info
 } from 'lucide-vue-next';
 
 // ======================================
@@ -234,15 +239,12 @@ const header = useHeaderStore();
 header.setHeaderAdmin();
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Constants i Dades Estàtiques
 // ======================================
-const loading = ref(false);
-const showSuccessModal = ref(false);
-
 const sectors = [
-  'Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció',
-  'Comerç i Turisme', 'Transport', 'Hoteleria', 'Informació i Comunicació',
-  'Financer', 'Immobiliari', 'Professional'
+  "Agroalimentari", "Manufacturer", "Energia i Aigua", "Construcció",
+  "Comerç i Turisme", "Transport", "Hoteleria", "Informació i Comunicació",
+  "Financer", "Immobiliari", "Professional"
 ];
 
 const modalities = [
@@ -253,7 +255,13 @@ const modalities = [
 
 const quarters = ['1r', '2n', '3r'];
 
-const form = ref({
+// ======================================
+// Estat Reactiu i Refs (Variables i Formularis)
+// ======================================
+const loading = ref(false);
+const showSuccessModal = ref(false);
+
+const form = reactive({
   titol: '',
   descripcio: '',
   sector: '',
@@ -261,24 +269,21 @@ const form = ref({
   places_maximes: 12,
   trimestres: [],
   ubicacio: '',
-  adreca: ''
+  adreca: '',
+  data_execucio: ''
 });
 
-const duradaCalculada = computed(function () {
-  if (form.value.modalitat === 'A' || form.value.modalitat === 'B') {
-    return '20 hores (10 sessions de 2 hores)';
-  }
-  if (form.value.modalitat === 'C') {
-    return '30 hores (10 sessions de 3 hores)';
-  }
-  return 'Selecciona una modalitat';
+// ======================================
+// Computed Properties (Càlculs derivats)
+// ======================================
+const duradaCalculada = computed(() => {
+  if (['A', 'B'].includes(form.modalitat)) return "20 hores (10 sessions de 2 hores)";
+  if (form.modalitat === 'C') return "30 hores (10 sessions de 3 hores)";
+  return "Selecciona una modalitat";
 });
 
-const textBoto = computed(function () {
-  if (loading.value) {
-    return 'Creant Taller...';
-  }
-  return 'Crear Taller';
+const textBoto = computed(() => {
+  return loading.value ? 'Creant Taller...' : 'Crear Taller';
 });
 
 // ======================================
@@ -290,74 +295,59 @@ function cancelar() {
   navigateTo('/admin/tallers');
 }
 
-// A) --- Enviar el formulari de crear taller ---
-async function submitForm() {
-  if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
-    alert('Si us plau, omple tots els camps obligatoris (*)');
+// B) --- Tancar el modal i navegar al llistat ---
+function closeModal() {
+  showSuccessModal.value = false;
+  navigateTo('/admin/tallers');
+}
+
+// C) --- Enviar el formulari de crear taller ---
+const submitForm = async () => {
+  // Validacions Frontend
+  if (!form.titol || !form.sector || !form.modalitat) {
+    alert("Si us plau, omple tots els camps obligatoris (*)");
     return;
   }
-  if (form.value.trimestres.length === 0) {
-    alert('Has de seleccionar almenys un trimestre.');
+  if (form.trimestres.length === 0) {
+    alert("Has de seleccionar almenys un trimestre.");
     return;
   }
-  if (form.value.places_maximes < 1) {
-    alert('Les places màximes han de ser com a mínim 1.');
+  if (form.places_maximes < 1) {
+    alert("Les places màximes han de ser com a mínim 1.");
     return;
   }
 
   loading.value = true;
-
+  
   try {
-    let trimestresStr = form.value.trimestres.join(', ');
-    let payload = {};
-    payload.titol = form.value.titol;
-    payload.descripcio = form.value.descripcio;
-    payload.sector = form.value.sector;
-    payload.modalitat = form.value.modalitat;
-    payload.places_maximes = form.value.places_maximes;
-    payload.trimestres_disponibles = trimestresStr;
-    payload.ubicacio = form.value.ubicacio;
-    payload.adreca = form.value.adreca;
+    const payload = {
+      ...form,
+      trimestres_disponibles: form.trimestres.join(', ')
+    };
 
-    let token = useCookie('authToken').value;
+    // Use relative path for proxy
     await $fetch('/api/admin/tallers', {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer ' + token
+        'Authorization': 'Bearer ' + useCookie('authToken').value
       },
       body: payload
     });
 
     showSuccessModal.value = true;
-
-    form.value.titol = '';
-    form.value.descripcio = '';
-    form.value.sector = '';
-    form.value.modalitat = '';
-    form.value.places_maximes = 12;
-    form.value.trimestres = [];
-    form.value.ubicacio = '';
-    form.value.adreca = '';
+    
+    // Reset form
+    Object.assign(form, {
+      titol: '', descripcio: '', sector: '', modalitat: '',
+      places_maximes: 12, trimestres: [], ubicacio: '', adreca: '', data_execucio: ''
+    });
+    
   } catch (err) {
-    let missatge = 'Error al crear el taller: ';
-    if (err && err.response && err.response._data && err.response._data.message) {
-      missatge = missatge + err.response._data.message;
-    } else if (err && err.message) {
-      missatge = missatge + err.message;
-    } else {
-      missatge = missatge + 'Error desconegut';
-    }
-    alert(missatge);
+    alert("Error al crear el taller: " + (err.response?._data?.message || err.message));
   } finally {
     loading.value = false;
   }
-}
-
-// A) --- Tancar el modal i navegar al llistat ---
-function closeModal() {
-  showSuccessModal.value = false;
-  navigateTo('/admin/tallers');
-}
+};
 </script>
 
 <style scoped>

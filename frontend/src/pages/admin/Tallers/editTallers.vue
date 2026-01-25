@@ -285,7 +285,8 @@ const form = ref({
   trimestres: [],
   ubicacio: '',
   adreca: '',
-  actiu: 1
+  actiu: 1,
+  data_execucio: ''
 });
 
 const idTaller = computed(function () {
@@ -348,6 +349,12 @@ watch(
       form.value.ubicacio = nou.ubicacio || '';
       form.value.adreca = nou.adreca || '';
       form.value.actiu = nou.actiu !== undefined ? nou.actiu : 1;
+      
+      // Data execució
+      if (nou.data_execucio) {
+        form.value.data_execucio = new Date(nou.data_execucio).toISOString().split('T')[0];
+      }
+
       // Convertir trimestres_disponibles (string) a array per als checkboxes
       if (nou.trimestres_disponibles) {
         const parts = String(nou.trimestres_disponibles).split(',');
@@ -399,6 +406,7 @@ async function handleUpdate() {
     payload.ubicacio = form.value.ubicacio;
     payload.adreca = form.value.adreca;
     payload.actiu = form.value.actiu;
+    payload.data_execucio = form.value.data_execucio;
 
     await $fetch('/api/admin/tallers/' + route.query.id, {
       method: 'PUT',
