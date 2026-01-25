@@ -7,6 +7,15 @@
           Sessió iniciada com a: <strong>{{ centre.nom_centre }}</strong>
         </div>
         <p class="subtitle">Selecciona els tallers que t'interessen per al teu centre.</p>
+        
+        <div v-if="centre && centre.config" class="info-period">
+          <p v-if="isEnrollmentOpen" class="text-success">
+            ✅ Període d'inscripció obert: {{ formatDate(centre.config.enrollment_start) }} - {{ formatDate(centre.config.enrollment_end) }}
+          </p>
+          <p v-else class="text-danger">
+            ⛔ Període d'inscripció tancat. (Obert: {{ formatDate(centre.config.enrollment_start) }} - {{ formatDate(centre.config.enrollment_end) }})
+          </p>
+        </div>
       </header>
 
       <div class="tallers-grid">
@@ -162,6 +171,40 @@ const form = ref({
   tallers: []
 });
 
+const isEnrollmentOpen = computed(() => {
+  if (!centre.value || !centre.value.config) return false;
+  
+  const now = new Date();
+  
+  // Funció per parsejar dates "YYYY-MM-DD" directament a hora local (00:00:00)
+  // Evitem problemes de Timezone que té new Date("YYYY-MM-DD") que ho tracta com UTC
+  const parseLocal = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]); // Any, Mes (0-index), Dia
+  };
+
+  const start = parseLocal(centre.value.config.enrollment_start);
+  const end = parseLocal(centre.value.config.enrollment_end);
+  
+  if (!start || !end) return false;
+
+  // Ajustem l'hora final per incloure tot el dia final (23:59:59.999)
+  end.setHours(23, 59, 59, 999);
+  
+  // Debug (opcional, per veure a consola si cal)
+  // console.log("Now:", now, "Start:", start, "End:", end);
+
+  return now >= start && now <= end;
+});
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-ES');
+}
+
 const textBotoSubmit = computed(function () {
   if (submitting.value) {
     return 'Enviant...';
@@ -238,6 +281,12 @@ function isSelected(id) {
 
 // A) --- Afegir o treure un taller de la selecció ---
 function toggleTaller(taller) {
+  // Check date first
+  if (!isSelected(taller.id) && !isEnrollmentOpen.value) {
+    alert("El període d'inscripció està tancat.");
+    return;
+  }
+
   let index = -1;
   let arr = selectedTallers.value;
   for (let i = 0; i < arr.length; i++) {
@@ -323,6 +372,8 @@ function classeTallerCard(taller) {
 function classeBtnSelect(taller) {
   if (isSelected(taller.id)) {
     return 'btn-select active';
+  } else if (!isEnrollmentOpen.value) {
+    return 'btn-select disabled';
   } else {
     return 'btn-select';
   }
@@ -332,6 +383,8 @@ function classeBtnSelect(taller) {
 function textBotoSelect(taller) {
   if (isSelected(taller.id)) {
     return '✓ Seleccionat';
+  } else if (!isEnrollmentOpen.value) {
+    return '⛔ Tancat';
   } else {
     return '+ Afegir';
   }
@@ -376,6 +429,7 @@ onMounted(fetchData);
 .extra-info { font-size: 0.85rem; color: #666; margin-top: 1rem; display: flex; flex-direction: column; gap: 4px; }
 .btn-select { width: 100%; margin-top: 1rem; padding: 0.5rem; cursor: pointer; border: 1px solid #3b82f6; background: white; color: #3b82f6; border-radius: 4px; }
 .btn-select.active { background: #3b82f6; color: white; }
+.btn-select.disabled { border-color: #ccc; color: #999; cursor: not-allowed; background: #f9f9f9; }
 .footer-actions { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 1rem; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
 .btn-primary, .btn-submit { background: #3b82f6; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 4px; cursor: pointer; }
 .form-section { margin-bottom: 2rem; }
@@ -402,4 +456,7 @@ onMounted(fetchData);
 .alert { padding: 1rem; margin-top: 1rem; border-radius: 4px; }
 .success { background: #dcfce7; color: #166534; }
 .error { background: #fee2e2; color: #b91c1c; }
+.info-period { margin: 1rem 0; padding: 1rem; background: #f8fafc; border-radius: 6px; border-left: 4px solid #3b82f6; }
+.text-success { color: #166534; font-weight: bold; }
+.text-danger { color: #b91c1c; font-weight: bold; }
 </style>
