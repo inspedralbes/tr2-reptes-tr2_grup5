@@ -35,27 +35,7 @@ INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponible
 ('Mecànica de Vehicles', 'Manteniment bàsic de motors elèctrics.', 'Manufacturer', 'A', '1r, 3r', 12, 12, 'C/ Motor 5', 'Taller 4'),
 ('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 12, 'C/ Estil 22', 'Aula de Disseny');
 
--- 6. TAULA: peticions
-INSERT INTO peticions (id, centre_id) VALUES
-(1, 1);
-
--- 7. TAULA: peticio_detalls
-INSERT INTO peticio_detalls (id, peticio_id, taller_id, trimestre, num_participants, prioritat, es_preferencia_referent, estat, descripcio) VALUES
-(1, 1, 1, '2n', 4, 2, 1, 'ASSIGNADA', 'Comentari de prova per al taller de Robòtica i IA'),
-(2, 1, 2, '2n', 2, 6, 0, 'ASSIGNADA', 'Comentari de prova per al taller de Cuina Creativa');
-
--- 11. TAULA: referents_assignats
-INSERT INTO referents_assignats (peticio_detall_id, professor_id) VALUES
-(1, 1),
-(2, 3);
-
 -- 12. TAULA: sessions
-INSERT INTO sessions (peticio_detall_id, ordre, data) VALUES
-(1, 1, '2026-01-15'), (1, 2, '2026-01-22'), (1, 3, '2026-01-29'),
-(1, 4, '2026-02-05'), (1, 5, '2026-02-12'), (1, 6, '2026-02-19'),
-(1, 7, '2026-02-26'), (1, 8, '2026-03-05'), (1, 9, '2026-03-12'),
-(1, 10, '2026-03-19');
-
 -- 14. TAULA: checklist_config
 INSERT INTO checklist_config (id, titol_pas, obligatori) VALUES
 (1, 'Pujada de documents (Acord Pedagògic, Drets Imatge)', 1),
