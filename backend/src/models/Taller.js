@@ -142,16 +142,20 @@ const Taller = {
     if (!ubicacio) {
       ubicacio = null;
     }
+    let data_execucio = data.data_execucio;
+    if (!data_execucio) {
+      data_execucio = null;
+    }
     
     // 2. Executem la consulta SQL per inserir el taller
     const sql = `
       INSERT INTO tallers 
-      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, actiu) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, data_execucio, actiu) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `;
     const result = await db.query(sql, [
       titol, descripcio, sector, modalitat, trimestres_disponibles,
-      places_maximes, places_maximes, adreca, ubicacio
+      places_maximes, places_maximes, adreca, ubicacio, data_execucio
     ]);
     
     // 3. Obtenim l'ID del registre inserit
@@ -172,15 +176,16 @@ const Taller = {
     const places_maximes = data.places_maximes;
     const adreca = data.adreca;
     const ubicacio = data.ubicacio;
+    const data_execucio = data.data_execucio;
     const actiu = data.actiu;
     
     // 2. Executem la consulta SQL per actualitzar el taller
     const sql = `
       UPDATE tallers SET titol = ?, descripcio = ?, sector = ?, modalitat = ?, 
-      trimestres_disponibles = ?, places_maximes = ?, adreca = ?, ubicacio = ?,
+      trimestres_disponibles = ?, places_maximes = ?, adreca = ?, ubicacio = ?, data_execucio = ?,
       actiu = COALESCE(?, actiu) WHERE id = ?
     `;
-    const result = await db.query(sql, [titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, actiu, id]);
+    const result = await db.query(sql, [titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, adreca, ubicacio, data_execucio, actiu, id]);
     
     // 3. Comprovem si s'ha actualitzat alguna fila
     const affectedRows = result[0].affectedRows;

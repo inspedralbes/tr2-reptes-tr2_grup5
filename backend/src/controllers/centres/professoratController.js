@@ -4,6 +4,7 @@
 
 const Professor = require("../../models/Professor");
 const Centre = require("../../models/Centre");
+const User = require("../../models/User");
 
 // ======================================
 // Definició de l'Esquema
@@ -143,8 +144,11 @@ const professoratController = {
                 return res.status(403).json({ message: "No tens permís per eliminar aquest professor." });
             }
 
-            // 4. Executem l'esborrat (professor i usuari)
-            await Professor.delete(prof_id, professor.user_id);
+            // 4. Executem l'esborrat (professor, usuari i log)
+            const result = await User.deleteProfessor(prof_id, req.user.id);
+            if (!result.success) {
+                return res.status(404).json({ message: result.message });
+            }
 
             return res.json({ message: "Professor eliminat correctament." });
 

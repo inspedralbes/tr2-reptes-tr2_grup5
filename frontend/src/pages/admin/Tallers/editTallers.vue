@@ -155,6 +155,22 @@
               </div>
             </div>
 
+            <!-- Data d'Execució -->
+            <div class="space-y-4">
+               <label for="data_execucio" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+                 <Calendar :size="14" /> Data d'Execució Prevista (Opcional)
+               </label>
+               <input 
+                 id="data_execucio"
+                 v-model="form.data_execucio"
+                 type="date"
+                 class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
+               />
+               <p class="text-[9px] font-bold text-[#022B3A]/40 mt-1 italic">
+                 Deixa en blanc si no hi ha data confirmada.
+               </p>
+            </div>
+
             <!-- Ubicació -->
             <div class="space-y-4">
               <label for="ubicacio" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
@@ -181,27 +197,7 @@
                 placeholder="Carrer, número, ciutat..."
                 class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
               />
-            </div>
-
-            <!-- Taller Actiu (només en edició) -->
-            <div class="space-y-4">
-              <span class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
-                <Power :size="14" /> Estat del taller
-              </span>
-              <label class="flex items-center gap-4 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  v-model="form.actiu" 
-                  :true-value="1" 
-                  :false-value="0"
-                  class="peer sr-only" 
-                />
-                <div class="w-12 h-7 rounded-full bg-[#E1E5F2]/60 border border-[#BFDBF7] peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] transition-all relative">
-                  <div class="absolute w-5 h-5 rounded-full bg-white shadow top-1 left-1 transition-all peer-checked:left-6 peer-checked:bg-white"></div>
-                </div>
-                <span class="text-sm font-bold text-[#022B3A]">Taller Actiu</span>
-              </label>
-            </div>
+            </div> 
           </div>
         </section>
 
@@ -285,7 +281,7 @@ const form = ref({
   trimestres: [],
   ubicacio: '',
   adreca: '',
-  actiu: 1
+  data_execucio: ''
 });
 
 const idTaller = computed(function () {
@@ -347,7 +343,7 @@ watch(
       form.value.places_maximes = nou.places_maximes !== undefined ? nou.places_maximes : 12;
       form.value.ubicacio = nou.ubicacio || '';
       form.value.adreca = nou.adreca || '';
-      form.value.actiu = nou.actiu !== undefined ? nou.actiu : 1;
+      form.value.data_execucio = nou.data_execucio || '';
       // Convertir trimestres_disponibles (string) a array per als checkboxes
       if (nou.trimestres_disponibles) {
         const parts = String(nou.trimestres_disponibles).split(',');
@@ -361,7 +357,8 @@ watch(
         form.value.trimestres = [];
       }
     }
-  }
+  },
+  { immediate: true }
 );
 
 // ======================================
@@ -398,7 +395,7 @@ async function handleUpdate() {
     payload.trimestres_disponibles = trimestresStr;
     payload.ubicacio = form.value.ubicacio;
     payload.adreca = form.value.adreca;
-    payload.actiu = form.value.actiu;
+    payload.data_execucio = form.value.data_execucio ? form.value.data_execucio : null;
 
     await $fetch('/api/admin/tallers/' + route.query.id, {
       method: 'PUT',

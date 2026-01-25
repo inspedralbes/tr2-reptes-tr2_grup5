@@ -88,23 +88,6 @@
                         required
                       />
                    </div>
-                   
-                   <!-- Contrasenya (form.password) -->
-                   <div class="md:col-span-2 space-y-2">
-                      <label for="password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya (Compte del Centre)</label>
-                      <div class="relative group">
-                         <Lock :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
-                         <input 
-                           id="password"
-                           v-model="form.password"
-                           type="password"
-                           minlength="6"
-                           class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
-                           placeholder="••••••••"
-                           required
-                         />
-                      </div>
-                   </div>
 
                    <!-- Adreça (form.adreca) -->
                    <div class="md:col-span-2 space-y-2">
@@ -210,6 +193,23 @@
                         placeholder="coordinador@centre.cat"
                         required
                       />
+                   </div>
+
+                   <!-- Contrasenya (compte del centre) (form.password) -->
+                   <div class="md:col-span-2 space-y-2">
+                      <label for="password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya (Compte del Centre)</label>
+                      <div class="relative group">
+                         <Lock :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
+                         <input 
+                           id="password"
+                           v-model="form.password"
+                           type="password"
+                           minlength="6"
+                           class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
+                           placeholder="••••••••"
+                           required
+                         />
+                      </div>
                    </div>
                 </div>
                 
