@@ -56,8 +56,12 @@ router.post("/checklist-config", checklistController.createChecklistStep);
 router.put("/checklist-config/:id", checklistController.updateChecklistStep);
 router.delete("/checklist-config/:id", checklistController.deleteChecklistStep);
 
-// A) --- Ruta per llistar usuaris ---
+// A) --- Rutes per a usuaris ---
 router.get("/usuaris", usuarisController.getAllUsers);
+router.post("/usuaris", usuarisController.createUser);
+router.get("/usuaris/:id", usuarisController.getUserById);
+router.put("/usuaris/:id", usuarisController.updateUser);
+router.delete("/usuaris/:id", usuarisController.deleteUser);
 
 // A) --- Rutes per als logs d'auditoria ---
 // URL base: /api/admin/logs

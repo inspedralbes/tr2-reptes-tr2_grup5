@@ -115,7 +115,7 @@
             <button @click="handleEdit(item.id)" class="p-2 text-[#B8C0CC] hover:text-[#1F7A8C] transition-all bg-white border border-transparent hover:border-[#BFDBF7] rounded-lg">
               <Edit3 :size="16" :strokeWidth="1.5" />
             </button>
-            <button @click="handleDelete(item.id)" class="p-2 bg-white border border-[#FFECEC] text-[#FF4D4D] rounded-lg shadow-sm hover:bg-[#FF4D4D] hover:text-white transition-all">
+            <button v-if="(item.rol || '').toUpperCase() !== 'ADMIN'" @click="handleDelete(item.id)" class="p-2 bg-white border border-[#FFECEC] text-[#FF4D4D] rounded-lg shadow-sm hover:bg-[#FF4D4D] hover:text-white transition-all">
               <Trash2 :size="16" />
             </button>
           </div>
@@ -185,7 +185,7 @@
             <span class="text-[9px] font-black text-[#022B3A]/40 tracking-widest uppercase">USR-{{ item.id }}</span>
             <div class="flex items-center gap-1.5">
               <button @click="handleEdit(item.id)" class="p-2 text-[#022B3A]/30 hover:text-[#1F7A8C] hover:bg-white rounded-lg transition-all"><Edit3 :size="16" /></button>
-              <button @click="handleDelete(item.id)" class="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all"><Trash2 :size="16" /></button>
+              <button v-if="(item.rol || '').toUpperCase() !== 'ADMIN'" @click="handleDelete(item.id)" class="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all"><Trash2 :size="16" /></button>
             </div>
           </div>
         </div>
@@ -212,6 +212,38 @@
       </button>
 
     </div>
+
+    <!-- Modal FormCrearCentre (només en pestanya Centres) -->
+    <FormCrearCentre
+      v-if="showFormCrearCentre && mostrarCentres"
+      @close="showFormCrearCentre = false"
+      @created="onCentreCreated"
+    />
+
+    <!-- Modal FormEditarCentre (només en pestanya Centres, al clicar lapis) -->
+    <FormEditarCentre
+      v-if="showFormEditarCentre && mostrarCentres && centreIdEditar"
+      :centre-id="centreIdEditar"
+      @close="showFormEditarCentre = false; centreIdEditar = null"
+      @updated="onCentreUpdated"
+    />
+
+    <!-- Modal FormCrearUsuari (només en pestanya Usuaris, al clicar Afegir) -->
+    <FormCrearUsuari
+      v-if="showFormCrearUsuari && !mostrarCentres"
+      :centres="centresList"
+      @close="showFormCrearUsuari = false"
+      @created="onUsuariCreated"
+    />
+
+    <!-- Modal FormEditarUsuari (només en pestanya Usuaris, al clicar lapis) -->
+    <FormEditarUsuari
+      v-if="showFormEditarUsuari && !mostrarCentres && usuariIdEditar"
+      :user-id="usuariIdEditar"
+      :centres="centresList"
+      @close="showFormEditarUsuari = false; usuariIdEditar = null"
+      @updated="onUsuariUpdated"
+    />
   </div>
 </template>
 
@@ -231,15 +263,21 @@ const mostrarCentres = ref(true);
 const searchTerm = ref('');
 const isExiting = ref(false);
 const viewMode = ref('grid'); // 'grid' | 'list'
+const showFormCrearCentre = ref(false);
+const showFormCrearUsuari = ref(false);
+const showFormEditarCentre = ref(false);
+const showFormEditarUsuari = ref(false);
+const centreIdEditar = ref(null);
+const usuariIdEditar = ref(null);
 
-const token = useCookie('authToken').value;
+const tokenRef = useCookie('authToken');
 
 const respostaCentres = await useFetch('/api/admin/centres', {
-  headers: token ? { Authorization: 'Bearer ' + token } : {}
+  headers: tokenRef.value ? { Authorization: 'Bearer ' + tokenRef.value } : {}
 });
 
 const respostaUsuaris = await useFetch('/api/admin/usuaris', {
-  headers: token ? { Authorization: 'Bearer ' + token } : {}
+  headers: tokenRef.value ? { Authorization: 'Bearer ' + tokenRef.value } : {}
 });
 
 const centresList = computed(function () {
@@ -368,15 +406,72 @@ async function handleNavigation(id) {
 }
 
 function handleEdit(id) {
-  console.log('Edit item:', id);
+  if (mostrarCentres.value) {
+    centreIdEditar.value = id;
+    showFormEditarCentre.value = true;
+  } else {
+    usuariIdEditar.value = id;
+    showFormEditarUsuari.value = true;
+  }
 }
 
-function handleDelete(id) {
-  console.log('Delete item:', id);
+async function handleDelete(id) {
+  const isCentre = mostrarCentres.value;
+  const txt = isCentre ? "Estàs segur que vols eliminar aquest centre?" : "Estàs segur que vols eliminar aquest usuari?";
+  if (!confirm(txt)) return;
+
+  const tok = tokenRef.value;
+
+  try {
+    if (isCentre) {
+      await $fetch('/api/admin/centres/' + id, {
+        method: 'DELETE',
+        headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+      });
+      await respostaCentres.refresh();
+    } else {
+      await $fetch('/api/admin/usuaris/' + id, {
+        method: 'DELETE',
+        headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+      });
+      await respostaUsuaris.refresh();
+    }
+  } catch (e) {
+    const msg = (e?.data?.message) || (e?.message) || 'Error en eliminar.';
+    alert(msg);
+  }
 }
 
 function handleAddNew() {
-  console.log('Add new', mostrarCentres.value ? 'centre' : 'usuari');
+  if (mostrarCentres.value) {
+    showFormCrearCentre.value = true;
+  } else {
+    showFormCrearUsuari.value = true;
+  }
+}
+
+function onCentreCreated() {
+  showFormCrearCentre.value = false;
+  respostaCentres.refresh();
+  respostaUsuaris.refresh();
+}
+
+function onCentreUpdated() {
+  showFormEditarCentre.value = false;
+  centreIdEditar.value = null;
+  respostaCentres.refresh();
+  respostaUsuaris.refresh();
+}
+
+function onUsuariCreated() {
+  showFormCrearUsuari.value = false;
+  respostaUsuaris.refresh();
+}
+
+function onUsuariUpdated() {
+  showFormEditarUsuari.value = false;
+  usuariIdEditar.value = null;
+  respostaUsuaris.refresh();
 }
 
 function codiCentre(centre) {

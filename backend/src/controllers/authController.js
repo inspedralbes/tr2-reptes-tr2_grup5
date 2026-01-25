@@ -58,8 +58,8 @@ const authController = {
   // B) --- Login: verifica credencials i retorna token ---
   login: async (req, res) => {
     try {
-      // 1. Obtenim email i contrasenya del cos de la petició
-      const email = req.body.email;
+      // 1. Obtenim email i contrasenya del cos de la petició (normalitzem l'email: trim + minúscules, com en crear centre)
+      const email = (typeof req.body.email === "string" ? req.body.email : "").trim().toLowerCase();
       const password = req.body.password;
 
       console.log(`[LOGIN DEBUG] Intent de login: ${email}`);
