@@ -64,6 +64,17 @@
          </div>
       </div>
 
+      <!-- OPEN PERIOD BANNER -->
+      <div v-if="isRegistrationOpen" class="flex items-center gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-xl shadow-sm animate-in slide-in-from-top-2 duration-500 mb-8">
+         <div class="bg-green-100 p-2 rounded-full text-green-500">
+            <Check :size="18" :strokeWidth="2.5" />
+         </div>
+         <div>
+            <h4 class="text-sm font-black text-green-600 uppercase tracking-wide">Període d'inscripció obert</h4>
+            <p class="text-[11px] font-bold text-green-400 mt-0.5">{{ periodDates }}</p>
+         </div>
+      </div>
+
       <!-- 3. Workshops Container -->
       <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
         <template v-for="workshop in filteredWorkshops" :key="workshop.id">
@@ -157,6 +168,13 @@
                     <span class="text-[9px] font-black uppercase tracking-widest">Trimestres</span>
                   </div>
                   <span class="text-[12px] font-black text-[#022B3A]">{{ workshop.trimestres.join(', ') }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2.5 text-[#B8C0CC]">
+                    <Calendar :size="16" :strokeWidth="1.5" />
+                    <span class="text-[9px] font-black uppercase tracking-widest">Data</span>
+                  </div>
+                  <span class="text-[12px] font-black text-[#022B3A]">{{ formatDate(workshop.raw.data_execucio) }}</span>
                 </div>
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2.5 text-[#B8C0CC]">
@@ -258,7 +276,7 @@
              <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8" :set="formModel = getFormModel(workshop.id)">
                 
                 <div class="space-y-6">
-                  <div class="space-y-2">
+ <div class="space-y-2">
                     <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Trimestre Preferent *</label>
                     <div class="relative">
                       <select v-model="formModel.trimestre" class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none cursor-pointer text-[#022B3A]">
