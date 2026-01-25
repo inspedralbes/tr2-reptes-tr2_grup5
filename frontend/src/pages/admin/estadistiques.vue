@@ -25,7 +25,7 @@
            <span class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Curs 2025-2026 en temps real</span>
         </div>
         <h2 class="text-5xl font-black text-white mb-4 tracking-tight leading-none">
-          Hola, Joan Domènech
+          Hola, {{ header.userName }}
         </h2>
         <p class="text-white/50 text-sm font-medium max-w-2xl leading-relaxed">
           Aquest panell realitza un seguiment exhaustiu del projecte ENGINY. Analitza l'impacte als centres educatius, 

@@ -109,8 +109,6 @@ const saveEvaluation = async (studentId) => {
             method: 'PUT',
             headers: { Authorization: `Bearer ${token}` },
             body: { 
-                nota_tecnica: student.techScore,
-                nota_actitud: student.softScore,
                 comentarios: student.comment 
             }
         });

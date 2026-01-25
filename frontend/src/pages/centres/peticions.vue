@@ -575,6 +575,13 @@ const getFormModel = (workshopId) => {
 // I need to bind these inputs to my `form.tallers` state.
 
 async function handleSubmit() {
+  // Client-side validation
+  const invalidItems = form.value.tallers.filter(t => !t.trimestre || t.trimestre === '');
+  if (invalidItems.length > 0) {
+    alert("Has de seleccionar un trimestre preferent per a tots els tallers seleccionats.");
+    return;
+  }
+
   if (!confirm('Segur que vols confirmar la sol·licitud?')) return;
   
   submitting.value = true;
@@ -595,7 +602,9 @@ async function handleSubmit() {
     window.location.reload();
   } catch (err) {
     console.error(err);
-    alert('Error enviant la sol·licitud.');
+    // Show specific error if available
+    const msg = err.data?.message || err.message || 'Error desconegut';
+    alert('Error enviant la sol·licitud: ' + msg);
   } finally {
     submitting.value = false;
   }

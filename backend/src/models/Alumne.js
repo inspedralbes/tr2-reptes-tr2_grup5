@@ -67,11 +67,11 @@ const Alumne = {
         return rows[0].exact_count;
     },
 
-    // Actualitzar l'avaluació d'un alumne
-    updateAvaluacio: async (id, nota_tecnica, nota_actitud, comentaris) => {
+    // Actualitzar el comentari d'un alumne
+    updateAvaluacio: async (id, comentaris) => {
         const [result] = await db.query(
-            "UPDATE assistencia_alumnes SET nota_tecnica = ?, nota_actitud = ?, comentarios = ?, ha_avaluat = 1 WHERE id = ?",
-            [nota_tecnica, nota_actitud, comentaris, id]
+            "UPDATE assistencia_alumnes SET comentarios = ? WHERE id = ?",
+            [comentaris, id]
         );
         return result.affectedRows > 0;
     }

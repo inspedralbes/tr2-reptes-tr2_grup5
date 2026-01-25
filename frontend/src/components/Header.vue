@@ -122,36 +122,29 @@ const roleLabel = computed(function () {
 });
 
 const userInitials = computed(function () {
-  const m = menuItems.value;
-  if (m.length === 0) return '—';
-  const r = (m[0].route || '');
-  if (r.startsWith('/admin')) return 'AD';
-  if (r.startsWith('/centres')) return 'CE';
-  if (r.startsWith('/professors')) return 'PR';
-  if (r.startsWith('/alumnes')) return 'AL';
-  return '—';
+  const name = header.userName || 'U';
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
 });
 
 const userName = computed(function () {
-  const m = menuItems.value;
-  if (m.length === 0) return 'Usuari';
-  const r = m[0].route || '';
-  if (r.startsWith('/admin')) return 'Joan Domènech';
-  if (r.startsWith('/centres')) return 'IES Joan Maragall';
-  if (r.startsWith('/professors')) return 'Marc Vidal';
-  if (r.startsWith('/alumnes')) return 'Alumne';
-  return 'Usuari';
+  return header.userName || 'Usuari';
 });
 
 const userRoleDisplay = computed(function () {
-  const m = menuItems.value;
-  if (m.length === 0) return header.title || '—';
-  const r = m[0].route || '';
-  if (r.startsWith('/admin')) return 'Administrador';
-  if (r.startsWith('/centres')) return 'Gestió de Centre';
-  if (r.startsWith('/professors')) return 'Docent Referent';
-  if (r.startsWith('/alumnes')) return 'Portal Alumne';
+  const rol = header.userRole;
+  if (rol === 'ADMIN') return 'Administrador';
+  if (rol === 'CENTRE') return 'Gestió de Centre';
+  if (rol === 'PROFESSOR') return 'Docent Referent';
+  if (rol === 'ALUMNE') return 'Portal Alumne';
   return header.title || '—';
+});
+
+onMounted(() => {
+  header.fetchUserProfile();
 });
 
 function obtenirClauBoto(btn, i) {

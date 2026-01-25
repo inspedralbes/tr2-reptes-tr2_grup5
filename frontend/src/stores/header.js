@@ -6,10 +6,29 @@ export const useHeaderStore = defineStore('header', {
     return {
       title: '',
       showHeader: true,
-      buttons: [] // Elements amb { label, route }
+      buttons: [], // Elements amb { label, route }
+      userName: 'Usuari',
+      userRole: '—'
     };
   },
   actions: {
+    // A) --- Obtenir perfil de l'usuari ---
+    async fetchUserProfile() {
+      try {
+        const token = useCookie('authToken').value;
+        if (!token) return;
+
+        const data = await $fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (data && data.name) {
+          this.userName = data.name;
+          this.userRole = data.rol;
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      }
+    },
     // A) --- Configurar el capçal amb títol, visibilitat i botons ---
     setHeader(options) {
       // 1. Títol: si es passa, s'assigna; si no, cadena buida.

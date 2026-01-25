@@ -3,8 +3,11 @@
 // ======================================
 
 const User = require("../models/User");
+const Centre = require("../models/Centre");
+const Professor = require("../models/Professor");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const db = require("../config/db");
 
 // ======================================
 // Definició de l'Esquema
@@ -96,6 +99,36 @@ const authController = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Error en el servidor durant el login." });
+    }
+  },
+
+  // C) --- Obtenir info de l'usuari actual (Dynamic Name) ---
+  getMe: async (req, res) => {
+    try {
+      const { id, rol } = req.user;
+      let name = "Usuari";
+
+      if (rol === "ADMIN") {
+        const [adminRows] = await db.query("SELECT nom, cognoms FROM administradors WHERE user_id = ?", [id]);
+        if (adminRows.length > 0) {
+          name = `${adminRows[0].nom} ${adminRows[0].cognoms}`;
+        }
+      } else if (rol === "CENTRE") {
+        const centre = await Centre.findByUserId(id);
+        if (centre) {
+          name = centre.nom_coordinador || centre.nom_centre;
+        }
+      } else if (rol === "PROFESSOR") {
+        const prof = await Professor.getByUserId(id);
+        if (prof) {
+          name = `${prof.nom} ${prof.cognoms}`;
+        }
+      }
+
+      res.json({ id, rol, name });
+    } catch (error) {
+      console.error("Error a getMe:", error);
+      res.status(500).json({ message: "Error al obtenir dades de l'usuari." });
     }
   }
 };

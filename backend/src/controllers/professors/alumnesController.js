@@ -129,11 +129,9 @@ const alumnesController = {
                 return res.status(403).json({ message: "No tens permís per avaluar alumnes d'aquest taller." });
             }
 
-            // 3. Guardar
+            // 3. Guardar el comentari
             await Alumne.updateAvaluacio(
                 studentId,
-                nota_tecnica || 0,
-                nota_actitud || 0,
                 comentarios !== undefined ? comentarios : avaluacio
             );
             res.json({ message: "Avaluació guardada correctament." });
