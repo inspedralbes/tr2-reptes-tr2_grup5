@@ -1,249 +1,310 @@
-<template>
-  <div class="page">
-    <div class="detail-header">
-       <button class="btn-back" @click="goBack">
-         &larr; Tornar al Panell
-       </button>
-       <h3>Control d'Assistència {{ subtitolH3 }}</h3>
-    </div>
-
-    <div v-if="loading" class="loading">Carregant dades...</div>
-    <div v-else-if="error" class="error">Error: {{ error }}</div>
-
-    <div v-else>
-        <!-- Info Taller -->
-        <div v-if="tallerInfo" class="taller-info-card">
-            <p><strong>Ubicació:</strong> {{ tallerInfo.ubicacio }}</p>
-            <p><strong>Horari:</strong> {{ tallerInfo.modalitat }} ({{ tallerInfo.places_maximes }} places)</p>
-        </div>
-
-        <div v-if="assistenciaList && assistenciaList.length > 0" class="students-list">
-          <table>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Cognoms</th>
-                <th>Email</th>
-                <th>Assistència</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="student in assistenciaList" :key="student.id">
-                <td>{{ student.nom }}</td>
-                <td>{{ student.cognoms }}</td>
-                <td>{{ student.email }}</td>
-                <td>
-                  <label class="toggle-switch">
-                    <input
-                      type="checkbox"
-                      :checked="estaMarcatComAssistit(student)"
-                      @change="toggleAssistencia(student, $event.target.checked)"
-                    />
-                    <span class="slider"></span>
-                  </label>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="no-data-small">
-          <p>No hi ha alumnes registrats per aquest taller.</p>
-        </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
+import { ref, computed, onMounted } from 'vue';
+import { 
+  ArrowLeft,
+  User,
+  Mail,
+  MapPin,
+  Clock,
+  ClipboardCheck,
+  CheckCircle2,
+  XCircle,
+  Search,
+  ExternalLink,
+  ChevronRight
+} from 'lucide-vue-next';
+
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Importacions i Composables
 // ======================================
 const route = useRoute();
 const router = useRouter();
-const token = useCookie('authToken');
+const header = useHeaderStore();
+header.setHeaderProfessors();
+const token = useCookie('authToken').value;
 const detallId = route.params.id;
 
-// ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
-// ======================================
+// --- STATE ---
 const loading = ref(true);
 const error = ref(null);
 const assistenciaList = ref([]);
 const tallerInfo = ref(null);
+const searchQuery = ref('');
 
-const subtitolH3 = computed(function () {
-  // 1. Si tenim info del taller, afegim el títol al subtítol.
-  if (tallerInfo.value) {
-    return '- ' + tallerInfo.value.titol;
-  }
-  // 2. Si no, retornem cadena buida.
-  return '';
+// --- COMPUTED ---
+const filteredStudents = computed(() => {
+  const query = (searchQuery.value || '').toLowerCase();
+  const list = assistenciaList.value || [];
+  return list.filter(s => {
+    const nom = (s.nom || '').toLowerCase();
+    const cognoms = (s.cognoms || '').toLowerCase();
+    const email = (s.email || '').toLowerCase();
+    return nom.includes(query) || cognoms.includes(query) || email.includes(query);
+  });
 });
 
-function estaMarcatComAssistit(student) {
-  // Retorna true si l'alumne consta com a ha_assistit, false en cas contrari.
-  if (student.ha_assistit === 1 || student.ha_assistit === true) {
-    return true;
-  }
-  return false;
-}
+const stats = computed(() => {
+  const list = assistenciaList.value || [];
+  const present = list.filter(s => s.ha_assistit).length;
+  const total = list.length;
+  const percent = total > 0 ? Math.round((present / total) * 100) : 0;
+  return { present, total, percent };
+});
 
-// ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
-// ======================================
+const getProjectStyles = (project) => {
+  if (!project) return 'bg-white/40 text-[#022B3A] border-white/60';
+  const p = project.toUpperCase();
+  if (p.includes('A') || p.includes('MANUF')) return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20';
+  if (p.includes('B') || p.includes('ENER')) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20';
+  if (p.includes('C') || p.includes('AGRO')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
+  return 'bg-white/40 text-[#022B3A] border-white/60';
+};
 
-// A) --- Tornar al panell d'assistència ---
-function goBack() {
-  // 1. Navegar a la llista d'assistència.
-  router.push('/professors/assistencia');
-}
+// --- METHODS ---
+const goBack = () => router.push('/professors/assistencia');
 
-// A) --- Carregar les dades de la pàgina (llista i info del taller) ---
-async function loadData() {
+const loadData = async () => {
   loading.value = true;
+  error.value = null;
   try {
-     // 1. Carregar llista d'assistència
-     const data = await $fetch(`/api/professors/assistencia/${detallId}`, {
-        headers: { Authorization: `Bearer ${token.value}` }
-     });
-     assistenciaList.value = data;
+    // 1. Carregar llista d'assistència
+    const data = await $fetch(`/api/professor/assistencia/${detallId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    assistenciaList.value = Array.isArray(data) ? data : [];
 
-     // 2. Carregar info bàsica del taller (Podem reutilitzar el endpoint de llista de tallers i filtrar, o fer call específica)
-     // Per simplicitat i rapidesa, estem assumint que tenim info minima.
-     // Idealment, tindríem un endpoint /api/professors/tallers/:id
-     // Intentem treure el titol de la llista general si està carregada o fem fetch.
-     // Farem un fetch a tallers i buscarem aquest ID. No és súper eficient però reutilitzem endpoints existents.
-     let tallers = await $fetch('/api/professors/tallers', {
-        headers: { Authorization: 'Bearer ' + token.value }
-     });
-     let trobat = null;
-     for (let i = 0; i < tallers.length; i++) {
-        if (tallers[i].detall_id == detallId) {
-           trobat = tallers[i];
-           break;
-        }
-     }
-     if (trobat) {
-        tallerInfo.value = trobat;
-     }
-
+    // 2. Carregar info del taller
+    const tallers = await $fetch('/api/professor/tallers', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    
+    if (Array.isArray(tallers)) {
+      tallerInfo.value = tallers.find(t => t.detall_id == detallId) || null;
+    }
   } catch (err) {
-    console.error('Error carregant dades', err);
-    error.value = "No s'han pogut carregar les dades.";
+    console.error('Error carregant dades:', err);
+    error.value = "No s'han pogut carregar els alumnes d'aquest taller.";
   } finally {
     loading.value = false;
   }
-}
+};
 
-// A) --- Canviar l'estat d'assistència d'un alumne ---
-async function toggleAssistencia(student, isChecked) {
+const toggleAssistencia = async (student) => {
+  const oldState = student.ha_assistit;
   try {
     // Optimistic update
-    student.ha_assistit = isChecked ? 1 : 0;
+    student.ha_assistit = !oldState;
     
     await $fetch(`/api/professor/assistencia/${student.id}`, {
       method: 'PUT',
-      headers: { Authorization: 'Bearer ' + token.value },
-      body: { ha_assistit: isChecked }
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: { ha_assistit: student.ha_assistit }
     });
-
   } catch (err) {
-    console.error('Error actualitzant assistència', err);
-    // 3. En cas d'error, desfer el canvi optimista.
-    if (isChecked) {
-      student.ha_assistit = 0;
-    } else {
-      student.ha_assistit = 1;
-    }
-    alert("Error actualitzant l'estat.");
+    console.error('Error actualitzant assistència:', err);
+    student.ha_assistit = oldState; // rollback
+    alert("Error al desar l'assistència.");
   }
-}
+};
 
-// A) --- Inicialitzar la pàgina en muntar el component ---
-function inicialitzarPagina() {
-  // 1. Comprovar si tenim un ID de taller.
-  if (detallId) {
-    loadData();
-  } else {
-    // 2. Si no, mostrar error i aturar la càrrega.
-    error.value = 'ID de taller no especificat.';
-    loading.value = false;
-  }
-}
-
-onMounted(function () {
-  inicialitzarPagina();
+onMounted(() => {
+  if (detallId) loadData();
+  else error.value = "Taller no identificat.";
 });
 </script>
 
+<template>
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 p-8 space-y-8">
+    
+    <!-- 1. HEADER NAVIGATION -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div class="space-y-4">
+        <button 
+          @click="goBack"
+          class="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#022B3A]/40 hover:text-[#1F7A8C] transition-colors"
+        >
+          <ArrowLeft :size="14" class="group-hover:-translate-x-1 transition-transform" />
+          Tornar a la llista
+        </button>
+        
+        <div v-if="tallerInfo">
+          <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+            Passar <span class="text-[#1F7A8C]">Llista</span>
+          </h1>
+          <div class="flex items-center gap-3">
+            <span :class="['px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border', getProjectStyles(tallerInfo.sector)]">
+               {{ tallerInfo.sector || 'PROJECTE' }}
+            </span>
+            <span class="text-sm font-bold text-[#022B3A]/60 flex items-center gap-1.5">
+               <ChevronRight :size="14" class="text-[#BFDBF7]" />
+               {{ tallerInfo.titol }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Capsule -->
+      <div v-if="!loading && !error" class="bg-white border border-[#BFDBF7]/60 rounded-2xl p-4 flex items-center gap-6 shadow-sm">
+         <div class="flex flex-col">
+            <span class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Alumnes Presents</span>
+            <div class="flex items-end gap-1">
+               <span class="text-2xl font-black text-[#1F7A8C] leading-none">{{ stats.present }}</span>
+               <span class="text-xs font-bold text-[#022B3A]/20">/ {{ stats.total }}</span>
+            </div>
+         </div>
+         <div class="w-12 h-12 rounded-full border-4 border-[#E1E5F2] flex items-center justify-center relative">
+            <svg class="absolute inset-0 -rotate-90" viewBox="0 0 36 36">
+               <circle 
+                 cx="18" cy="18" r="16" 
+                 fill="none" 
+                 class="stroke-[#1F7A8C]" 
+                 stroke-width="4" 
+                 stroke-dasharray="100" 
+                 :stroke-dashoffset="100 - stats.percent"
+               />
+            </svg>
+            <span class="text-[10px] font-black text-[#1F7A8C]">{{ stats.percent }}%</span>
+         </div>
+      </div>
+    </div>
+
+    <!-- 2. DATA AREA -->
+    <div v-if="loading" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
+       Carregant llistat d'alumnes...
+    </div>
+
+    <div v-else-if="error" class="bg-red-50 border border-red-100 p-8 rounded-2xl text-red-600 text-center italic">
+       {{ error }}
+    </div>
+
+    <div v-else class="space-y-6">
+      
+      <!-- Search & Utils Bar -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="relative flex-1 max-w-md group w-full">
+          <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Cercar alumne per nom o email..."
+            v-model="searchQuery"
+            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-3 text-xs font-bold focus:ring-4 focus:ring-[#1F7A8C]/5 outline-none transition-all placeholder:text-[#022B3A]/20"
+          />
+        </div>
+        
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+           <div class="bg-[#F0F7E9] text-[#7CB518] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-[#7CB518]/10">
+              <Clock :size="14" /> Sessió Activa
+           </div>
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <div class="bg-white rounded-3xl border border-[#BFDBF7]/60 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-[#E1E5F2]/10 border-b border-[#BFDBF7]/20">
+                <th class="p-6 pl-10 text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.2em]">Alumne / ID</th>
+                <th class="p-6 text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.2em]">Dades de Contacte</th>
+                <th class="p-6 text-center text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.2em]">Estat Assistència</th>
+                <th class="p-6 pr-10 text-right text-[10px] font-black text-[#022B3A]/40 uppercase tracking-[0.2em]">Accions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#BFDBF7]/10">
+              <template v-if="filteredStudents.length > 0">
+                <tr v-for="student in filteredStudents" :key="student.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
+                  
+                  <!-- Student Identity -->
+                  <td class="p-6 pl-10">
+                    <div class="flex items-center gap-4">
+                       <div :class="['w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-colors border', student.ha_assistit ? 'bg-[#1F7A8C] text-white border-[#1F7A8C]' : 'bg-[#E1E5F2]/30 text-[#022B3A]/40 border-transparent']">
+                          {{ (student.nom || '?')[0] }}{{ (student.cognoms || '?')[0] }}
+                       </div>
+                       <div>
+                          <p class="text-sm font-black text-[#022B3A] group-hover:text-[#1F7A8C] transition-colors">{{ student.nom }} {{ student.cognoms }}</p>
+                          <p class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">ID-ST-{{ student.id.toString().padStart(3,'0') }}</p>
+                       </div>
+                    </div>
+                  </td>
+
+                  <!-- Contact -->
+                  <td class="p-6">
+                    <div class="flex items-center gap-2 text-[#022B3A]/60 bg-[#E1E5F2]/20 border border-[#BFDBF7]/20 px-3 py-1.5 rounded-lg w-fit">
+                      <Mail :size="12" />
+                      <span class="text-[11px] font-bold">{{ student.email }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Toggle -->
+                  <td class="p-6 text-center">
+                    <button 
+                      @click="toggleAssistencia(student)"
+                      :class="['inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm', 
+                        student.ha_assistit 
+                          ? 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20 hover:scale-105 active:scale-95' 
+                          : 'bg-white text-[#E1E5F2] border-[#E1E5F2] hover:text-[#022B3A]/40 hover:border-[#BFDBF7]'
+                      ]"
+                    >
+                      <CheckCircle2 v-if="student.ha_assistit" :size="14" />
+                      <XCircle v-else :size="14" class="opacity-20" />
+                      {{ student.ha_assistit ? 'Assistit' : 'Falta' }}
+                    </button>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="p-6 pr-10 text-right">
+                    <button class="p-2.5 rounded-xl bg-[#E1E5F2]/20 text-[#022B3A]/20 hover:bg-[#1F7A8C]/10 hover:text-[#1F7A8C] transition-all">
+                       <ExternalLink :size="16" />
+                    </button>
+                  </td>
+
+                </tr>
+              </template>
+              <tr v-else>
+                 <td colspan="4" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-[10px] italic">
+                   No s'han trobat alumnes que coincideixin amb la cerca.
+                 </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Card Summary -->
+        <div class="p-8 bg-[#E1E5F2]/10 border-t border-[#BFDBF7]/20 flex flex-col md:flex-row items-center justify-between gap-6">
+           <div class="flex items-center gap-10">
+              <div v-if="tallerInfo" class="flex items-center gap-3">
+                 <div class="w-10 h-10 rounded-full bg-white border border-[#BFDBF7]/60 flex items-center justify-center text-[#1F7A8C]">
+                    <MapPin :size="18" />
+                 </div>
+                 <div>
+                    <p class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Ubicació Sessió</p>
+                    <p class="text-xs font-black text-[#022B3A]">{{ tallerInfo.ubicacio || tallerInfo.municipi }}</p>
+                 </div>
+              </div>
+              <div v-if="tallerInfo" class="flex items-center gap-3">
+                 <div class="w-10 h-10 rounded-full bg-white border border-[#BFDBF7]/60 flex items-center justify-center text-[#1F7A8C]">
+                    <Clock :size="18" />
+                 </div>
+                 <div>
+                    <p class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Horari Previst</p>
+                    <p class="text-xs font-black text-[#022B3A]">{{ tallerInfo.modalitat || 'Horari de taller' }}</p>
+                 </div>
+              </div>
+           </div>
+
+           <button 
+             @click="goBack"
+             class="flex items-center gap-2 px-8 py-3.5 bg-[#022B3A] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1F7A8C] transition-all shadow-xl shadow-[#022B3A]/20"
+           >
+              <ClipboardCheck :size="16" />
+              Finalitzar Control
+           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.page {
-  padding: 30px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.detail-header { display: flex; align-items: center; margin-bottom: 30px; }
-.detail-header h3 { flex-grow: 1; margin: 0; font-size: 1.6rem; color: #1a202c; }
-
-.taller-info-card {
-    background: #f8fafc;
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border-left: 4px solid #3b82f6;
-}
-.taller-info-card p { margin: 5px 0; color: #4a5568; }
-
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-th, td { padding: 16px 20px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-th { background: #f1f5f9; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #f8fafc; }
-
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 28px;
-}
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #cbd5e1;
-  transition: .4s;
-  border-radius: 34px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 22px;
-  width: 22px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-input:checked + .slider { background-color: #10b981; }
-input:checked + .slider:before { transform: translateX(22px); }
-
-.btn-back {
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    color: #64748b;
-    cursor: pointer;
-    font-size: 0.95rem;
-    margin-right: 20px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-.btn-back:hover { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
-
-.loading, .error, .no-data-small { text-align: center; padding: 40px; color: #64748b; }
-.error { color: #ef4444; }
+/* Tailwind handles the design */
 </style>

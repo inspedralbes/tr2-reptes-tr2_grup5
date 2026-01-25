@@ -62,14 +62,20 @@ const authController = {
       const email = req.body.email;
       const password = req.body.password;
 
+      console.log(`[LOGIN DEBUG] Intent de login: ${email}`);
+
       // 2. Busquem l'usuari
       const user = await User.findByEmail(email);
       if (!user) {
+        console.log(`[LOGIN DEBUG] Usuari no trobat a la BD: ${email}`);
         return res.status(401).json({ message: "Email o contrasenya incorrectes." });
       }
+      console.log(`[LOGIN DEBUG] Usuari trobat ID: ${user.id}, Rol: ${user.rol}, PassHash: ${user.password.substring(0, 10)}...`);
 
       // 3. Comprovem la contrasenya (hash vs text pla)
       const isMatch = await bcrypt.compare(password, user.password);
+      console.log(`[LOGIN DEBUG] Resultat comprovació password: ${isMatch}`);
+
       if (!isMatch) {
         return res.status(401).json({ message: "Email o contrasenya incorrectes." });
       }

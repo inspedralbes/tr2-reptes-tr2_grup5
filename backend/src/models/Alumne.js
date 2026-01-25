@@ -28,7 +28,13 @@ const Alumne = {
                 await connection.query(`
                     INSERT INTO assistencia_alumnes (peticio_detall_id, nom, cognoms, email, ha_assistit)
                     VALUES (?, ?, ?, ?, ?)
-                `, [peticioDetallId, alumne.nom, alumne.cognoms, alumne.email, alumne.ha_assistit ? 1 : 0]);
+                `, [
+                    peticioDetallId,
+                    alumne.nom || '',
+                    alumne.cognoms || '',
+                    alumne.email || '',
+                    (alumne.ha_assistit !== undefined) ? (alumne.ha_assistit ? 1 : 0) : 1
+                ]);
             }
             await connection.commit();
             return true;
@@ -62,10 +68,10 @@ const Alumne = {
     },
 
     // Actualitzar l'avaluació d'un alumne
-    updateAvaluacio: async (id, comentaris) => {
+    updateAvaluacio: async (id, nota_tecnica, nota_actitud, comentaris) => {
         const [result] = await db.query(
-            "UPDATE assistencia_alumnes SET comentarios = ? WHERE id = ?",
-            [comentaris, id]
+            "UPDATE assistencia_alumnes SET nota_tecnica = ?, nota_actitud = ?, comentarios = ?, ha_avaluat = 1 WHERE id = ?",
+            [nota_tecnica, nota_actitud, comentaris, id]
         );
         return result.affectedRows > 0;
     }
