@@ -42,3 +42,7 @@ INSERT INTO checklist_config (id, titol_pas, obligatori) VALUES
 (2, 'Confirmació de recepció de places', 1),
 (3, 'Verificació d horaris quadrats amb professorat', 1),
 (4, 'Contacte amb el professorat referent del taller', 0);
+
+INSERT INTO configuracio (clau, valor) VALUES
+('enrollment_start', '2026-01-01'),
+('enrollment_end', '2026-01-31');
