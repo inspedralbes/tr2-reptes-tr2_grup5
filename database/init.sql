@@ -65,7 +65,9 @@ CREATE TABLE IF NOT EXISTS tallers (
     places_restants INT DEFAULT 12,
     adreca VARCHAR(255),
     ubicacio VARCHAR(255),
+    data_execucio DATE NOT NULL,
     actiu TINYINT(1) DEFAULT 1
+
 ) ENGINE=InnoDB;
 
 -- 6. Taula: peticions
@@ -177,9 +179,5 @@ CREATE TABLE IF NOT EXISTS configuracio (
     clau VARCHAR(50) UNIQUE NOT NULL,
     valor VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB;
-
-INSERT IGNORE INTO configuracio (clau, valor) VALUES
-('enrollment_start', '2025-01-01'),
-('enrollment_end', '2025-01-31');
 
 SET FOREIGN_KEY_CHECKS = 1;

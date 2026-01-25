@@ -139,6 +139,22 @@
               </div>
             </div>
 
+            <!-- Data d'Execució (form.data_execucio) -->
+            <div class="space-y-4">
+               <label for="data_execucio" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
+                 <Calendar :size="14" /> Data d'Execució Prevista (Opcional)
+               </label>
+               <input 
+                 id="data_execucio"
+                 v-model="form.data_execucio"
+                 type="date"
+                 class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
+               />
+               <p class="text-[9px] font-bold text-[#022B3A]/40 mt-1 italic">
+                 Deixa en blanc si no hi ha data confirmada.
+               </p>
+            </div>
+
             <!-- Ubicació (form.ubicacio) -->
             <div class="space-y-4">
               <label for="ubicacio" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1 flex items-center gap-2">
@@ -261,7 +277,11 @@ const form = ref({
   places_maximes: 12,
   trimestres: [],
   ubicacio: '',
-  adreca: ''
+  places_maximes: 12,
+  trimestres: [],
+  ubicacio: '',
+  adreca: '',
+  data_execucio: ''
 });
 
 const duradaCalculada = computed(function () {
@@ -316,8 +336,10 @@ async function submitForm() {
     payload.modalitat = form.value.modalitat;
     payload.places_maximes = form.value.places_maximes;
     payload.trimestres_disponibles = trimestresStr;
+    payload.trimestres_disponibles = trimestresStr;
     payload.ubicacio = form.value.ubicacio;
     payload.adreca = form.value.adreca;
+    payload.data_execucio = form.value.data_execucio ? form.value.data_execucio : null;
 
     let token = useCookie('authToken').value;
     await $fetch('/api/admin/tallers', {
@@ -337,7 +359,10 @@ async function submitForm() {
     form.value.places_maximes = 12;
     form.value.trimestres = [];
     form.value.ubicacio = '';
+    form.value.trimestres = [];
+    form.value.ubicacio = '';
     form.value.adreca = '';
+    form.value.data_execucio = '';
   } catch (err) {
     let missatge = 'Error al crear el taller: ';
     if (err && err.response && err.response._data && err.response._data.message) {

@@ -28,13 +28,12 @@ INSERT INTO professors (id, user_id, centre_id, nom, cognoms) VALUES
 
 
 -- 5. TAULA: tallers
-INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio) VALUES
-('Robòtica i IA', 'Disseny i programació de sistemes autònoms.', 'Manufacturer', 'A', '1r, 2n, 3r', 12, 12, 'C/ Tecnologia 12', 'Laboratori 1'),
-('Cuina Creativa', 'Taller de gastronomia i restauració.', 'Agroalimentari', 'C', '2n, 3r', 15, 15, 'Mercat de Sants', 'Cuina Central'),
-('Energia Solar', 'Muntatge i manteniment de plaques fotovoltaiques.', 'Energètic', 'B', '2n', 10, 10, 'Instal·lacions del centre', 'Taller Extern'),
-('Mecànica de Vehicles', 'Manteniment bàsic de motors elèctrics.', 'Manufacturer', 'A', '1r, 3r', 12, 12, 'C/ Motor 5', 'Taller 4'),
-('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 12, 'C/ Estil 22', 'Aula de Disseny');
-
+INSERT INTO tallers (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, data_execucio) VALUES
+('Robòtica i IA', 'Disseny i programació de sistemes autònoms.', 'Manufacturer', 'A', '1r, 2n, 3r', 12, 12, 'C/ Tecnologia 12', 'Laboratori 1', '2026-03-01'),
+('Cuina Creativa', 'Taller de gastronomia i restauració.', 'Agroalimentari', 'C', '2n, 3r', 15, 15, 'Mercat de Sants', 'Cuina Central', '2026-03-15'),
+('Energia Solar', 'Muntatge i manteniment de plaques fotovoltaiques.', 'Energètic', 'B', '2n', 10, 10, 'Instal·lacions del centre', 'Taller Extern', '2026-04-05'),
+('Mecànica de Vehicles', 'Manteniment bàsic de motors elèctrics.', 'Manufacturer', 'A', '1r, 3r', 12, 12, 'C/ Motor 5', 'Taller 4', '2026-04-12'),
+('Disseny de Moda', 'Confecció i patronatge industrial.', 'Manufacturer', 'C', '1r, 2n, 3r', 12, 12, 'C/ Estil 22', 'Aula de Disseny', '2026-05-20');
 -- 12. TAULA: sessions
 -- 14. TAULA: checklist_config
 INSERT INTO checklist_config (id, titol_pas, obligatori) VALUES
@@ -42,3 +41,7 @@ INSERT INTO checklist_config (id, titol_pas, obligatori) VALUES
 (2, 'Confirmació de recepció de places', 1),
 (3, 'Verificació d horaris quadrats amb professorat', 1),
 (4, 'Contacte amb el professorat referent del taller', 0);
+
+INSERT INTO configuracio (clau, valor) VALUES
+('enrollment_start', '2026-01-01'),
+('enrollment_end', '2026-01-31');
