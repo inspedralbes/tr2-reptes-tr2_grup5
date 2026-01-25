@@ -15,6 +15,11 @@ export default defineNuxtConfig({
     }
   },
 
+  css: [
+    'sweetalert2/dist/sweetalert2.css',
+    './src/assets/css/sweetalert-theme.css'
+  ],
+
   modules: [
     '@pinia/nuxt',
     '@nuxtjs/tailwindcss'

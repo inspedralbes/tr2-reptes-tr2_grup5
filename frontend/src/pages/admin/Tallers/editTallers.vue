@@ -371,15 +371,15 @@ function cancelar() {
 
 async function handleUpdate() {
   if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
-    alert('Si us plau, omple tots els camps obligatoris (*)');
+    useSwal().fire({ title: 'Atenció', text: 'Si us plau, omple tots els camps obligatoris (*)', icon: 'warning' });
     return;
   }
   if (form.value.trimestres.length === 0) {
-    alert('Has de seleccionar almenys un trimestre.');
+    useSwal().fire({ title: 'Atenció', text: 'Has de seleccionar almenys un trimestre.', icon: 'warning' });
     return;
   }
   if (form.value.places_maximes < 1) {
-    alert('Les places màximes han de ser com a mínim 1.');
+    useSwal().fire({ title: 'Atenció', text: 'Les places màximes han de ser com a mínim 1.', icon: 'warning' });
     return;
   }
 
@@ -402,8 +402,7 @@ async function handleUpdate() {
       headers: { Authorization: 'Bearer ' + token.value },
       body: payload
     });
-    alert('Taller actualitzat correctament!');
-    navigateTo('/admin/tallers');
+    useSwal().fire({ title: 'Fet', text: 'Taller actualitzat correctament!', icon: 'success' }).then(() => { navigateTo('/admin/tallers'); });
   } catch (err) {
     let msg = 'Error al guardar: ';
     if (err && err.message) {
@@ -411,7 +410,7 @@ async function handleUpdate() {
     } else {
       msg = msg + 'Error desconegut';
     }
-    alert(msg);
+    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
   } finally {
     saving.value = false;
   }

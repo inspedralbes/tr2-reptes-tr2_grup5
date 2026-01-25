@@ -195,7 +195,6 @@
           </div>
         </div>
 
-        <p v-if="message" class="text-sm text-green-600">{{ message }}</p>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <div class="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
@@ -377,8 +376,7 @@ async function submitForm() {
       body: payload
     });
 
-    message.value = 'Centre actualitzat correctament.';
-    emit('updated');
+    useSwal().fire({ title: 'Fet', text: 'Centre actualitzat correctament.', icon: 'success' }).then(() => { emit('updated'); });
   } catch (err) {
     console.error('Error actualitzant centre:', err);
     error.value = err?.data?.message || err?.message || 'Error en desar els canvis.';

@@ -177,8 +177,6 @@ const handleLogin = async function () {
     } else {
       missatgeBenvinguda = missatgeBenvinguda + 'desconegut';
     }
-    alert(missatgeBenvinguda);
-
     // 5. Determinem la ruta de destinació segons el rol de l'usuari.
     let rutaDesti = '/';
     if (resposta.user && resposta.user.rol === 'ADMIN') {
@@ -188,7 +186,7 @@ const handleLogin = async function () {
     } else if (resposta.user && resposta.user.rol === 'PROFESSOR') {
       rutaDesti = '/professors';
     }
-    navigateTo(rutaDesti);
+    useSwal().fire({ title: 'Benvingut/da', text: missatgeBenvinguda, icon: 'success' }).then(() => { navigateTo(rutaDesti); });
   } catch (err) {
     // 6. En cas d'error, extreure el missatge i assignar-lo a errorMessage.
     console.error('Error en login:', err);

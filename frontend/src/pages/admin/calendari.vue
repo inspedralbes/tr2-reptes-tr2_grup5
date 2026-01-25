@@ -329,9 +329,9 @@ const saveEnrollmentDates = async () => {
             headers: { Authorization: token.value ? `Bearer ${token.value}` : '' }
         });
         showConfig.value = false;
-        alert("Període d'inscripció actualitzat.");
+        useSwal().fire({ title: 'Fet', text: "Període d'inscripció actualitzat.", icon: 'success' });
     } catch (e) {
-        alert("Error al desar.");
+        useSwal().fire({ title: 'Error', text: "Error al desar.", icon: 'error' });
     }
 }
 

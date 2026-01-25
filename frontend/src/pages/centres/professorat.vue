@@ -403,29 +403,29 @@ async function handleSave() {
       headers: { 'Authorization': 'Bearer ' + token }, 
       body: form.value 
     });
-    
-    closeModal();
-    fetchProfessors();
+
+    useSwal().fire({ title: 'Fet', text: 'Docent desat correctament.', icon: 'success' }).then(() => { closeModal(); fetchProfessors(); });
   } catch (e) {
     console.error('Error desant docent:', e);
-    alert('Error en desar les dades.');
+    useSwal().fire({ title: 'Error', text: 'Error en desar les dades.', icon: 'error' });
   } finally {
     loading.value = false;
   }
 }
 
 async function handleDelete(id) {
-  if (!confirm('Esteu segur que voleu eliminar aquest docent?')) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Esteu segur que voleu eliminar aquest docent?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   try {
     const token = tokenCookie.value;
     await $fetch(`/api/centre/professors/${id}`, { 
       method: 'DELETE', 
       headers: { 'Authorization': 'Bearer ' + token } 
     });
-    fetchProfessors();
+    useSwal().fire({ title: 'Fet', text: 'Docent eliminat.', icon: 'success' }).then(() => { fetchProfessors(); });
   } catch (e) {
     console.error('Error eliminant docent:', e);
-    alert('No s\'ha pogut eliminar.');
+    useSwal().fire({ title: 'Error', text: "No s'ha pogut eliminar.", icon: 'error' });
   }
 }
 

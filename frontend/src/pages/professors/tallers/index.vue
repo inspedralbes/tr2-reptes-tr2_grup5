@@ -79,7 +79,7 @@ const filteredWorkshops = computed(() => {
         places: t.num_participants || t.places_maximes || 12,
         trimestres: t.trimestre ? [t.trimestre] : ['1r', '2n', '3r'],
         center: t.nom_centre || 'Centre Educatiu',
-        nextSession: 'Pendent',
+        nextSession: t.data_execucio ? new Date(t.data_execucio).toLocaleDateString('es-ES') : 'Pendent',
         studentsCount: 0 
       };
     }).filter(w => w !== null);
@@ -131,7 +131,7 @@ const openAddModal = () => {
 
 const addNewRow = () => {
   if (studentsList.value.length + newStudents.value.length >= selectedWorkshop.value.places) {
-      alert("S'ha arribat al límit de places del taller.");
+      useSwal().fire({ title: 'Atenció', text: "S'ha arribat al límit de places del taller.", icon: 'warning' });
       return;
   }
   newStudents.value.push({
@@ -157,7 +157,7 @@ const handleSaveStudents = async () => {
     const validStudents = newStudents.value.filter(s => s.nom && s.nom.trim() !== '');
     
     if (validStudents.length === 0) {
-        alert("Siusplau, omple almenys el nom d'un alumne.");
+        useSwal().fire({ title: 'Atenció', text: "Siusplau, omple almenys el nom d'un alumne.", icon: 'warning' });
         return;
     }
 
@@ -175,25 +175,25 @@ const handleSaveStudents = async () => {
     } catch (e) {
         console.error("Error guardant alumnes:", e);
         const errorMsg = e.data?.message || "No s'han pogut registrar els alumnes. Revisa els límits de places.";
-        alert(errorMsg);
+        useSwal().fire({ title: 'Error', text: errorMsg, icon: 'error' });
     } finally {
         isSaving.value = false;
     }
 };
 
 const handleDeleteStudent = async (studentId) => {
-    if (!confirm("Estàs segur que vols eliminar aquest alumne de la llista?")) return;
-    
+    const confirmResult = await useSwal().fire({ title: 'Confirmar', text: "Estàs segur que vols eliminar aquest alumne de la llista?", icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+    if (!confirmResult.isConfirmed) return;
+
     try {
         await $fetch(`/api/professor/tallers/${selectedWorkshopId.value}/alumnes/${studentId}`, {
             method: 'DELETE',
             headers: token ? { Authorization: 'Bearer ' + token } : {}
         });
-        // Refresquem la llista
         await handleSelectWorkshop(selectedWorkshopId.value);
     } catch (e) {
         console.error("Error eliminant alumne:", e);
-        alert("No s'ha pogut eliminar l'alumne.");
+        useSwal().fire({ title: 'Error', text: "No s'ha pogut eliminar l'alumne.", icon: 'error' });
     }
 };
 
@@ -414,7 +414,7 @@ const handleDeleteStudent = async (studentId) => {
                  </div>
                  <div class="hidden lg:flex items-center gap-8 flex-shrink-0">
                     <div class="flex flex-col items-end min-w-[60px]"><span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Alumnes</span><span class="text-xs font-bold text-[#022B3A]">{{ workshop.studentsCount }} / {{ workshop.places }}</span></div>
-                    <div class="flex flex-col items-end min-w-[80px]"><span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Sessió</span><span class="text-xs font-bold text-[#022B3A]">{{ workshop.nextSession }}</span></div>
+                    <div class="flex flex-col items-end min-w-[80px]"><span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Data</span><span class="text-xs font-bold text-[#022B3A]">{{ workshop.nextSession }}</span></div>
                  </div>
                  <div class="flex items-center justify-end gap-3 md:border-l md:border-[#F1F4F9] md:pl-6">
                     <span class="hidden md:block text-[9px] font-black text-[#B8C0CC] tracking-widest uppercase mr-2">{{ workshop.ref }}</span>
@@ -428,7 +428,7 @@ const handleDeleteStudent = async (studentId) => {
                 <div class="px-6 flex-1"><h3 class="text-xl font-black text-[#022B3A] mb-2 leading-tight group-hover:text-[#1F7A8C] transition-colors">{{ workshop.title }}</h3><p class="text-[#022B3A]/50 text-xs font-medium leading-relaxed mb-6 line-clamp-2">{{ workshop.description }}</p>
                   <div class="space-y-3 mb-6">
                     <div class="flex items-center justify-between"><div class="flex items-center gap-2 text-[#022B3A]/30"><School :size="14" /><span class="text-[9px] font-black uppercase tracking-widest">Centre Assignat</span></div><span class="text-[11px] font-bold text-[#022B3A]">{{ workshop.center }}</span></div>
-                    <div class="flex items-center justify-between"><div class="flex items-center gap-2 text-[#022B3A]/30"><Clock :size="14" /><span class="text-[9px] font-black uppercase tracking-widest">Propera Sessió</span></div><span class="text-[11px] font-bold text-[#022B3A]">{{ workshop.nextSession }}</span></div>
+                    <div class="flex items-center justify-between"><div class="flex items-center gap-2 text-[#022B3A]/30"><Calendar :size="14" /><span class="text-[9px] font-black uppercase tracking-widest">Data Taller</span></div><span class="text-[11px] font-bold text-[#022B3A]">{{ workshop.nextSession }}</span></div>
                     <div class="flex items-center justify-between"><div class="flex items-center gap-2 text-[#022B3A]/30"><Users :size="14" /><span class="text-[9px] font-black uppercase tracking-widest">Alumnes</span></div><div class="flex items-center gap-2"><div class="w-16 h-1.5 bg-[#E1E5F2] rounded-full overflow-hidden"><div class="h-full bg-[#1F7A8C]" :style="{ width: `${(workshop.studentsCount / workshop.places) * 100}%` }"></div></div><span class="text-[11px] font-bold text-[#022B3A]">{{ (workshop.studentsCount || 0) }}/{{ workshop.places }}</span></div></div>
                   </div>
                   <div class="flex flex-wrap gap-2 mb-6"><span v-for="t in workshop.trimestres" :key="t" class="px-2 py-1 bg-[#E1E5F2]/20 border border-[#BFDBF7]/30 rounded-md text-[9px] font-bold text-[#022B3A]/60 uppercase">{{ t }} Trimestre</span></div>

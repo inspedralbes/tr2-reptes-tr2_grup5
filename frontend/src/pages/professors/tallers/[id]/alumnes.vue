@@ -170,7 +170,7 @@ function openModal() {
   let remaining = total - current;
 
   if (remaining <= 0) {
-    alert('La llista està plena.');
+    useSwal().fire({ title: 'Atenció', text: 'La llista està plena.', icon: 'warning' });
     return;
   }
 
@@ -192,7 +192,8 @@ function closeModal() {
 }
 
 async function deleteStudent(studentId) {
-  if (!confirm('Segur que vols eliminar aquest alumne de la llista?')) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols eliminar aquest alumne de la llista?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   try {
     await $fetch('/api/professor/tallers/' + detalleId + '/alumnes/' + studentId, {
       method: 'DELETE',
@@ -204,7 +205,7 @@ async function deleteStudent(studentId) {
     if (e && e.message) {
       msg = msg + e.message;
     }
-    alert(msg);
+    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
   }
 }
 
@@ -220,7 +221,7 @@ async function submitAssistencia() {
     });
     await refreshAssistencia();
     closeModal();
-    alert('Llista enviada correctament!');
+    useSwal().fire({ title: 'Fet', text: 'Llista enviada correctament!', icon: 'success' });
   } catch (err) {
     console.error('Error enviant llista:', err);
     let msg = 'Error enviant la llista: ';
@@ -231,7 +232,7 @@ async function submitAssistencia() {
     } else {
       msg = msg + 'Error desconegut';
     }
-    alert(msg);
+    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
   } finally {
     submitting.value = false;
   }

@@ -115,7 +115,7 @@ const saveEvaluation = async (studentId) => {
         student.status = 'done';
     } catch (err) {
         console.error("Error guardant avaluació:", err);
-        alert("No s'ha pogut guardar l'avaluació de " + student.name);
+        useSwal().fire({ title: 'Error', text: "No s'ha pogut guardar l'avaluació de " + student.name, icon: 'error' });
     } finally {
         savingStatus.value[studentId] = false;
     }
