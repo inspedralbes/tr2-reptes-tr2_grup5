@@ -4,11 +4,8 @@
     <!-- 1. NAVBAR -->
     <nav class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 py-5 px-6 md:px-12">
       <div class="max-w-[1400px] mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="bg-[#2563EB] w-6 h-6 rounded-full flex items-center justify-center">
-            <div class="w-2 h-2 bg-white rounded-full"></div>
-          </div>
-          <span class="font-bold text-xl tracking-tight text-[#022B3A]">ENGINY</span>
+        <div class="flex items-center gap-3">
+          <img src="/logo_v_black.png" alt="ENGINY" class="h-14 w-auto object-contain" />
         </div>
         <div class="flex items-center gap-6">
           <button 
@@ -250,10 +247,9 @@
       <div class="max-w-[1400px] mx-auto">
         <div class="grid md:grid-cols-4 gap-12 mb-12">
           <div class="col-span-1 md:col-span-2">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="bg-[#022B3A] w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg text-white">E</div>
+            <div class="flex flex-col gap-4 mb-6">
+              <img src="/logo_v_black.png" alt="ENGINY" class="h-16 w-auto object-contain self-start" />
               <div class="flex flex-col">
-                <span class="font-black text-[#022B3A] text-xl uppercase leading-none">ENGINY</span>
                 <span class="text-[10px] font-bold text-[#022B3A]/40 uppercase tracking-widest">Plataforma Educativa</span>
               </div>
             </div>

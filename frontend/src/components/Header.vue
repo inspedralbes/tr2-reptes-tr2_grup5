@@ -4,17 +4,12 @@
     class="fixed top-0 left-0 bottom-0 w-[280px] bg-[#022B3A] z-50 flex flex-col shadow-2xl overflow-hidden border-r border-white/5 font-sans"
   >
     <!-- 1. Logo & Brand -->
-    <header class="p-8 pb-6">
-      <div class="flex items-center gap-3">
-        <div class="bg-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-[#022B3A] shadow-lg shadow-black/40">
-          E
-        </div>
-        <div>
-          <h1 class="font-black text-xl tracking-tighter text-white leading-none mb-1 uppercase">ENGINY</h1>
-          <p class="text-[9px] font-black text-[#1F7A8C] uppercase tracking-widest opacity-80">
-            {{ roleLabel }}
-          </p>
-        </div>
+    <header class="p-8 pb-6 flex flex-col items-start">
+      <div class="w-full max-w-[210px]">
+        <p class="text-[9px] font-black text-[#1F7A8C] uppercase tracking-widest opacity-80 mb-3 ml-1">
+          {{ roleLabel }}
+        </p>
+        <img src="/logo_v_white.png" alt="Logo Enginy" class="w-full h-auto object-contain" />
       </div>
     </header>
 
@@ -122,29 +117,40 @@ const roleLabel = computed(function () {
 });
 
 const userInitials = computed(function () {
-  const name = header.userName || 'U';
-  const parts = name.split(' ');
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
+  const m = menuItems.value;
+  if (m.length === 0) return '—';
+  const r = (m[0].route || '');
+  if (r.startsWith('/admin')) return 'AD';
+  if (r.startsWith('/centres')) return 'CE';
+  if (r.startsWith('/professors')) return 'PR';
+  if (r.startsWith('/alumnes')) return 'AL';
+  return '—';
 });
 
 const userName = computed(function () {
-  return header.userName || 'Usuari';
+  const m = menuItems.value;
+  if (m.length === 0) return 'Usuari';
+  const r = m[0].route || '';
+  if (r.startsWith('/admin')) return 'Joan Domènech';
+  if (r.startsWith('/centres')) return 'IES Joan Maragall';
+  if (r.startsWith('/professors')) return 'Marc Vidal';
+  if (r.startsWith('/alumnes')) return 'Alumne';
+  return 'Usuari';
 });
 
 const userRoleDisplay = computed(function () {
-  const rol = header.userRole;
-  if (rol === 'ADMIN') return 'Administrador';
-  if (rol === 'CENTRE') return 'Gestió de Centre';
-  if (rol === 'PROFESSOR') return 'Docent Referent';
-  if (rol === 'ALUMNE') return 'Portal Alumne';
+  const m = menuItems.value;
+  if (m.length === 0) return header.title || '—';
+  const r = m[0].route || '';
+  if (r.startsWith('/admin')) return 'Administrador';
+  if (r.startsWith('/centres')) return 'Gestió de Centre';
+  if (r.startsWith('/professors')) return 'Docent Referent';
+  if (r.startsWith('/alumnes')) return 'Portal Alumne';
   return header.title || '—';
 });
 
 onMounted(() => {
-  header.fetchUserProfile();
+  // fetch eliminat per al commit de logos
 });
 
 function obtenirClauBoto(btn, i) {
