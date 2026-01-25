@@ -46,7 +46,8 @@ const Professor = {
       await connection.beginTransaction();
 
       // 4. Creem l'usuari associat al professor
-      const passwordHash = '$2b$10$HnZFrfVpo1WxpnO64di7X.HW4/d/KSi0Lzt4zN5Yc4dL2nQdHfoF4dW';
+      // Contrasenya per defecte: profesor123
+      const passwordHash = '$2b$10$DLh498C7i9QNbfDZSGxM/4E5ou//zPO3KcIZ5jSS';
       const rol = 'PROFESSOR';
       const resultUser = await connection.query(`
         INSERT INTO usuaris (email, password, rol)
@@ -147,17 +148,17 @@ const Professor = {
       // 4. En cas d'error, el propaguem
       throw error;
     }
-    },
+  },
 
-    // Buscar professor pel seu user_id (per saber qui està fent login)
-    getByUserId: async (user_id) => {
-        const [rows] = await db.query("SELECT * FROM professors WHERE user_id = ?", [user_id]);
-        return rows[0];
-    },
+  // Buscar professor pel seu user_id (per saber qui està fent login)
+  getByUserId: async (user_id) => {
+    const [rows] = await db.query("SELECT * FROM professors WHERE user_id = ?", [user_id]);
+    return rows[0];
+  },
 
-    // Obtenir els tallers assignats a un professor (mitjançant l'email del docent a peticio_detalls)
-    getAssignedTallers: async (email) => {
-        const sql = `
+  // Obtenir els tallers assignats a un professor (mitjançant l'email del docent a peticio_detalls)
+  getAssignedTallers: async (email) => {
+    const sql = `
             SELECT t.*, pd.estat as estat_assignacio, pd.trimestre, pd.id as detall_id, pd.docent_nom, pd.docent_email, pd.num_participants
             FROM peticio_detalls pd
             JOIN tallers t ON pd.taller_id = t.id
@@ -165,15 +166,15 @@ const Professor = {
             WHERE pd.docent_email = ? AND pd.estat = 'ASSIGNADA'
             ORDER BY p.data_creacio DESC
         `;
-        const [rows] = await db.query(sql, [email]);
-        return rows;
-    },
+    const [rows] = await db.query(sql, [email]);
+    return rows;
+  },
 
-    // Obtenir els tallers on el professor és referent (taula referents_assignats o per preferència)
-    // MODIFICAT: Ara retorna TOTS els detalls de tallers on l'usuari és referent d'almenys UNA petició
-    // (ja sigui per assignació directa o per haver marcat 'preferència referent' en la petició).
-    getReferentTallers: async (professor_id, user_email) => {
-        const sql = `
+  // Obtenir els tallers on el professor és referent (taula referents_assignats o per preferència)
+  // MODIFICAT: Ara retorna TOTS els detalls de tallers on l'usuari és referent d'almenys UNA petició
+  // (ja sigui per assignació directa o per haver marcat 'preferència referent' en la petició).
+  getReferentTallers: async (professor_id, user_email) => {
+    const sql = `
             SELECT t.*, pd.estat as estat_assignacio, pd.trimestre, pd.id as detall_id, pd.docent_nom, pd.docent_email, pd.num_participants
             FROM peticio_detalls pd
             JOIN tallers t ON pd.taller_id = t.id
@@ -186,9 +187,9 @@ const Professor = {
             GROUP BY pd.id
             ORDER BY p.data_creacio DESC
         `;
-        const [rows] = await db.query(sql, [professor_id, user_email]);
-        console.log(`[DEBUG] getReferentTallers for ProfID ${professor_id} (${user_email}): Found ${rows.length} rows.`);
-        return rows;
+    const [rows] = await db.query(sql, [professor_id, user_email]);
+    console.log(`[DEBUG] getReferentTallers for ProfID ${professor_id} (${user_email}): Found ${rows.length} rows.`);
+    return rows;
   }
 };
 
