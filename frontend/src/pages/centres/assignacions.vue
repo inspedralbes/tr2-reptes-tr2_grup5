@@ -1,267 +1,181 @@
 <template>
-  <div class="page">
-    <template v-if="!$route.params.id">
-      <div class="header-section">
-        <div class="title-with-icon">
-          <span class="header-icon">🎓</span>
-          <div>
-            <h2>Les meves Assignacions</h2>
-            <p class="subtitle">Tallers confirmats i acceptats per al teu centre.</p>
-          </div>
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[80vh]">
+    
+    <!-- HEADER -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+        Les meves <span class="text-[#1F7A8C]">Assignacions</span>
+      </h1>
+      <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+        Tallers confirmats i acceptats per al teu centre.
+      </p>
+    </div>
+
+    <!-- ESTADO 1: LISTADO DE TARJETAS (SI HAY DATOS) -->
+    <div v-if="assignments.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <div 
+        v-for="assign in assignments" 
+        :key="assign.id" 
+        class="bg-white rounded-2xl border border-[#E1E5F2] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col overflow-hidden"
+      >
+        <!-- 1. Header Badges -->
+        <div class="px-6 pt-6 pb-4 flex justify-between items-start">
+           <span :class="['px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border', getProjectStyles(assign.projectLetter)]">
+              Projecte {{ assign.projectLetter }}
+           </span>
+           <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F8FAFC] border border-[#E1E5F2]">
+              <div class="w-1.5 h-1.5 rounded-full bg-[#022B3A]"></div>
+              <span class="text-[9px] font-black text-[#64748B] uppercase tracking-wider">{{ assign.trimestre }}</span>
+           </div>
+        </div>
+
+        <!-- 2. Content -->
+        <div class="px-6 flex-1 flex flex-col">
+           <div class="mb-6">
+             <h3 class="text-xl font-black text-[#022B3A] leading-tight mb-2 tracking-tight">
+               {{ assign.projectTitle }}
+             </h3>
+             <div class="flex items-center gap-2 text-[#8E9AAF] text-xs font-bold uppercase tracking-wider">
+               <MapPin :size="14" />
+               {{ assign.location }}
+             </div>
+           </div>
+           
+           <!-- Metadata Rows -->
+           <div class="space-y-3 mb-6 mt-auto">
+              <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest flex items-center gap-2">
+                  <Users :size="14" /> PARTICIPANTS
+                </span>
+                <span class="text-xs font-bold text-[#022B3A]">{{ assign.participants }} alumnes</span>
+              </div>
+              <div class="w-full h-px bg-gradient-to-r from-[#F1F4F9] to-transparent"></div>
+              <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-graduation-cap"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                  DOCENT
+                </span>
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#022B3A] block">{{ assign.docentName }}</span>
+                  <span class="text-[9px] font-medium text-[#1F7A8C] block" v-if="assign.docentEmail !== '—'">{{ assign.docentEmail }}</span>
+                </div>
+              </div>
+           </div>
+        </div>
+
+        <!-- 3. Footer Actions -->
+        <div class="px-6 py-4 bg-[#F9FAFC] border-t border-[#F1F4F9] flex items-center justify-between mt-auto">
+           <span class="text-[10px] font-black text-[#CBD5E1] tracking-widest uppercase">
+              REF-{{ assign.id.toString().padStart(3, '0') }}
+           </span>
+           
+           <button 
+              @click="navigateToDetails(assign.id)"
+              class="flex items-center gap-2 px-4 py-2 bg-white border border-[#E1E5F2] rounded-lg shadow-sm text-[10px] font-black text-[#022B3A] uppercase tracking-widest hover:border-[#1F7A8C] hover:text-[#1F7A8C] transition-all"
+           >
+              Veure Detalls <ChevronRight :size="14" />
+           </button>
         </div>
       </div>
 
-      <div v-if="pending" class="loading-state">
-        <div class="spinner"></div>
-        <span>Carregant les teves assignacions...</span>
-      </div>
+    </div>
 
-      <div v-else-if="error" class="error-state">
-        <span class="error-status">⚠️</span>
-        <p>No s'hi ha pogut conectar al servidor: {{ error.message }}</p>
-        <button @click="refresh" class="btn-retry">Reintentar</button>
-      </div>
-
-      <div v-else class="content-wrapper">
-        <div v-if="assignacions && assignacions.length > 0" class="assignments-grid">
-          <div v-for="assignacio in assignacions" :key="assignacio.id" class="assignment-card">
-            <div class="card-status-bar">
-              {{ assignacio.trimestre }} Trimestre
-            </div>
-            
-            <div class="card-body">
-              <div class="taller-info">
-                <div class="modalitat-indicator" :class="'mod-' + assignacio.modalitat.toLowerCase()">
-                  {{ assignacio.modalitat }}
-                </div>
-                <div class="taller-main">
-                  <h3>{{ assignacio.titol }}</h3>
-                  <p class="ubicacio">📍 {{ assignacio.ubicacio || 'Ubicació per confirmar' }}</p>
-                </div>
-              </div>
-
-              <div class="assignment-details">
-                <div class="detail-item">
-                  <span class="label">Participants</span>
-                  <span class="value">{{ assignacio.num_participants }} alumnes</span>
-                </div>
-                <div class="detail-item">
-                  <span class="label">Docent Referent</span>
-                  <span class="value">{{ assignacio.docent_nom || 'Pendent d\'assignar' }}</span>
-                </div>
-                <div class="detail-item" v-if="assignacio.docent_email">
-                  <span class="label">Email Docent</span>
-                  <span class="value small">{{ assignacio.docent_email }}</span>
-                </div>
-              </div>
-
-              <div class="footer-actions">
-                <NuxtLink :to="`/centres/assignacions/${assignacio.id}`" class="btn-details">
-                  Veure detalls i sessions ❯
-                </NuxtLink>
-              </div>
-            </div>
-          </div>
+    <!-- ESTADO 2: BUIT (SI NO HAY DATOS) - CAPTURA 1 -->
+    <div v-else class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
+        
+        <!-- Icon Gradient Box -->
+        <div class="w-24 h-24 bg-gradient-to-br from-indigo-100 to-blue-50 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
+            <CalendarDays :size="40" class="text-[#6366f1]" stroke-width="1.5" />
         </div>
 
-        <div v-else class="empty-state">
-          <div class="empty-illustration">📅</div>
-          <h3>Encara no tens cap taller assignat</h3>
-          <p>Quan l'administració accepti les teves sol·licituds, apareixeran aquí.</p>
-          <NuxtLink to="/peticions" class="btn-primary">Anar a Sol·licituds</NuxtLink>
-        </div>
-      </div>
-    </template>
+        <h2 class="text-3xl font-black text-[#022B3A] mb-3 tracking-tight">Encara no tens cap taller assignat</h2>
+        
+        <p class="text-[#64748B] text-center max-w-md font-medium leading-relaxed mb-10">
+            Quan l'administració accepti les teves sol·licituds, els tallers confirmats apareixeran aquí.
+        </p>
 
-    <NuxtPage />
+        <button 
+            @click="navigateToRequests"
+            class="bg-[#3B82F6] text-white px-8 py-4 rounded-xl font-bold text-sm shadow-xl shadow-blue-200 hover:bg-[#2563EB] hover:scale-105 transition-all flex items-center gap-2"
+        >
+            Anar a Sol·licituds
+        </button>
+
+    </div>
+
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { MapPin, ChevronRight, CalendarDays, Users } from 'lucide-vue-next';
+
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Importacions i Composables
 // ======================================
 const header = useHeaderStore();
 header.setHeaderCentres();
+const router = useRouter();
+
+function getProjectStyles(letter) {
+  const l = (letter || '').toUpperCase();
+  if (l.includes('A')) return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20';
+  if (l.includes('B')) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20';
+  if (l.includes('C')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
+  return 'bg-white/40 text-[#022B3A] border-white/60';
+}
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Estat Reactiu i Data Fetching
 // ======================================
 const tokenCookie = useCookie('authToken');
+const headers = { Authorization: tokenCookie.value ? 'Bearer ' + tokenCookie.value : '' };
 
-const resFetch = await useFetch('/api/centre/assignacions', {
-  server: false,
-  headers: {
-    Authorization: tokenCookie.value ? 'Bearer ' + tokenCookie.value : ''
-  }
+// 1. Fetch Assignments
+const { data: rawAssignments, pending, error, refresh } = await useFetch('/api/centre/assignacions', {
+  headers,
+  key: 'centre-assignacions'
 });
 
-const assignacions = computed(function () {
-  let d = resFetch.data;
-  if (d && d.value) return d.value;
-  return [];
+// 2. Fetch Center Profile (for email display)
+const { data: centreProfile } = await useFetch('/api/centre/perfil', {
+  headers,
+  key: 'centre-perfil-assign'
 });
 
-const pending = resFetch.pending;
-const error = resFetch.error;
-const refresh = resFetch.refresh;
+// ======================================
+// Computed UI Data
+// ======================================
+const assignments = computed(() => {
+  const list = rawAssignments.value || [];
+  const centerEmail = centreProfile.value?.email_oficial || '';
+
+  return list.map(a => ({
+    id: a.id,
+    trimestre: a.trimestre + ' TRIMESTRE', // "1r TRIMESTRE"
+    projectLetter: (a.modalitat || '?').charAt(0).toUpperCase(), // "A", "B", "C"
+    projectTitle: a.titol,
+    location: a.ubicacio || 'Ubicació per confirmar',
+    participants: a.num_participants || 0,
+    docentName: a.docent_nom || 'Docent no assignat',
+    docentEmail: a.docent_email || '—',
+    centerEmail: centerEmail
+  }));
+});
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Navigation Actions
 // ======================================
+function navigateToDetails(id) {
+  router.push(`/centres/assignacions/${id}`);
+}
+
+function navigateToRequests() {
+  router.push('/centres/peticions');
+}
 </script>
 
 <style scoped>
-.page { 
-  padding: 40px; 
-  background: #f8fafc; 
-  min-height: 100vh; 
-  font-family: 'Inter', sans-serif;
-}
-
-.header-section { margin-bottom: 40px; }
-.title-with-icon { display: flex; align-items: center; gap: 20px; }
-.header-icon { font-size: 2.5em; background: white; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-
-h2 { color: #0f172a; font-weight: 800; font-size: 2em; margin: 0; }
-.subtitle { color: #64748b; font-size: 1.1em; margin-top: 4px; }
-
-.content-wrapper { max-width: 1200px; margin: 0 auto; }
-
-.assignments-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 24px;
-}
-
-.assignment-card {
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1);
-  border: 1px solid #e2e8f0;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.assignment-card:hover {
-  transform: translateY(-5px);
-}
-
-.card-status-bar {
-  background: #0f172a;
-  color: white;
-  padding: 8px 20px;
-  font-size: 0.8em;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.card-body { padding: 24px; }
-
-.taller-info { 
-  display: flex; 
-  gap: 16px; 
-  align-items: flex-start; 
-  margin-bottom: 24px;
-}
-
-.modalitat-indicator {
-  min-width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 1.25em;
-  color: white;
-}
-
-.mod-a { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.mod-b { background: linear-gradient(135deg, #10b981, #059669); }
-.mod-c { background: linear-gradient(135deg, #f59e0b, #d97706); }
-
-.taller-main h3 { margin: 0; color: #1e293b; font-size: 1.25em; font-weight: 700; line-height: 1.2; }
-.ubicacio { color: #64748b; font-size: 0.9em; margin-top: 4px; }
-
-.assignment-details {
-  background: #f1f5f9;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.detail-item { display: flex; justify-content: space-between; align-items: center; }
-.label { color: #64748b; font-size: 0.8em; font-weight: 600; text-transform: uppercase; }
-.value { color: #334155; font-size: 0.95em; font-weight: 700; }
-.value.small { font-size: 0.85em; font-weight: 500; }
-
-.footer-actions { border-top: 1px solid #f1f5f9; padding-top: 20px; }
-.btn-details {
-  display: block;
-  text-align: center;
-  background: transparent;
-  color: #3b82f6;
-  padding: 12px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.9em;
-  text-decoration: none;
-  border: 2px solid #3b82f6;
-  transition: all 0.2s;
-}
-
-.btn-details:hover {
-  background: #3b82f6;
-  color: white;
-}
-
-.loading-state, .error-state, .empty-state {
-  text-align: center;
-  padding: 100px 20px;
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.empty-illustration { font-size: 5em; margin-bottom: 20px; }
-.empty-state h3 { font-size: 1.5em; color: #1e293b; margin-bottom: 8px; }
-.empty-state p { color: #64748b; margin-bottom: 24px; }
-
-.btn-primary {
-  display: inline-block;
-  background: #3b82f6;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: 700;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
-}
-
-.btn-retry {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 16px;
-}
+/* Tailwind handles the styling */
 </style>
