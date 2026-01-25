@@ -208,7 +208,6 @@
         </div>
 
         <!-- Missatges -->
-        <p v-if="message" class="text-sm text-green-600">{{ message }}</p>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <!-- Botons -->
@@ -346,9 +345,7 @@ async function submitForm() {
       body: payload
     });
 
-    message.value = 'Centre creat correctament.';
-    resetForm();
-    emit('created');
+    useSwal().fire({ title: 'Fet', text: 'Centre creat correctament.', icon: 'success' }).then(() => { resetForm(); emit('created'); });
   } catch (err) {
     console.error('Error creant centre:', err);
     const msg = err?.data?.message || err?.message || 'Error en crear el centre.';

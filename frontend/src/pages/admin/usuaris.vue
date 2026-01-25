@@ -430,7 +430,8 @@ function handleEdit(id) {
 async function handleDelete(id) {
   const isCentre = mostrarCentres.value;
   const txt = isCentre ? "Estàs segur que vols eliminar aquest centre?" : "Estàs segur que vols eliminar aquest usuari?";
-  if (!confirm(txt)) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: txt, icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
 
   const tok = tokenRef.value;
 
@@ -440,17 +441,17 @@ async function handleDelete(id) {
         method: 'DELETE',
         headers: tok ? { Authorization: 'Bearer ' + tok } : {}
       });
-      await respostaCentres.refresh();
+      useSwal().fire({ title: 'Fet', text: 'Centre eliminat.', icon: 'success' }).then(() => { respostaCentres.refresh(); });
     } else {
       await $fetch('/api/admin/usuaris/' + id, {
         method: 'DELETE',
         headers: tok ? { Authorization: 'Bearer ' + tok } : {}
       });
-      await respostaUsuaris.refresh();
+      useSwal().fire({ title: 'Fet', text: 'Usuari eliminat.', icon: 'success' }).then(() => { respostaUsuaris.refresh(); });
     }
   } catch (e) {
     const msg = (e?.data?.message) || (e?.message) || 'Error en eliminar.';
-    alert(msg);
+    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
   }
 }
 

@@ -1,0 +1,78 @@
+/* SweetAlert2: estil coherent amb la pàgina (#022B3A, #1F7A8C, #BFDBF7, #E1E5F2, Inter) */
+
+.swal2-popup.swal-app-theme {
+  font-family: 'Inter', sans-serif !important;
+  background: #E1E5F2 !important;
+  border: 1px solid #BFDBF7 !important;
+  border-radius: 1rem !important;
+  padding: 1.5rem 1.5rem 1.25rem !important;
+  box-shadow: 0 25px 50px -12px rgba(2, 43, 58, 0.25) !important;
+}
+
+.swal2-title.swal-app-title {
+  color: #022B3A !important;
+  font-weight: 900 !important;
+  font-size: 1.125rem !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.3 !important;
+}
+
+.swal2-html-container.swal-app-html {
+  color: #022B3A !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  opacity: 0.9;
+}
+
+.swal2-styled.swal-app-confirm {
+  background: #1F7A8C !important;
+  color: white !important;
+  font-weight: 900 !important;
+  font-size: 0.6875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1.5rem !important;
+  border: none !important;
+  box-shadow: 0 10px 15px -3px rgba(31, 122, 140, 0.2) !important;
+}
+
+.swal2-styled.swal-app-confirm:hover {
+  background: #022B3A !important;
+  box-shadow: 0 20px 25px -5px rgba(2, 43, 58, 0.2) !important;
+}
+
+.swal2-styled.swal-app-cancel {
+  background: white !important;
+  color: rgba(2, 43, 58, 0.6) !important;
+  border: 1px solid rgba(191, 219, 247, 0.6) !important;
+  font-weight: 900 !important;
+  font-size: 0.625rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1.25rem !important;
+}
+
+.swal2-styled.swal-app-cancel:hover {
+  color: #022B3A !important;
+  border-color: #BFDBF7 !important;
+  box-shadow: 0 4px 6px -1px rgba(2, 43, 58, 0.08) !important;
+}
+
+.swal2-actions.swal-app-actions {
+  gap: 0.75rem !important;
+  margin-top: 1rem !important;
+}
+
+/* Icones: mantenir colors semàntics però suavitzar */
+.swal2-icon.swal-app-icon.swal2-success { border-color: #1F7A8C !important; }
+.swal2-icon.swal-app-icon.swal2-success [class^='swal2-success-line'] { background-color: #1F7A8C !important; }
+.swal2-icon.swal-app-icon.swal2-success .swal2-success-ring { border-color: rgba(31, 122, 140, 0.3) !important; }
+
+.swal2-icon.swal-app-icon.swal2-error { border-color: #dc2626 !important; }
+.swal2-icon.swal-app-icon.swal2-error [class^='swal2-x-mark-line'] { background-color: #dc2626 !important; }
+
+.swal2-icon.swal-app-icon.swal2-warning { border-color: #FBB02D !important; color: #FBB02D !important; }
+
+.swal2-icon.swal-app-icon.swal2-question { border-color: #1F7A8C !important; color: #1F7A8C !important; }

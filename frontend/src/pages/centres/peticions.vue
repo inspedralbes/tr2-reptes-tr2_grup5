@@ -276,18 +276,12 @@
              <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8" :set="formModel = getFormModel(workshop.id)">
                 
                 <div class="space-y-6">
- <div class="space-y-2">
-                    <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Trimestre Preferent *</label>
-                    <div class="relative">
-                      <select v-model="formModel.trimestre" class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none cursor-pointer text-[#022B3A]">
-                        <option value="" disabled>Selecciona un trimestre</option>
-                        <option value="1r">1r Trimestre (Tardor)</option>
-                        <option value="2n">2n Trimestre (Hivern)</option>
-                        <option value="3r">3r Trimestre (Primavera)</option>
-                      </select>
-                      <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40">
-                        <ArrowRight :size="14" class="rotate-90" />
-                      </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Trimestre(s) d'execució</label>
+                    <div class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-bold text-[#022B3A] flex items-center gap-2">
+                      <CalendarDays :size="16" class="text-[#022B3A]/50 shrink-0" />
+                      <span>{{ (workshop.trimestres && workshop.trimestres.length) ? workshop.trimestres.join(', ') : '—' }}</span>
+                      <span class="text-[9px] font-medium text-[#022B3A]/50 normal-case">(definit pel taller)</span>
                     </div>
                   </div>
 
@@ -497,13 +491,12 @@ const addedWorkshops = computed(() => {
 // or preserve existing form state if jumping back and forth.
 const selectedWorkshopDetails = computed(() => {
   return selectedTallers.value.map(t => {
-    // Find styled info
     const styled = filteredWorkshops.value.find(fw => fw.id === t.id);
     return {
-      ...t, // Original ID and data
+      ...t,
       title: t.titol,
       project: `Projecte ${t.modalitat || '?'}`,
-      // Map properties for the form view display
+      trimestres: parseTrimestres(t.trimestres_disponibles),
     };
   });
 });
@@ -537,7 +530,7 @@ function getProjectStyles(projectString) {
 
 function toggleWorkshop(id) {
   if (!isRegistrationOpen.value) {
-    alert("El període d'inscripció està tancat.");
+    useSwal().fire({ title: 'Atenció', text: "El període d'inscripció està tancat.", icon: 'warning' });
     return;
   }
   
@@ -553,17 +546,19 @@ function toggleWorkshop(id) {
     const original = tallers.value.find(t => t.id === id);
     if (original) {
       selectedTallers.value.push(original);
+      // Trimestre fix: ve del taller (primer valor de trimestres_disponibles)
+      const trs = parseTrimestres(original.trimestres_disponibles);
+      const trimestreAssignat = (trs && trs.length > 0) ? trs[0] : '1r';
       // Init form entry
       form.value.tallers.push({
         taller_id: original.id,
-        trimestre: '',
+        trimestre: trimestreAssignat,
         num_participants: 1,
         docent_nom: '',
         docent_email: '',
         prioritat: 1,
         es_preferencia_referent: false,
         descripcio: '',
-        // Auxiliary for UI mapping if needed
         _title: original.titol
       });
     }
@@ -593,15 +588,11 @@ const getFormModel = (workshopId) => {
 // I need to bind these inputs to my `form.tallers` state.
 
 async function handleSubmit() {
-  // Client-side validation
-  const invalidItems = form.value.tallers.filter(t => !t.trimestre || t.trimestre === '');
-  if (invalidItems.length > 0) {
-    alert("Has de seleccionar un trimestre preferent per a tots els tallers seleccionats.");
-    return;
-  }
+  // El trimestre ve fix del taller (assignat en afegir-lo); no cal validar-lo.
 
-  if (!confirm('Segur que vols confirmar la sol·licitud?')) return;
-  
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols confirmar la sol·licitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
+
   submitting.value = true;
   try {
     const token = tokenCookie.value;
@@ -616,13 +607,11 @@ async function handleSubmit() {
       headers: { 'Authorization': 'Bearer ' + token },
       body: form.value
     });
-    alert('Sol·licitud enviada correctament!');
-    window.location.reload();
+    useSwal().fire({ title: 'Fet', text: 'Sol·licitud enviada correctament!', icon: 'success' }).then(() => { window.location.reload(); });
   } catch (err) {
     console.error(err);
-    // Show specific error if available
     const msg = err.data?.message || err.message || 'Error desconegut';
-    alert('Error enviant la sol·licitud: ' + msg);
+    useSwal().fire({ title: 'Error', text: 'Error enviant la sol·licitud: ' + msg, icon: 'error' });
   } finally {
     submitting.value = false;
   }

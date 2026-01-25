@@ -228,6 +228,19 @@
         </button>
       </div>
     </div>
+
+    <!-- Popups: Crear i Editar Taller -->
+    <FormCrearTaller
+      v-if="showFormCrearTaller"
+      @close="closeCrear"
+      @created="onTallerCreated"
+    />
+    <FormEditarTaller
+      v-if="showFormEditarTaller && tallerIdEditar"
+      :taller-id="tallerIdEditar"
+      @close="closeEditar"
+      @updated="onTallerUpdated"
+    />
   </section>
 </template>
 
@@ -416,30 +429,52 @@ function refFormat(id) {
   return String(id).padStart(3, '0');
 }
 
-// A) --- Navegar a crear un nou taller ---
+// A) --- Obrir popup crear taller ---
+const showFormCrearTaller = ref(false);
 function crearTaller() {
-  navigateTo('/admin/tallers/FormTallers');
+  showFormCrearTaller.value = true;
+}
+function onTallerCreated() {
+  showFormCrearTaller.value = false;
+  respostaFetch.refresh();
+}
+function closeCrear() {
+  showFormCrearTaller.value = false;
+}
+
+// A) --- Obrir popup editar taller ---
+const showFormEditarTaller = ref(false);
+const tallerIdEditar = ref(null);
+function editTaller(id) {
+  tallerIdEditar.value = id;
+  showFormEditarTaller.value = true;
+}
+function onTallerUpdated() {
+  showFormEditarTaller.value = false;
+  tallerIdEditar.value = null;
+  respostaFetch.refresh();
+}
+function closeEditar() {
+  showFormEditarTaller.value = false;
+  tallerIdEditar.value = null;
 }
 
 // A) --- Eliminar un taller ---
 async function deleteTaller(id) {
+  const confirmResult = await useSwal().fire({ title: 'Eliminar taller', text: 'Segur que vols eliminar aquest taller?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar' });
+  if (!confirmResult.isConfirmed) return;
   try {
     await $fetch('/api/admin/tallers/' + id, {
       method: 'DELETE',
-      headers: {
-        Authorization: token ? 'Bearer ' + token : ''
-      }
+      headers: { Authorization: token ? 'Bearer ' + token : '' }
     });
-    respostaFetch.refresh();
+    useSwal().fire({ title: 'Fet', text: 'Taller eliminat correctament.', icon: 'success' }).then(() => { respostaFetch.refresh(); });
   } catch (err) {
     console.error('Error eliminant taller:', err);
+    useSwal().fire({ title: 'Error', text: err?.data?.message || err?.message || 'Error en eliminar el taller.', icon: 'error' });
   }
 }
 
-// A) --- Navegar a l'edició del taller ---
-function editTaller(id) {
-  navigateTo('/admin/tallers/editTallers?id=' + id);
-}
 
 // A) --- Formata la data "YYYY-MM-DD" a "DD/MM/YYYY" ---
 function formatDate(dateStr) {

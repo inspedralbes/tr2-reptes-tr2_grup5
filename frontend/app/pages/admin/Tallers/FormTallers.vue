@@ -80,20 +80,18 @@ const handleFileChange = (event) => {
 
 const submitForm = async () => {
   if (!taller.titol || !taller.modalitat) {
-    alert('El títol i la modalitat són obligatoris')
+    useSwal().fire({ title: 'Atenció', text: 'El títol i la modalitat són obligatoris', icon: 'warning' })
     return
   }
 
   try {
-    
     const response = await $fetch('/api/admin/tallers', {
       method: 'POST',
       body: taller
     })
 
     console.log('Insertado correctamente:', response)
-    alert('Taller creat correctament amb la ruta de la imatge!')
-    
+    useSwal().fire({ title: 'Fet', text: 'Taller creat correctament amb la ruta de la imatge!', icon: 'success' })
 
     Object.assign(taller, {
       titol: '', descripcio: '', ambit: '', modalitat: '',
@@ -101,7 +99,7 @@ const submitForm = async () => {
     })
   } catch (error) {
     console.error('Error al insertar:', error)
-    alert('Error: ' + (error.data?.message || error.message))
+    useSwal().fire({ title: 'Error', text: 'Error: ' + (error.data?.message || error.message), icon: 'error' })
   }
 }
 </script>

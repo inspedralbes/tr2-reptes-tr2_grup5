@@ -322,12 +322,14 @@ async function fetchSolicitudes() {
 }
 
 async function handleAccept(id) {
-  if (!confirm('Vols validar aquest registre? Se li enviarà una notificació al centre.')) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Vols validar aquest registre? Se li enviarà una notificació al centre.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   await updateEstado(id, 'acceptada');
 }
 
 async function handleReject(id) {
-  if (!confirm('Segur que vols rebutjar aquesta sol·licitud?')) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols rebutjar aquesta sol·licitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   await updateEstado(id, 'rebutjada');
 }
 
@@ -338,13 +340,11 @@ async function updateEstado(id, estado) {
       headers: { Authorization: 'Bearer ' + token },
       body: { estat: estado }
     });
-    
-    // Refresh list
     await fetchSolicitudes();
-    alert(estado === 'acceptada' ? 'Sol·licitud acceptada correctament.' : 'Sol·licitud rebutjada.');
+    useSwal().fire({ title: 'Fet', text: estado === 'acceptada' ? 'Sol·licitud acceptada correctament.' : 'Sol·licitud rebutjada.', icon: 'success' });
   } catch (err) {
     console.error('Error updating status:', err);
-    alert('Error al processar la sol·licitud.');
+    useSwal().fire({ title: 'Error', text: 'Error al processar la sol·licitud.', icon: 'error' });
   }
 }
 

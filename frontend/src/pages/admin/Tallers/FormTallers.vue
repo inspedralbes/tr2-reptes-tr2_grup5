@@ -213,21 +213,6 @@
       </form>
     </div>
 
-    <!-- Modal d'èxit (lògica del Codi A) -->
-    <div v-if="showSuccessModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
-      <div class="bg-white rounded-2xl p-10 text-center w-[350px] max-w-[90vw] shadow-2xl animate-in zoom-in-95 duration-300">
-        <div class="w-16 h-16 rounded-full bg-[#10b981] text-white text-3xl flex items-center justify-center mx-auto mb-6">✓</div>
-        <h3 class="text-xl font-black text-[#022B3A] mb-2">Taller Creat!</h3>
-        <p class="text-sm text-[#022B3A]/70 mb-6">El taller s'ha afegit correctament al catàleg.</p>
-        <button 
-          type="button"
-          @click="closeModal" 
-          class="px-8 py-3 bg-[#1F7A8C] text-white font-black text-sm uppercase tracking-widest rounded-xl hover:bg-[#022B3A] transition-all"
-        >
-          D'acord
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -253,7 +238,6 @@ header.setHeaderAdmin();
 // Estat Reactiu i Refs (Variables i Formularis)
 // ======================================
 const loading = ref(false);
-const showSuccessModal = ref(false);
 
 const sectors = [
   'Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció',
@@ -274,9 +258,6 @@ const form = ref({
   descripcio: '',
   sector: '',
   modalitat: '',
-  places_maximes: 12,
-  trimestres: [],
-  ubicacio: '',
   places_maximes: 12,
   trimestres: [],
   ubicacio: '',
@@ -313,15 +294,15 @@ function cancelar() {
 // A) --- Enviar el formulari de crear taller ---
 async function submitForm() {
   if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
-    alert('Si us plau, omple tots els camps obligatoris (*)');
+    useSwal().fire({ title: 'Atenció', text: 'Si us plau, omple tots els camps obligatoris (*)', icon: 'warning' });
     return;
   }
   if (form.value.trimestres.length === 0) {
-    alert('Has de seleccionar almenys un trimestre.');
+    useSwal().fire({ title: 'Atenció', text: 'Has de seleccionar almenys un trimestre.', icon: 'warning' });
     return;
   }
   if (form.value.places_maximes < 1) {
-    alert('Les places màximes han de ser com a mínim 1.');
+    useSwal().fire({ title: 'Atenció', text: 'Les places màximes han de ser com a mínim 1.', icon: 'warning' });
     return;
   }
 
@@ -336,7 +317,6 @@ async function submitForm() {
     payload.modalitat = form.value.modalitat;
     payload.places_maximes = form.value.places_maximes;
     payload.trimestres_disponibles = trimestresStr;
-    payload.trimestres_disponibles = trimestresStr;
     payload.ubicacio = form.value.ubicacio;
     payload.adreca = form.value.adreca;
     payload.data_execucio = form.value.data_execucio ? form.value.data_execucio : null;
@@ -344,25 +324,11 @@ async function submitForm() {
     let token = useCookie('authToken').value;
     await $fetch('/api/admin/tallers', {
       method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + token
-      },
+      headers: { Authorization: 'Bearer ' + token },
       body: payload
     });
 
-    showSuccessModal.value = true;
-
-    form.value.titol = '';
-    form.value.descripcio = '';
-    form.value.sector = '';
-    form.value.modalitat = '';
-    form.value.places_maximes = 12;
-    form.value.trimestres = [];
-    form.value.ubicacio = '';
-    form.value.trimestres = [];
-    form.value.ubicacio = '';
-    form.value.adreca = '';
-    form.value.data_execucio = '';
+    useSwal().fire({ title: 'Fet', text: 'Taller creat correctament.', icon: 'success' }).then(() => { navigateTo('/admin/tallers'); });
   } catch (err) {
     let missatge = 'Error al crear el taller: ';
     if (err && err.response && err.response._data && err.response._data.message) {
@@ -372,17 +338,12 @@ async function submitForm() {
     } else {
       missatge = missatge + 'Error desconegut';
     }
-    alert(missatge);
+    useSwal().fire({ title: 'Error', text: missatge, icon: 'error' });
   } finally {
     loading.value = false;
   }
 }
 
-// A) --- Tancar el modal i navegar al llistat ---
-function closeModal() {
-  showSuccessModal.value = false;
-  navigateTo('/admin/tallers');
-}
 </script>
 
 <style scoped>

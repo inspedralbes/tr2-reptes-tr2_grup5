@@ -424,7 +424,8 @@ function formatDate(dateStr) {
 
 async function updateTallerStatus(peticioId, tallerId, estat) {
   const confirmMsg = estat === 'ASSIGNADA' ? 'Vols marcar aquest taller com a ASSIGNAT?' : 'Vols REBUTJAR aquesta sol·licitud?';
-  if (!confirm(confirmMsg)) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: confirmMsg, icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   actionLoading.value = true;
   try {
     const tok = tokenCookie.value;
@@ -433,17 +434,19 @@ async function updateTallerStatus(peticioId, tallerId, estat) {
       headers: { Authorization: tok ? 'Bearer ' + tok : '' },
       body: { estat }
     });
+    useSwal().fire({ title: 'Fet', text: 'Estat actualitzat.', icon: 'success' });
     await fetchPeticions();
   } catch (err) {
     console.error('Error actualitzant estat:', err);
-    alert('No s\'ha pogut actualitzar l\'estat.');
+    useSwal().fire({ title: 'Error', text: "No s'ha pogut actualitzar l'estat.", icon: 'error' });
   } finally {
     actionLoading.value = false;
   }
 }
 
 async function executeAutoAssignment() {
-  if (!confirm('Vols executar l\'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.')) return;
+  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: "Vols executar l'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.", icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+  if (!confirmResult.isConfirmed) return;
   autoAssignLoading.value = true;
   assignmentResult.value = null;
   try {

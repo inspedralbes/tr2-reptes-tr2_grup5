@@ -131,7 +131,7 @@ const openAddModal = () => {
 
 const addNewRow = () => {
   if (studentsList.value.length + newStudents.value.length >= selectedWorkshop.value.places) {
-      alert("S'ha arribat al límit de places del taller.");
+      useSwal().fire({ title: 'Atenció', text: "S'ha arribat al límit de places del taller.", icon: 'warning' });
       return;
   }
   newStudents.value.push({
@@ -157,7 +157,7 @@ const handleSaveStudents = async () => {
     const validStudents = newStudents.value.filter(s => s.nom && s.nom.trim() !== '');
     
     if (validStudents.length === 0) {
-        alert("Siusplau, omple almenys el nom d'un alumne.");
+        useSwal().fire({ title: 'Atenció', text: "Siusplau, omple almenys el nom d'un alumne.", icon: 'warning' });
         return;
     }
 
@@ -175,25 +175,25 @@ const handleSaveStudents = async () => {
     } catch (e) {
         console.error("Error guardant alumnes:", e);
         const errorMsg = e.data?.message || "No s'han pogut registrar els alumnes. Revisa els límits de places.";
-        alert(errorMsg);
+        useSwal().fire({ title: 'Error', text: errorMsg, icon: 'error' });
     } finally {
         isSaving.value = false;
     }
 };
 
 const handleDeleteStudent = async (studentId) => {
-    if (!confirm("Estàs segur que vols eliminar aquest alumne de la llista?")) return;
-    
+    const confirmResult = await useSwal().fire({ title: 'Confirmar', text: "Estàs segur que vols eliminar aquest alumne de la llista?", icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
+    if (!confirmResult.isConfirmed) return;
+
     try {
         await $fetch(`/api/professor/tallers/${selectedWorkshopId.value}/alumnes/${studentId}`, {
             method: 'DELETE',
             headers: token ? { Authorization: 'Bearer ' + token } : {}
         });
-        // Refresquem la llista
         await handleSelectWorkshop(selectedWorkshopId.value);
     } catch (e) {
         console.error("Error eliminant alumne:", e);
-        alert("No s'ha pogut eliminar l'alumne.");
+        useSwal().fire({ title: 'Error', text: "No s'ha pogut eliminar l'alumne.", icon: 'error' });
     }
 };
 

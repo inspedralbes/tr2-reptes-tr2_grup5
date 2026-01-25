@@ -103,7 +103,7 @@ const toggleAssistencia = async (student) => {
   } catch (err) {
     console.error('Error actualitzant assistència:', err);
     student.ha_assistit = oldState; // rollback
-    alert("Error al desar l'assistència.");
+    useSwal().fire({ title: 'Error', text: "Error al desar l'assistència.", icon: 'error' });
   }
 };
 
