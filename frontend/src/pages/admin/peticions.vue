@@ -1,9 +1,6 @@
 <template>
   <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col min-h-[calc(100vh-200px)]">
-    
 
-
-    <!-- HEADER -->
     <div class="mb-8">
       <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
         Gestió de <span class="text-[#1F7A8C]">Peticions</span>
@@ -13,30 +10,79 @@
       </p>
     </div>
 
-    <!-- 1. CONTROL BAR -->
-    <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+
+
+    <div class="bg-white p-2 rounded-lg border border-[#BFDBF7]/60 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
       
-      <div class="relative flex-1 max-w-md group w-full ml-1">
-        <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
-        <input 
-          type="text" 
-          placeholder="Cerca per títol, centre o projecte..."
-          v-model="searchQuery"
-          class="w-full bg-[#E1E5F2]/10 border border-transparent rounded-lg pl-11 pr-4 py-2.5 text-[11px] font-bold focus:bg-white focus:border-[#BFDBF7] focus:ring-4 focus:ring-[#1F7A8C]/5 outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
-        />
+      <div class="flex flex-1 items-center bg-[#E1E5F2]/10 rounded-md border border-[#BFDBF7]/20 p-1 w-full max-w-3xl">
+        <div class="relative flex-1 group">
+          <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Cerca per títol, centre o projecte..."
+            v-model="searchQuery"
+            class="w-full bg-transparent border-none rounded-md pl-10 pr-4 py-2 text-[11px] font-bold focus:ring-0 outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
+          />
+        </div>
+
+        <div class="flex items-center gap-1 border-l border-[#BFDBF7]/30 pl-2 pr-1">
+          <button 
+            @click="filterStatus = 'all'"
+            :class="[
+              'px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 flex items-center gap-1.5',
+              filterStatus === 'all' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
+            ]"
+          >
+            <div v-if="filterStatus === 'all'" class="w-1 h-1 bg-white rounded-full"></div>
+            Totes
+          </button>
+          
+          <button 
+            @click="filterStatus = 'PENDENT'"
+            :class="[
+              'px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 flex items-center gap-1.5',
+              filterStatus === 'PENDENT' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
+            ]"
+          >
+            <div v-if="filterStatus === 'PENDENT'" class="w-1 h-1 bg-white rounded-full"></div>
+            Pendents
+          </button>
+
+          <button 
+            @click="filterStatus = 'ASSIGNADA'"
+            :class="[
+              'px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 flex items-center gap-1.5',
+              filterStatus === 'ASSIGNADA' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
+            ]"
+          >
+            <div v-if="filterStatus === 'ASSIGNADA'" class="w-1 h-1 bg-white rounded-full"></div>
+            Assignades
+          </button>
+
+          <button 
+            @click="filterStatus = 'REBUTJADA'"
+            :class="[
+              'px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 flex items-center gap-1.5',
+              filterStatus === 'REBUTJADA' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
+            ]"
+          >
+            <div v-if="filterStatus === 'REBUTJADA'" class="w-1 h-1 bg-white rounded-full"></div>
+            Rebutjades
+          </button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2 bg-[#E1E5F2]/30 p-1 rounded-lg border border-[#BFDBF7]/20 w-full md:w-auto justify-center">
+      <div class="flex items-center gap-2 bg-[#E1E5F2]/30 p-1 rounded-md border border-[#BFDBF7]/20 w-full lg:w-auto justify-center">
         <div class="flex items-center gap-1">
           <button 
             @click="viewMode = 'grid'"
-            :class="['p-2 rounded-md shadow-sm border transition-all', viewMode === 'grid' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"
+            :class="['p-2 rounded-md transition-all', viewMode === 'grid' ? 'text-[#1F7A8C] bg-white border border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border border-transparent hover:text-[#022B3A]']"
           >
             <LayoutGrid :size="14" />
           </button>
           <button 
             @click="viewMode = 'list'"
-            :class="['p-2 rounded-md shadow-sm border transition-all', viewMode === 'list' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"
+            :class="['p-2 rounded-md transition-all', viewMode === 'list' ? 'text-[#1F7A8C] bg-white border border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border border-transparent hover:text-[#022B3A]']"
           >
             <List :size="14" />
           </button>
@@ -44,7 +90,6 @@
       </div>
     </div>
 
-    <!-- Résultat assignació automàtica -->
     <div v-if="assignmentResult" :class="[classeResultatAssignacio, 'p-4 rounded-xl font-bold text-sm']">
       <strong>{{ assignmentResult.message }}</strong>
       <div v-if="assignmentResult.summary" class="mt-2 text-xs opacity-90">
@@ -52,7 +97,6 @@
       </div>
     </div>
 
-    <!-- ACTION BUTTON -->
     <div class="flex justify-end -mt-4">
       <button 
         @click="executeAutoAssignment"
@@ -65,33 +109,29 @@
       </button>
     </div>
 
-    <!-- Loading -->
     <div v-if="mostraLoading" class="flex-1 flex flex-col items-center justify-center py-20">
       <div class="w-10 h-10 border-4 border-[#E1E5F2] border-t-[#1F7A8C] rounded-full animate-spin mb-4"></div>
       <p class="text-[#022B3A]/60 text-sm font-bold">Carregant peticions...</p>
     </div>
 
-    <!-- Error -->
     <div v-else-if="errorFetch" class="flex-1 flex flex-col items-center justify-center py-20">
       <span class="text-4xl mb-4">⚠️</span>
       <p class="text-red-600 font-bold">Error carregant les peticions: {{ textError }}</p>
     </div>
 
-    <!-- 2. REQUESTS CONTENT -->
     <div v-else class="flex-1">
       <div v-if="!hiHaDetalls" class="text-center py-20 text-[#022B3A]/50 font-medium">
         No hi ha detalls de peticions de tallers enregistrats.
       </div>
 
       <div v-else-if="filteredRequests.length === 0" class="text-center py-20 text-[#022B3A]/50 font-medium">
-        No hi ha resultats per la cerca.
+        No hi ha resultats per aquest estat o cerca.
       </div>
 
       <div v-else :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
         
         <template v-for="req in currentRequests" :key="clauDetall(req)">
           
-          <!-- LIST VIEW -->
           <div 
             v-if="viewMode === 'list'"
             class="bg-white rounded-xl border border-[#E1E5F2] overflow-hidden flex flex-col md:flex-row md:items-center justify-between hover:shadow-lg transition-all hover:border-[#BFDBF7] group"
@@ -113,19 +153,22 @@
                   <Building2 :size="12" class="text-[#022B3A]/20" />
                   <p class="text-[11px] font-medium text-[#8E9AAF] truncate">{{ req.nom_centre }}</p>
                 </div>
+                <div class="mt-2 lg:hidden">
+                   <span :class="['px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border', getEstatStyles(req.estat)]">
+                    {{ textEstat(req) }}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div class="hidden lg:flex items-center gap-8 flex-shrink-0 px-4">
+              <div class="flex flex-col items-end min-w-[100px]">
+                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Estat</span>
+                <span :class="['text-[10px] font-black uppercase', getEstatTextColor(req.estat)]">{{ textEstat(req) }}</span>
+              </div>
               <div class="flex flex-col items-end min-w-[80px]">
                 <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Data</span>
                 <span class="text-xs font-bold text-[#022B3A]">{{ formatDate(req.data_creacio) }}</span>
-              </div>
-              <div class="flex flex-col items-end min-w-[70px]">
-                <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Referent</span>
-                <span :class="['text-xs font-bold', req.es_preferencia_referent ? 'text-[#7CB518]' : 'text-[#022B3A]']">
-                  {{ req.es_preferencia_referent ? 'Sí' : 'No' }}
-                </span>
               </div>
             </div>
 
@@ -138,11 +181,10 @@
                   <X :size="16" :strokeWidth="2.5" />
                 </button>
               </div>
-              <span v-else class="text-[#94A3B8] text-sm">—</span>
+              <span v-else class="text-[#94A3B8] text-sm italic">{{ textEstat(req) }}</span>
             </div>
           </div>
 
-          <!-- GRID VIEW -->
           <div 
             v-else
             class="bg-white rounded-2xl border border-[#BFDBF7] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out group flex flex-col h-full overflow-hidden relative"
@@ -214,7 +256,7 @@
               </button>
             </div>
             <div v-else class="px-6 py-4 bg-[#E1E5F2]/5 border-t border-[#BFDBF7]/30 flex items-center justify-center">
-              <span class="text-[#94A3B8] text-sm">—</span>
+              <span :class="['text-xs font-black uppercase tracking-widest', getEstatTextColor(req.estat)]">{{ textEstat(req) }}</span>
             </div>
           </div>
           
@@ -222,7 +264,6 @@
       </div>
     </div>
 
-    <!-- 3. PAGINATION -->
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
       <button 
         @click="goToPage(currentPage - 1)"
@@ -250,7 +291,6 @@
       </button>
     </div>
 
-    <!-- Footer Info -->
     <div class="p-8 bg-white/50 rounded-2xl border border-dashed border-[#BFDBF7] flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
       <div class="flex items-center gap-3 text-[#022B3A]/40 text-[10px] font-bold italic uppercase tracking-widest">
         <Info :size="16" />
@@ -285,11 +325,13 @@ const pending = ref(true);
 const error = ref(null);
 
 const searchQuery = ref('');
+const filterStatus = ref('PENDENT'); // Nou estat del filtre, per defecte PENDENT
 const viewMode = ref('grid');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
+// Reiniciar pàgina quan canvia cerca o filtre
+watch([searchQuery, filterStatus], () => { currentPage.value = 1; });
 
 const mostraLoading = computed(function () {
   return pending.value && detallsPeticions.value.length === 0;
@@ -314,9 +356,18 @@ const classeResultatAssignacio = computed(function () {
   return 'bg-[#fee2e2] text-[#b91c1c] border-l-4 border-[#ef4444]';
 });
 
+// Lògica de filtratge combinada (Cerca + Estat)
 const filteredRequests = computed(function () {
   const q = (searchQuery.value || '').toLowerCase().trim();
+  const s = filterStatus.value;
   let list = detallsPeticions.value || [];
+
+  // Filtre d'estat
+  if (s !== 'all') {
+    list = list.filter(d => (d.estat || 'PENDENT') === s);
+  }
+
+  // Filtre de cerca
   if (q) {
     list = list.filter(function (d) {
       const titol = (d.titol || '').toLowerCase();
@@ -324,6 +375,8 @@ const filteredRequests = computed(function () {
       return titol.indexOf(q) >= 0 || centre.indexOf(q) >= 0;
     });
   }
+
+  // Ordenació per prioritat (ja ve del fetch, però assegurem)
   return list.slice().sort(function (a, b) { return (a.prioritat || 0) - (b.prioritat || 0); });
 });
 
@@ -354,10 +407,17 @@ function getPriorityStyles(priority) {
 }
 
 function getEstatStyles(estat) {
-  const e = (estat || 'PENDENT').toLowerCase();
-  if (e === 'assignada') return 'bg-[#dcfce7]/80 text-[#15803d] border-[#22c55e]/30';
-  if (e === 'rebutjada') return 'bg-[#fee2e2]/80 text-[#b91c1c] border-[#ef4444]/30';
+  const e = (estat || 'PENDENT').toUpperCase();
+  if (e === 'ASSIGNADA') return 'bg-[#dcfce7]/80 text-[#15803d] border-[#22c55e]/30';
+  if (e === 'REBUTJADA') return 'bg-[#fee2e2]/80 text-[#b91c1c] border-[#ef4444]/30';
   return 'bg-[#fef3c7]/80 text-[#92400e] border-[#f59e0b]/30';
+}
+
+function getEstatTextColor(estat) {
+  const e = (estat || 'PENDENT').toUpperCase();
+  if (e === 'ASSIGNADA') return 'text-[#15803d]';
+  if (e === 'REBUTJADA') return 'text-[#b91c1c]';
+  return 'text-[#92400e]';
 }
 
 function handleApprove(detall) {
@@ -399,13 +459,8 @@ async function fetchPeticions() {
         });
       }
     }
-    for (let a = 0; a < llista.length - 1; a++) {
-      for (let b = a + 1; b < llista.length; b++) {
-        if ((llista[a].prioritat || 0) > (llista[b].prioritat || 0)) {
-          const tmp = llista[a]; llista[a] = llista[b]; llista[b] = tmp;
-        }
-      }
-    }
+    // Ordenació simple per prioritat
+    llista.sort((a, b) => (a.prioritat || 0) - (b.prioritat || 0));
     detallsPeticions.value = llista;
   } catch (err) {
     console.error('Error fetching peticions:', err);
@@ -472,7 +527,7 @@ function textEstat(detall) {
 }
 
 function esPendent(detall) {
-  const e = detall.estat || 'PENDENT';
+  const e = (detall.estat || 'PENDENT').toUpperCase();
   return e === 'PENDENT';
 }
 </script>
