@@ -27,7 +27,7 @@
       </header>
 
       <!-- Formulari -->
-      <form @submit.prevent="handleLogin" class="space-y-6">
+      <form @submit.prevent="handleLogin" class="space-y-6" novalidate>
         
         <!-- Camp: Usuari (vinculat a form.email) -->
         <div class="space-y-2">
@@ -43,11 +43,12 @@
               id="email"
               v-model="form.email"
               type="email"
+              @input="validateField('email')"
               class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
               placeholder="exemple@correu.com"
-              required
             />
           </div>
+          <p v-if="fieldErrors.email" class="text-sm text-red-600 mt-1">{{ fieldErrors.email }}</p>
         </div>
 
         <!-- Camp: Contrasenya (vinculat a form.password) -->
@@ -64,14 +65,15 @@
               id="password"
               v-model="form.password"
               type="password"
+              @input="validateField('password')"
               class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
               placeholder="••••••••"
-              required
             />
           </div>
+          <p v-if="fieldErrors.password" class="text-sm text-red-600 mt-1">{{ fieldErrors.password }}</p>
         </div>
 
-        <!-- Missatge d'error (lògica del Codi A) -->
+        <!-- Error d'API / xarxa -->
         <p v-if="errorMessage" class="text-sm text-red-600 mt-1">{{ errorMessage }}</p>
 
         <!-- Botó submit: textBoto ("Carregant..." o "Entrar al Panell") segons loading -->
@@ -132,6 +134,33 @@ const form = ref({
 });
 const loading = ref(false);
 const errorMessage = ref('');
+const fieldErrors = ref({});
+
+function validEmail(s) {
+  const v = (s || '').trim();
+  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+}
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'email') {
+    const e = (v.email || '').trim();
+    if (!e) { fieldErrors.value['email'] = "L'email és obligatori."; return; }
+    if (!validEmail(e)) { fieldErrors.value['email'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
+    delete fieldErrors.value['email'];
+  } else if (key === 'password') {
+    const p = v.password || '';
+    if (!p) { fieldErrors.value['password'] = "La contrasenya és obligatòria."; return; }
+    if (p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
+    delete fieldErrors.value['password'];
+  }
+}
+
+function validateAll() {
+  validateField('email');
+  validateField('password');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 const textBoto = computed(function () {
   if (loading.value) {
@@ -146,9 +175,9 @@ const textBoto = computed(function () {
 
 // A) --- Gestionar l'enviament del formulari de login ---
 const handleLogin = async function () {
-  // 1. Activem l'estat de càrrega i netegem el missatge d'error.
-  loading.value = true;
   errorMessage.value = '';
+  if (!validateAll()) return;
+  loading.value = true;
 
   // 2. Fem la petició a l'API de login.
   try {

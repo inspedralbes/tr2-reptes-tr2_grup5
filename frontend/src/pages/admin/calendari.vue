@@ -34,7 +34,7 @@
          </div>
 
          <!-- Single Action Button: Period Subscription -->
-         <button @click="showConfig = true" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1F7A8C] text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-[#022B3A] transition-all shadow-lg shadow-[#1F7A8C]/20 whitespace-nowrap w-full sm:w-auto">
+         <button @click="showConfig.value = true" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1F7A8C] text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-[#022B3A] transition-all shadow-lg shadow-[#1F7A8C]/20 whitespace-nowrap w-full sm:w-auto">
             <Settings :size="14" /> Període Inscripció
          </button>
       </div>
@@ -57,17 +57,19 @@
 
           <div class="space-y-6">
              <div class="space-y-2">
-                <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1">Data d'inici</label>
-                <input type="date" v-model="enrollmentStart" class="w-full bg-[#E1E5F2]/10 border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-[#1F7A8C]/10 outline-none transition-all">
+                <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1">Data d'inici *</label>
+                <input type="date" v-model="enrollmentStart" class="w-full bg-[#E1E5F2]/10 border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-[#1F7A8C]/10 outline-none transition-all" @input="validateField('enrollment_start')">
+                <p v-if="fieldErrors.enrollment_start" class="text-sm text-red-600 mt-1">{{ fieldErrors.enrollment_start }}</p>
              </div>
              <div class="space-y-2">
-                <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1">Data finalització</label>
-                <input type="date" v-model="enrollmentEnd" class="w-full bg-[#E1E5F2]/10 border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-[#1F7A8C]/10 outline-none transition-all">
+                <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1">Data finalització *</label>
+                <input type="date" v-model="enrollmentEnd" class="w-full bg-[#E1E5F2]/10 border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-[#1F7A8C]/10 outline-none transition-all" @input="validateField('enrollment_end')">
+                <p v-if="fieldErrors.enrollment_end" class="text-sm text-red-600 mt-1">{{ fieldErrors.enrollment_end }}</p>
              </div>
           </div>
 
           <div class="flex gap-3 mt-10">
-             <button @click="showConfig = false" class="flex-1 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#E1E5F2]/40 text-[#022B3A]/60 hover:bg-[#E1E5F2] transition-colors">
+             <button @click="showConfig.value = false; fieldErrors.value = {}" class="flex-1 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#E1E5F2]/40 text-[#022B3A]/60 hover:bg-[#E1E5F2] transition-colors">
                 Cancel·lar
              </button>
              <button @click="saveEnrollmentDates" class="flex-[2] px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#1F7A8C] text-white shadow-lg shadow-[#1F7A8C]/20 hover:bg-[#022B3A] transition-all">
@@ -125,26 +127,6 @@
                      <p class="text-[10px] font-bold text-[#022B3A] leading-tight line-clamp-1">
                         {{ assign.workshopTitle }}
                      </p>
-                     
-                     <!-- Tooltip -->
-                     <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 bg-[#022B3A] text-white p-4 rounded-xl shadow-2xl z-50 invisible opacity-0 group-hover/item:visible group-hover/item:opacity-100 transition-all duration-200 pointer-events-none origin-top">
-                        <div class="flex items-start justify-between mb-2">
-                           <span :class="['text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-white/10 text-white']">
-                              {{ assign.project }}
-                           </span>
-                        </div>
-                        <h4 class="text-sm font-black mb-1">{{ assign.workshopTitle }}</h4>
-                        <div class="space-y-2 mt-3 pt-3 border-t border-white/10">
-                           <div class="flex items-center gap-2 text-[10px] font-medium text-white/70">
-                              <MapPin :size="12" /> {{ assign.centerName }}
-                           </div>
-                           <div class="flex items-center gap-2 text-[10px] font-medium text-white/70">
-                              <Clock :size="12" /> 10:00h - 12:00h
-                           </div>
-                        </div>
-                        <!-- Little Triangle -->
-                        <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#022B3A] rotate-45"></div>
-                     </div>
                   </div>
                </div>
              </template>
@@ -164,8 +146,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Settings, 
-  MapPin, 
-  Clock, 
   Calendar as CalendarIcon 
 } from 'lucide-vue-next'
 
@@ -193,6 +173,26 @@ const pageContext = {
 const showConfig = ref(false)
 const enrollmentStart = ref('')
 const enrollmentEnd = ref('')
+const fieldErrors = ref({})
+
+function validateField(key) {
+  if (key === 'enrollment_start') {
+    if (!(enrollmentStart.value || '').trim()) { fieldErrors.value.enrollment_start = 'Seleccioneu la data d\'inici.'; return }
+    delete fieldErrors.value.enrollment_start
+    return
+  }
+  if (key === 'enrollment_end') {
+    if (!(enrollmentEnd.value || '').trim()) { fieldErrors.value.enrollment_end = 'Seleccioneu la data de finalització.'; return }
+    delete fieldErrors.value.enrollment_end
+    return
+  }
+}
+
+function validateEnrollmentDates() {
+  validateField('enrollment_start')
+  validateField('enrollment_end')
+  return Object.keys(fieldErrors.value).length === 0
+}
 
 // --- CALENDAR LOGIC ---
 const daysOfWeek = ['Dll', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg']
@@ -322,13 +322,15 @@ const fetchEnrollmentDates = async () => {
 }
 
 const saveEnrollmentDates = async () => {
+    if (!validateEnrollmentDates()) return
     try {
         await $fetch('/api/admin/config/enrollment/dates', {
             method: 'POST',
             body: { start: enrollmentStart.value, end: enrollmentEnd.value },
             headers: { Authorization: token.value ? `Bearer ${token.value}` : '' }
         });
-        showConfig.value = false;
+        fieldErrors.value = {}
+        showConfig.value = false
         useSwal().fire({ title: 'Fet', text: "Període d'inscripció actualitzat.", icon: 'success' });
     } catch (e) {
         useSwal().fire({ title: 'Error', text: "Error al desar.", icon: 'error' });

@@ -27,7 +27,7 @@
 
       <div v-if="loadingInitial" class="p-12 text-center text-[#022B3A]/50">Carregant...</div>
 
-      <form v-else @submit.prevent="submitForm" class="p-6 space-y-8">
+      <form v-else @submit.prevent="submitForm" class="p-6 space-y-8" novalidate>
         <!-- SECCIÓ 1: DADES DE L'USUARI -->
         <div class="space-y-4">
           <h3 class="text-base font-black text-[#022B3A] tracking-tight flex items-center gap-2">
@@ -37,7 +37,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2 space-y-1.5">
-              <label for="feu-email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email</label>
+              <label for="feu-email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email *</label>
               <div class="relative group">
                 <Mail :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                 <input 
@@ -45,11 +45,12 @@
                   v-model="form.email"
                   type="email"
                   maxlength="255"
+                  @input="validateField('email')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="usuari@xtec.cat"
-                  required
                 />
               </div>
+              <p v-if="fieldErrors.email" class="text-sm text-red-600 mt-1">{{ fieldErrors.email }}</p>
             </div>
 
             <div class="md:col-span-2 space-y-1.5">
@@ -60,10 +61,12 @@
                   id="feu-password"
                   v-model="form.password"
                   type="password"
+                  @input="validateField('password')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="Deixeu en blanc per no canviar-la"
                 />
               </div>
+              <p v-if="fieldErrors.password" class="text-sm text-red-600 mt-1">{{ fieldErrors.password }}</p>
             </div>
           </div>
         </div>
@@ -90,19 +93,20 @@
             </div>
 
             <div v-if="form.rol === 'PROFESSOR'" class="space-y-1.5">
-              <label for="feu-centre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Centre</label>
+              <label for="feu-centre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Centre *</label>
               <div class="relative group">
                 <Building2 :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors pointer-events-none z-10" />
                 <select 
                   id="feu-centre"
                   v-model="form.centre_id"
+                  @change="validateField('centre_id')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer"
-                  required
                 >
                   <option value="" disabled>-- Selecciona un centre --</option>
                   <option v-for="c in centres" :key="c.id" :value="c.id">{{ c.nom_centre }} ({{ c.codi_centre }})</option>
                 </select>
               </div>
+              <p v-if="fieldErrors.centre_id" class="text-sm text-red-600 mt-1">{{ fieldErrors.centre_id }}</p>
             </div>
 
             <div v-if="form.rol === 'ADMIN' || form.rol === 'PROFESSOR'" class="space-y-1.5">
@@ -199,9 +203,39 @@ const loading = ref(false);
 const loadingInitial = ref(true);
 const message = ref('');
 const error = ref('');
+const fieldErrors = ref({});
 const dadesOriginals = ref(null);
 
 const centres = computed(() => Array.isArray(props.centres) ? props.centres : []);
+
+function validEmail(s) {
+  const v = (s || '').trim();
+  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+}
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'email') {
+    const e = (v.email || '').trim();
+    if (!e) { fieldErrors.value['email'] = "L'email és obligatori."; return; }
+    if (!validEmail(e)) { fieldErrors.value['email'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
+    delete fieldErrors.value['email'];
+  } else if (key === 'password') {
+    const p = (v.password || '').trim();
+    if (p && p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
+    delete fieldErrors.value['password'];
+  } else if (key === 'centre_id') {
+    if ((v.rol || '').toUpperCase() === 'PROFESSOR' && !v.centre_id) { fieldErrors.value['centre_id'] = "Cal seleccionar un centre per a un professor."; return; }
+    delete fieldErrors.value['centre_id'];
+  }
+}
+
+function validateAll() {
+  validateField('email');
+  validateField('password');
+  validateField('centre_id');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 function etiquetaRol(r) {
   const v = (r || '').toUpperCase();
@@ -225,6 +259,7 @@ function resetForm() {
   form.value.password = '';
   message.value = '';
   error.value = '';
+  fieldErrors.value = {};
 }
 
 async function carregarUsuari() {
@@ -252,26 +287,10 @@ watch(() => props.userId, (id) => {
 async function submitForm() {
   error.value = '';
   message.value = '';
+  if (!validateAll()) return;
 
   const email = (form.value.email || '').trim().toLowerCase();
-  if (!email) {
-    error.value = "L'email és obligatori.";
-    return;
-  }
-
   const pwd = (form.value.password || '').trim();
-  if (pwd && pwd.length < 6) {
-    error.value = 'La contrasenya ha de tenir almenys 6 caràcters.';
-    return;
-  }
-
-  if ((form.value.rol || '').toUpperCase() === 'PROFESSOR') {
-    const cid = form.value.centre_id;
-    if (!cid) {
-      error.value = 'Cal seleccionar un centre per a un professor.';
-      return;
-    }
-  }
 
   loading.value = true;
   try {

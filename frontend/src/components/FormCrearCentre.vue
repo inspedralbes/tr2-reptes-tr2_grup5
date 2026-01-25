@@ -26,7 +26,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="submitForm" class="p-6 space-y-8">
+      <form @submit.prevent="submitForm" class="p-6 space-y-8" novalidate>
             
         <!-- SECCIÓ 1: DADES DEL CENTRE -->
         <div class="space-y-4">
@@ -38,26 +38,27 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Codi Centre -->
             <div class="space-y-1.5">
-              <label for="fc-codi" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Codi Centre</label>
+              <label for="fc-codi" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Codi Centre *</label>
               <input 
                 id="fc-codi"
                 v-model="form.codi_centre"
                 type="text"
                 maxlength="50"
+                @input="validateField('codi_centre')"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                 placeholder="Ex: 0800..."
-                required
               />
+              <p v-if="fieldErrors.codi_centre" class="text-sm text-red-600 mt-1">{{ fieldErrors.codi_centre }}</p>
             </div>
 
             <!-- Nom del Centre (select) -->
             <div class="space-y-1.5">
-              <label for="fc-nomCentre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del Centre</label>
+              <label for="fc-nomCentre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del Centre *</label>
               <select 
                 id="fc-nomCentre"
                 v-model="form.nom_centre"
+                @change="validateField('nom_centre'); validateField('nom_centre_manual')"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer"
-                required
               >
                 <option value="" disabled>-- Selecciona un centre --</option>
                 <option value="Institut Pedralbes">Institut Pedralbes</option>
@@ -65,11 +66,12 @@
                 <option value="Institut TIC de Barcelona">Institut TIC de Barcelona</option>
                 <option value="Altres">Altres</option>
               </select>
+              <p v-if="fieldErrors.nom_centre" class="text-sm text-red-600 mt-1">{{ fieldErrors.nom_centre }}</p>
             </div>
 
             <!-- Nom del centre (manual) - només quan nom_centre === Altres -->
             <div v-if="mostrarNomManual" class="md:col-span-2 space-y-1.5">
-              <label for="fc-nomCentreManual" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del centre (manual)</label>
+              <label for="fc-nomCentreManual" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del centre (manual) *</label>
               <input 
                 id="fc-nomCentreManual"
                 v-model="form.nom_centre_manual"
@@ -77,8 +79,9 @@
                 maxlength="255"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none placeholder:text-[#022B3A]/20 shadow-sm"
                 placeholder="Introduïu el nom del centre"
-                :required="form.nom_centre === 'Altres'"
+                @input="validateField('nom_centre_manual')"
               />
+              <p v-if="fieldErrors.nom_centre_manual" class="text-sm text-red-600 mt-1">{{ fieldErrors.nom_centre_manual }}</p>
             </div>
 
             <!-- Adreça -->
@@ -173,7 +176,7 @@
 
             <!-- Email del Coordinador -->
             <div class="space-y-1.5">
-              <label for="fc-emailCoordinador" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email del Coordinador</label>
+              <label for="fc-emailCoordinador" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email del Coordinador *</label>
               <div class="relative group">
                 <Mail :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                 <input 
@@ -183,31 +186,32 @@
                   maxlength="255"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="coordinador@centre.cat"
-                  required
+                  @input="validateField('email_coordinador')"
                 />
               </div>
+              <p v-if="fieldErrors.email_coordinador" class="text-sm text-red-600 mt-1">{{ fieldErrors.email_coordinador }}</p>
             </div>
 
             <!-- Contrasenya (compte del centre) -->
             <div class="md:col-span-2 space-y-1.5">
-              <label for="fc-password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya (compte del centre)</label>
+              <label for="fc-password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya (compte del centre) *</label>
               <div class="relative group">
                 <Lock :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                 <input 
                   id="fc-password"
                   v-model="form.password"
                   type="password"
-                  minlength="6"
+                  @input="validateField('password')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="••••••••"
-                  required
                 />
               </div>
+              <p v-if="fieldErrors.password" class="text-sm text-red-600 mt-1">{{ fieldErrors.password }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Missatges -->
+        <!-- Error d'API / xarxa -->
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <!-- Botons -->
@@ -277,8 +281,47 @@ const form = ref({
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
+const fieldErrors = ref({});
 
 const mostrarNomManual = computed(() => form.value.nom_centre === 'Altres');
+
+function validEmail(s) {
+  const v = (s || '').trim();
+  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+}
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'codi_centre') {
+    if (!(v.codi_centre || '').trim()) { fieldErrors.value['codi_centre'] = "El codi del centre és obligatori."; return; }
+    delete fieldErrors.value['codi_centre'];
+  } else if (key === 'nom_centre') {
+    if (!(v.nom_centre || '').trim()) { fieldErrors.value['nom_centre'] = "Seleccioneu un nom de centre."; return; }
+    delete fieldErrors.value['nom_centre'];
+  } else if (key === 'nom_centre_manual') {
+    if (v.nom_centre === 'Altres' && !(v.nom_centre_manual || '').trim()) { fieldErrors.value['nom_centre_manual'] = "Introduïu el nom del centre (manual)."; return; }
+    delete fieldErrors.value['nom_centre_manual'];
+  } else if (key === 'email_coordinador') {
+    const e = (v.email_coordinador || '').trim();
+    if (!e) { fieldErrors.value['email_coordinador'] = "L'email del coordinador és obligatori."; return; }
+    if (!validEmail(e)) { fieldErrors.value['email_coordinador'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
+    delete fieldErrors.value['email_coordinador'];
+  } else if (key === 'password') {
+    const p = v.password || '';
+    if (!p) { fieldErrors.value['password'] = "La contrasenya és obligatòria."; return; }
+    if (p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
+    delete fieldErrors.value['password'];
+  }
+}
+
+function validateAll() {
+  validateField('codi_centre');
+  validateField('nom_centre');
+  validateField('nom_centre_manual');
+  validateField('email_coordinador');
+  validateField('password');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 function resetForm() {
   form.value.codi_centre = '';
@@ -293,6 +336,7 @@ function resetForm() {
   form.value.password = '';
   message.value = '';
   error.value = '';
+  fieldErrors.value = {};
 }
 
 async function submitForm() {
@@ -303,26 +347,7 @@ async function submitForm() {
     ? (form.value.nom_centre_manual || '').trim() 
     : (form.value.nom_centre || '').trim();
 
-  if (!form.value.codi_centre || !nomFinal) {
-    error.value = 'El codi i el nom del centre són obligatoris.';
-    return;
-  }
-
-  if (form.value.nom_centre === 'Altres' && !form.value.nom_centre_manual?.trim()) {
-    error.value = 'Si seleccioneu "Altres", heu d’introduir el nom del centre.';
-    return;
-  }
-
-  const emailCoord = (form.value.email_coordinador || '').trim();
-  const pwd = form.value.password || '';
-  if (!emailCoord) {
-    error.value = "L'email del coordinador és obligatori.";
-    return;
-  }
-  if (!pwd || pwd.length < 6) {
-    error.value = 'La contrasenya és obligatòria i ha de tenir almenys 6 caràcters.';
-    return;
-  }
+  if (!validateAll()) return;
 
   loading.value = true;
   try {

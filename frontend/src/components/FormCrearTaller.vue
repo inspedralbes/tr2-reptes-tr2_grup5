@@ -25,7 +25,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="submitForm" class="p-6 space-y-8">
+      <form @submit.prevent="submitForm" class="p-6 space-y-8" novalidate>
         <!-- SECCIÓ 1: Identificació i Contingut -->
         <div class="space-y-4">
           <h3 class="text-base font-black text-[#022B3A] tracking-tight flex items-center gap-2">
@@ -42,8 +42,9 @@
                 type="text"
                 placeholder="Ex: Introducció a la Robòtica"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
-                required
+                @input="validateField('titol')"
               />
+              <p v-if="fieldErrors.titol" class="text-sm text-red-600 mt-1">{{ fieldErrors.titol }}</p>
             </div>
             <div class="space-y-1.5">
               <label for="fct-sector" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Sector Professional *</label>
@@ -51,11 +52,12 @@
                 id="fct-sector"
                 v-model="form.sector"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer"
-                required
+                @change="validateField('sector')"
               >
                 <option value="" disabled>Selecciona un sector</option>
                 <option v-for="s in sectors" :key="s" :value="s">{{ s }}</option>
               </select>
+              <p v-if="fieldErrors.sector" class="text-sm text-red-600 mt-1">{{ fieldErrors.sector }}</p>
             </div>
             <div class="md:col-span-2 space-y-1.5">
               <label for="fct-descripcio" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Descripció Pedagògica</label>
@@ -83,13 +85,14 @@
             <span class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Modalitat del Projecte *</span>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <label v-for="mod in modalities" :key="mod.id" class="relative cursor-pointer group">
-                <input type="radio" name="modalitat" :value="mod.id" v-model="form.modalitat" class="peer sr-only" />
+                <input type="radio" name="modalitat" :value="mod.id" v-model="form.modalitat" class="peer sr-only" @change="validateField('modalitat')" />
                 <div class="flex flex-col items-center justify-center p-5 bg-white border border-[#BFDBF7]/60 rounded-xl peer-checked:bg-[#022B3A] peer-checked:border-[#022B3A] transition-all group-hover:border-[#1F7A8C]">
                   <div :class="['w-3 h-3 rounded-full mb-2', mod.colorClass]"></div>
                   <span class="text-[11px] font-black uppercase tracking-widest text-[#022B3A] peer-checked:text-white">Projecte {{ mod.id }}</span>
                 </div>
               </label>
             </div>
+            <p v-if="fieldErrors.modalitat" class="text-sm text-red-600 mt-1">{{ fieldErrors.modalitat }}</p>
           </div>
 
           <div v-if="form.modalitat" class="rounded-xl bg-[#FFF7E6] border border-[#FBB02D]/40 px-4 py-3">
@@ -105,8 +108,9 @@
                 type="number"
                 min="1"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none shadow-sm"
-                required
+                @input="validateField('places_maximes')"
               />
+              <p v-if="fieldErrors.places_maximes" class="text-sm text-red-600 mt-1">{{ fieldErrors.places_maximes }}</p>
             </div>
             <div class="space-y-1.5">
               <label for="fct-data" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block flex items-center gap-2"><Calendar :size="14" /> Data d'Execució (Opcional)</label>
@@ -123,12 +127,13 @@
             <span class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block flex items-center gap-2"><Calendar :size="14" /> Trimestres Disponibles *</span>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label v-for="t in quarters" :key="t" class="relative cursor-pointer group">
-                <input type="checkbox" :value="t" v-model="form.trimestres" class="peer sr-only" />
+                <input type="checkbox" :value="t" v-model="form.trimestres" class="peer sr-only" @change="validateField('trimestres')" />
                 <div class="flex items-center justify-center p-4 bg-white border border-[#BFDBF7]/60 rounded-xl peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] transition-all group-hover:border-[#1F7A8C]">
                   <span class="text-[11px] font-black uppercase tracking-widest text-[#022B3A] peer-checked:text-white">{{ t }} Trimestre</span>
                 </div>
               </label>
             </div>
+            <p v-if="fieldErrors.trimestres" class="text-sm text-red-600 mt-1">{{ fieldErrors.trimestres }}</p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -201,6 +206,46 @@ const form = ref({
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
+const fieldErrors = ref({});
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'titol') {
+    if (!(v.titol || '').trim()) { fieldErrors.value.titol = 'Introduïu un títol.'; return; }
+    delete fieldErrors.value.titol;
+    return;
+  }
+  if (key === 'sector') {
+    if (!(v.sector || '').trim()) { fieldErrors.value.sector = 'Seleccioneu un sector.'; return; }
+    delete fieldErrors.value.sector;
+    return;
+  }
+  if (key === 'modalitat') {
+    if (!(v.modalitat || '').trim()) { fieldErrors.value.modalitat = 'Seleccioneu una modalitat.'; return; }
+    delete fieldErrors.value.modalitat;
+    return;
+  }
+  if (key === 'trimestres') {
+    if (!(v.trimestres || []).length) { fieldErrors.value.trimestres = 'Seleccioneu almenys un trimestre.'; return; }
+    delete fieldErrors.value.trimestres;
+    return;
+  }
+  if (key === 'places_maximes') {
+    const n = Number(v.places_maximes);
+    if (isNaN(n) || n < 1) { fieldErrors.value.places_maximes = 'Les places han de ser com a mínim 1.'; return; }
+    delete fieldErrors.value.places_maximes;
+    return;
+  }
+}
+
+function validateAll() {
+  validateField('titol');
+  validateField('sector');
+  validateField('modalitat');
+  validateField('trimestres');
+  validateField('places_maximes');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 const duradaCalculada = computed(() => {
   if (form.value.modalitat === 'A' || form.value.modalitat === 'B') return '20 hores (10 sessions de 2 hores)';
@@ -220,23 +265,13 @@ function resetForm() {
   form.value.data_execucio = '';
   message.value = '';
   error.value = '';
+  fieldErrors.value = {};
 }
 
 async function submitForm() {
   error.value = '';
   message.value = '';
-  if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
-    error.value = 'Omple els camps obligatoris: títol, sector i modalitat.';
-    return;
-  }
-  if (!form.value.trimestres || form.value.trimestres.length === 0) {
-    error.value = 'Has de seleccionar almenys un trimestre.';
-    return;
-  }
-  if (form.value.places_maximes < 1) {
-    error.value = 'Les places màximes han de ser com a mínim 1.';
-    return;
-  }
+  if (!validateAll()) return;
 
   loading.value = true;
   try {

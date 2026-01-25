@@ -26,7 +26,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="submitForm" class="p-6 space-y-8">
+      <form @submit.prevent="submitForm" class="p-6 space-y-8" novalidate>
             
         <!-- SECCIÓ 1: DADES DE L'USUARI -->
         <div class="space-y-4">
@@ -38,7 +38,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Email -->
             <div class="md:col-span-2 space-y-1.5">
-              <label for="fu-email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email</label>
+              <label for="fu-email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email *</label>
               <div class="relative group">
                 <Mail :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                 <input 
@@ -46,28 +46,29 @@
                   v-model="form.email"
                   type="email"
                   maxlength="255"
+                  @input="validateField('email')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="usuari@xtec.cat"
-                  required
                 />
               </div>
+              <p v-if="fieldErrors.email" class="text-sm text-red-600 mt-1">{{ fieldErrors.email }}</p>
             </div>
 
             <!-- Contrasenya -->
             <div class="md:col-span-2 space-y-1.5">
-              <label for="fu-password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya</label>
+              <label for="fu-password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya *</label>
               <div class="relative group">
                 <Lock :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                 <input 
                   id="fu-password"
                   v-model="form.password"
                   type="password"
-                  minlength="6"
+                  @input="validateField('password')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none placeholder:text-[#022B3A]/20 shadow-sm"
                   placeholder="••••••••"
-                  required
                 />
               </div>
+              <p v-if="fieldErrors.password" class="text-sm text-red-600 mt-1">{{ fieldErrors.password }}</p>
             </div>
           </div>
         </div>
@@ -85,34 +86,36 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Rol -->
             <div class="space-y-1.5">
-              <label for="fu-rol" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Rol</label>
+              <label for="fu-rol" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Rol *</label>
               <select 
                 id="fu-rol"
                 v-model="form.rol"
+                @change="validateField('rol'); validateField('centre_id')"
                 class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer"
-                required
               >
                 <option value="" disabled>-- Selecciona el rol --</option>
                 <option value="ADMIN">Administrador</option>
                 <option value="PROFESSOR">Professor</option>
               </select>
+              <p v-if="fieldErrors.rol" class="text-sm text-red-600 mt-1">{{ fieldErrors.rol }}</p>
             </div>
 
             <!-- Centre (només quan rol === PROFESSOR) -->
             <div v-if="form.rol === 'PROFESSOR'" class="space-y-1.5">
-              <label for="fu-centre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Centre</label>
+              <label for="fu-centre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Centre *</label>
               <div class="relative group">
                 <Building2 :size="14" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors pointer-events-none z-10" />
                 <select 
                   id="fu-centre"
                   v-model="form.centre_id"
+                  @change="validateField('centre_id')"
                   class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-10 pr-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer"
-                  :required="form.rol === 'PROFESSOR'"
                 >
                   <option value="" disabled>-- Selecciona un centre --</option>
                   <option v-for="c in centres" :key="c.id" :value="c.id">{{ c.nom_centre }} ({{ c.codi_centre }})</option>
                 </select>
               </div>
+              <p v-if="fieldErrors.centre_id" class="text-sm text-red-600 mt-1">{{ fieldErrors.centre_id }}</p>
             </div>
 
             <!-- Nom (per a ADMIN i PROFESSOR) -->
@@ -143,7 +146,7 @@
           </div>
         </div>
 
-        <!-- Missatges -->
+        <!-- Error d'API / xarxa -->
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <!-- Botons -->
@@ -211,8 +214,43 @@ const form = ref({
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
+const fieldErrors = ref({});
 
 const centres = computed(() => Array.isArray(props.centres) ? props.centres : []);
+
+function validEmail(s) {
+  const v = (s || '').trim();
+  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+}
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'email') {
+    const e = (v.email || '').trim();
+    if (!e) { fieldErrors.value['email'] = "L'email és obligatori."; return; }
+    if (!validEmail(e)) { fieldErrors.value['email'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
+    delete fieldErrors.value['email'];
+  } else if (key === 'password') {
+    const p = v.password || '';
+    if (!p) { fieldErrors.value['password'] = "La contrasenya és obligatòria."; return; }
+    if (p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
+    delete fieldErrors.value['password'];
+  } else if (key === 'rol') {
+    if (v.rol !== 'ADMIN' && v.rol !== 'PROFESSOR') { fieldErrors.value['rol'] = "Heu de seleccionar un rol (Administrador o Professor)."; return; }
+    delete fieldErrors.value['rol'];
+  } else if (key === 'centre_id') {
+    if (v.rol === 'PROFESSOR' && !v.centre_id) { fieldErrors.value['centre_id'] = "Cal seleccionar un centre per a un professor."; return; }
+    delete fieldErrors.value['centre_id'];
+  }
+}
+
+function validateAll() {
+  validateField('email');
+  validateField('password');
+  validateField('rol');
+  validateField('centre_id');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 function resetForm() {
   form.value.email = '';
@@ -223,35 +261,16 @@ function resetForm() {
   form.value.cognoms = '';
   message.value = '';
   error.value = '';
+  fieldErrors.value = {};
 }
 
 async function submitForm() {
   error.value = '';
   message.value = '';
+  if (!validateAll()) return;
 
   const email = (form.value.email || '').trim().toLowerCase();
   const pwd = form.value.password || '';
-
-  if (!email) {
-    error.value = "L'email és obligatori.";
-    return;
-  }
-  if (!pwd || pwd.length < 6) {
-    error.value = 'La contrasenya és obligatòria i ha de tenir almenys 6 caràcters.';
-    return;
-  }
-  if (form.value.rol !== 'ADMIN' && form.value.rol !== 'PROFESSOR') {
-    error.value = 'Heu de seleccionar un rol (Administrador o Professor).';
-    return;
-  }
-
-  if (form.value.rol === 'PROFESSOR') {
-    const cid = form.value.centre_id;
-    if (!cid) {
-      error.value = 'Cal seleccionar un centre per a un professor.';
-      return;
-    }
-  }
 
   loading.value = true;
   try {

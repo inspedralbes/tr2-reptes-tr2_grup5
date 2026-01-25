@@ -20,7 +20,7 @@
 
     <!-- Formulari (mateixa estructura que FormTallers) -->
     <div v-else class="bg-white rounded-2xl border border-[#BFDBF7] shadow-xl shadow-[#022B3A]/5 overflow-hidden">
-      <form @submit.prevent="handleUpdate" class="p-10 space-y-12">
+      <form @submit.prevent="handleUpdate" class="p-10 space-y-12" novalidate>
         
         <!-- SECCIÓ 1: Identificació i Contingut -->
         <section class="space-y-8">
@@ -40,8 +40,9 @@
                 type="text"
                 placeholder="Ex: Introducció a la Robòtica"
                 class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 text-[#022B3A]"
-                required
+                @input="validateField('titol')"
               />
+              <p v-if="fieldErrors.titol" class="text-sm text-red-600 mt-1">{{ fieldErrors.titol }}</p>
             </div>
 
             <div class="space-y-2">
@@ -50,11 +51,12 @@
                 id="sector"
                 v-model="form.sector"
                 class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none cursor-pointer text-[#022B3A]"
-                required
+                @change="validateField('sector')"
               >
                 <option value="" disabled>Selecciona un sector</option>
                 <option v-for="s in sectors" :key="s" :value="s">{{ s }}</option>
               </select>
+              <p v-if="fieldErrors.sector" class="text-sm text-red-600 mt-1">{{ fieldErrors.sector }}</p>
             </div>
 
             <div class="md:col-span-2 space-y-2">
@@ -93,7 +95,8 @@
                   name="modalitat" 
                   :value="mod.id" 
                   v-model="form.modalitat"
-                  class="peer sr-only" 
+                  class="peer sr-only"
+                  @change="validateField('modalitat')"
                 />
                 <div class="flex flex-col items-center justify-center p-6 bg-[#E1E5F2]/10 border border-[#BFDBF7] rounded-xl peer-checked:bg-[#022B3A] peer-checked:border-[#022B3A] peer-checked:shadow-xl transition-all group-hover:bg-white">
                   <div :class="['w-3 h-3 rounded-full mb-3 shadow-sm', mod.colorClass]"></div>
@@ -105,6 +108,7 @@
                 <div class="absolute inset-0 ring-2 ring-[#1F7A8C] rounded-xl opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></div>
               </label>
             </div>
+            <p v-if="fieldErrors.modalitat" class="text-sm text-red-600 mt-1">{{ fieldErrors.modalitat }}</p>
           </div>
 
           <!-- Durada estimada -->
@@ -125,9 +129,11 @@
                   type="number"
                   min="1"
                   class="w-full max-w-[200px] bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-black text-[#022B3A] focus:border-[#1F7A8C] outline-none"
+                  @input="validateField('places_maximes')"
                 />
                 <span class="text-[10px] font-black text-[#022B3A]/30 uppercase tracking-widest whitespace-nowrap">Alumnes per sessió</span>
               </div>
+              <p v-if="fieldErrors.places_maximes" class="text-sm text-red-600 mt-1">{{ fieldErrors.places_maximes }}</p>
               <p class="text-[10px] font-medium text-[#022B3A]/40">Això no modificarà les places restants actuals a menys que s'indiqui.</p>
             </div>
 
@@ -142,7 +148,8 @@
                     type="checkbox" 
                     :value="t" 
                     v-model="form.trimestres"
-                    class="peer sr-only" 
+                    class="peer sr-only"
+                    @change="validateField('trimestres')"
                   />
                   <div class="flex flex-col items-center justify-center p-6 bg-[#E1E5F2]/10 border border-[#BFDBF7] rounded-xl peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] peer-checked:shadow-xl transition-all group-hover:bg-white">
                     <span class="text-[11px] font-black uppercase tracking-widest text-[#022B3A] peer-checked:text-white transition-colors group-hover:text-[#1F7A8C]">
@@ -153,6 +160,7 @@
                   <div class="absolute inset-0 ring-2 ring-[#1F7A8C] rounded-xl opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></div>
                 </label>
               </div>
+              <p v-if="fieldErrors.trimestres" class="text-sm text-red-600 mt-1">{{ fieldErrors.trimestres }}</p>
             </div>
 
             <!-- Data d'Execució -->
@@ -257,6 +265,46 @@ header.setHeaderAdmin();
 // Estat Reactiu i Refs (Variables i Formularis)
 // ======================================
 const saving = ref(false);
+const fieldErrors = ref({});
+
+function validateField(key) {
+  const v = form.value;
+  if (key === 'titol') {
+    if (!(v.titol || '').trim()) { fieldErrors.value.titol = 'Introduïu un títol.'; return; }
+    delete fieldErrors.value.titol;
+    return;
+  }
+  if (key === 'sector') {
+    if (!(v.sector || '').trim()) { fieldErrors.value.sector = 'Seleccioneu un sector.'; return; }
+    delete fieldErrors.value.sector;
+    return;
+  }
+  if (key === 'modalitat') {
+    if (!(v.modalitat || '').trim()) { fieldErrors.value.modalitat = 'Seleccioneu una modalitat.'; return; }
+    delete fieldErrors.value.modalitat;
+    return;
+  }
+  if (key === 'trimestres') {
+    if (!(v.trimestres || []).length) { fieldErrors.value.trimestres = 'Seleccioneu almenys un trimestre.'; return; }
+    delete fieldErrors.value.trimestres;
+    return;
+  }
+  if (key === 'places_maximes') {
+    const n = Number(v.places_maximes);
+    if (isNaN(n) || n < 1) { fieldErrors.value.places_maximes = 'Les places han de ser com a mínim 1.'; return; }
+    delete fieldErrors.value.places_maximes;
+    return;
+  }
+}
+
+function validateAll() {
+  validateField('titol');
+  validateField('sector');
+  validateField('modalitat');
+  validateField('trimestres');
+  validateField('places_maximes');
+  return Object.keys(fieldErrors.value).length === 0;
+}
 
 const sectors = [
   'Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció',
@@ -370,18 +418,7 @@ function cancelar() {
 }
 
 async function handleUpdate() {
-  if (!form.value.titol || !form.value.sector || !form.value.modalitat) {
-    useSwal().fire({ title: 'Atenció', text: 'Si us plau, omple tots els camps obligatoris (*)', icon: 'warning' });
-    return;
-  }
-  if (form.value.trimestres.length === 0) {
-    useSwal().fire({ title: 'Atenció', text: 'Has de seleccionar almenys un trimestre.', icon: 'warning' });
-    return;
-  }
-  if (form.value.places_maximes < 1) {
-    useSwal().fire({ title: 'Atenció', text: 'Les places màximes han de ser com a mínim 1.', icon: 'warning' });
-    return;
-  }
+  if (!validateAll()) return;
 
   saving.value = true;
   try {
