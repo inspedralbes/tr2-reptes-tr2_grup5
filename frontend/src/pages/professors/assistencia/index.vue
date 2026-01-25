@@ -64,7 +64,7 @@ if (token.value) {
 const resFetch = await useFetch('/api/professor/tallers', {
   headers: { Authorization: valorAuth }
 });
-});
+
 
 // ======================================
 // Estat Reactiu i Refs (Variables i Formularis)
