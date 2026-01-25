@@ -113,7 +113,7 @@ const AssignacioTaller = {
     // 1. Executem la consulta SQL per obtenir les assignacions
     const result = await db.query(`
       SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
-             pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio
+             pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio, t.data_execucio
       FROM peticio_detalls pd
       JOIN peticions p ON pd.peticio_id = p.id
       JOIN tallers t ON pd.taller_id = t.id
@@ -130,7 +130,7 @@ const AssignacioTaller = {
   getById: async (id) => {
     const result = await db.query(`
       SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
-             pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio,
+             pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio, t.data_execucio,
              p.centre_id
       FROM peticio_detalls pd
       JOIN peticions p ON pd.peticio_id = p.id
