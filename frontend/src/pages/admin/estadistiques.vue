@@ -167,6 +167,9 @@ const token = useCookie('authToken');
 // ======================================
 // Estat Reactiu i Refs (Variables i Formularis)
 // ======================================
+const header = ref({
+  userName: 'Administrador' 
+});
 const { data: rawStats, pending: pendent } = await useFetch('/api/admin/stats/dashboard', {
   headers: { Authorization: 'Bearer ' + token.value },
   key: 'admin-stats-dashboard'
