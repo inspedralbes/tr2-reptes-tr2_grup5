@@ -28,11 +28,12 @@ const Taller = {
     const params = [];
 
     // 3. Afegim la condició segons el filtre
+    // Adaptem per suportar la columna 'estat_taller' (VARCHAR) de la nova branca
     if (filtre === 'active' || filtre === 'actiu') {
-      sql = sql + " WHERE actiu = 1";
+      sql = sql + " WHERE estat_taller = 'actiu'";
     } else {
       if (filtre === 'archived' || filtre === 'inactiu') {
-        sql = sql + " WHERE actiu = 0";
+        sql = sql + " WHERE estat_taller = 'inactiu'";
       }
     }
     
@@ -130,16 +131,16 @@ const Taller = {
     } = data;
     
     // 2. Executem la consulta SQL per inserir el taller
+    // Utilitzem estat_taller = 'actiu'
     const sql = `
       INSERT INTO tallers 
-      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, data_execucio, actiu) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      (titol, descripcio, sector, modalitat, trimestres_disponibles, places_maximes, places_restants, adreca, ubicacio, data_execucio, estat_taller) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'actiu')
     `;
     const result = await db.query(sql, [
       titol, descripcio, sector, modalitat, trimestres_disponibles,
       places_maximes, places_maximes, adreca, ubicacio, data_execucio
     ]);
-
     
     // 3. Obtenim l'ID del registre inserit
     const insertId = result[0].insertId;
@@ -154,18 +155,32 @@ const Taller = {
     const { 
       titol, sector, modalitat, descripcio, 
       trimestres_disponibles, places_maximes, 
-      adreca, ubicacio, actiu, data_execucio 
+      adreca, ubicacio, data_execucio,
+      actiu, estat_taller 
     } = data;
+
+    // Determinem el nou estat. 
+    // Si ve 'estat_taller', el fem servir. 
+    // Si ve 'actiu' (1 o true), el mapejem a 'actiu', sinó 'inactiu'.
+    // Si no ve res, fem servir COALESCE a SQL.
+    
+    let nouEstat = undefined;
+    if (estat_taller) {
+        nouEstat = estat_taller;
+    } else if (actiu !== undefined) {
+        nouEstat = (actiu == 1 || actiu === true) ? 'actiu' : 'inactiu';
+    }
     
     // 2. Executem la consulta SQL per actualitzar el taller
+    // Utilitzem estat_taller en lloc de actiu
     const sql = `
       UPDATE tallers SET titol = ?, descripcio = ?, sector = ?, modalitat = ?, 
       trimestres_disponibles = ?, places_maximes = ?, adreca = ?, ubicacio = ?, data_execucio = ?,
-      actiu = COALESCE(?, actiu) WHERE id = ?
+      estat_taller = COALESCE(?, estat_taller) WHERE id = ?
     `;
     const result = await db.query(sql, [
       titol, descripcio, sector, modalitat, trimestres_disponibles, 
-      places_maximes, adreca, ubicacio, data_execucio, actiu, id
+      places_maximes, adreca, ubicacio, data_execucio, nouEstat, id
     ]);
     
     // 3. Comprovem si s'ha actualitzat alguna fila
@@ -206,8 +221,8 @@ const Taller = {
   // A) --- Arxivar un taller ---
   archive: async (id) => {
     // 1. Executem la consulta SQL per arxivar el taller
-    // Utilitzem 'actiu' = 0 per indicar arxivat/inactiu
-    const result = await db.query("UPDATE tallers SET actiu = 0 WHERE id = ?", [id]);
+    // Utilitzem estat_taller = 'inactiu'
+    const result = await db.query("UPDATE tallers SET estat_taller = 'inactiu' WHERE id = ?", [id]);
     
     // 2. Comprovem si s'ha actualitzat alguna fila
     const affectedRows = result[0].affectedRows;
@@ -240,7 +255,10 @@ const Taller = {
     
     // 2. Retornem el primer resultat o undefined si no existeix
     if (rows.length > 0) {
-      return rows[0];
+      const taller = rows[0];
+      // Mapejem 'actiu' per compatibilitat amb frontend que esperi 'actiu' boolean
+      taller.actiu = (taller.estat_taller === 'actiu') ? 1 : 0;
+      return taller;
     } else {
       return undefined;
     }
