@@ -397,7 +397,6 @@ const handleDeleteStudent = async (studentId) => {
                 <button @click="viewMode = 'grid'" :class="['p-2 rounded-lg shadow-sm border transition-all', viewMode === 'grid' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"><LayoutGrid :size="14" /></button>
                 <button @click="viewMode = 'list'" :class="['p-2 rounded-lg shadow-sm border transition-all', viewMode === 'list' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]']"><List :size="14" /></button>
               </div>
-              <button class="flex items-center gap-2 px-3 py-1.5 text-[#022B3A]/50 hover:text-[#022B3A] text-[9px] font-black uppercase tracking-widest transition-colors"><Filter :size="12" /> ORDRE</button>
             </div>
           </div>
 

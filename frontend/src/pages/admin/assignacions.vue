@@ -79,9 +79,6 @@
             <List :size="14" />
           </button>
         </div>
-        <button class="flex items-center gap-2 px-3 py-1.5 text-[#022B3A]/50 hover:text-[#022B3A] text-[9px] font-black uppercase tracking-widest transition-colors">
-          <Filter :size="12" /> FILTRAR
-        </button>
       </div>
     </div>
 

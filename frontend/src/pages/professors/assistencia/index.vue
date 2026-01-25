@@ -109,9 +109,6 @@ const missatgeError = computed(() => {
           />
         </div>
         <div class="w-px h-6 bg-[#BFDBF7]/60"></div>
-        <button class="flex items-center gap-2 px-4 py-2 text-[#022B3A]/50 hover:text-[#022B3A] hover:bg-[#E1E5F2]/30 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">
-           <Filter :size="12" /> Filtrar
-        </button>
       </div>
     </div>
 
