@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS assistencia_alumnes (
     cognoms VARCHAR(100),
     email VARCHAR(255),
     ha_assistit TINYINT(1) DEFAULT 1,
+    comentarios TEXT,
     FOREIGN KEY (peticio_detall_id) REFERENCES peticio_detalls(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

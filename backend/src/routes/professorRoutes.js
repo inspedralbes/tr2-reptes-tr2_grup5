@@ -16,6 +16,7 @@ router.get('/tallers', tallersController.getTallersAssignats);
 router.get('/tallers/:id/alumnes', alumnesController.getAlumnes);
 router.post('/tallers/:id/alumnes', alumnesController.addAlumne);
 router.delete('/tallers/:id/alumnes/:studentId', alumnesController.deleteAlumne);
+router.put('/tallers/:id/alumnes/:studentId/avaluacio', alumnesController.saveReview);
 
 // Rutes d'assistència
 // Rutes d'assistència

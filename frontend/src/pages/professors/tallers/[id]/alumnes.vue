@@ -100,11 +100,11 @@ const showModal = ref(false);
 const submitting = ref(false);
 const studentsForm = ref([]);
 
-const resTallers = await useFetch('/api/professors/tallers', {
+const resTallers = await useFetch('/api/professor/tallers', {
   headers: { Authorization: 'Bearer ' + token.value }
 });
 
-const resAssistencia = await useFetch('/api/professors/tallers/' + detalleId + '/alumnes', {
+const resAssistencia = await useFetch('/api/professor/tallers/' + detalleId + '/alumnes', {
   headers: { Authorization: 'Bearer ' + token.value }
 });
 
@@ -194,7 +194,7 @@ function closeModal() {
 async function deleteStudent(studentId) {
   if (!confirm('Segur que vols eliminar aquest alumne de la llista?')) return;
   try {
-    await $fetch('/api/professors/tallers/' + detalleId + '/alumnes/' + studentId, {
+    await $fetch('/api/professor/tallers/' + detalleId + '/alumnes/' + studentId, {
       method: 'DELETE',
       headers: { Authorization: 'Bearer ' + token.value }
     });
@@ -211,7 +211,7 @@ async function deleteStudent(studentId) {
 async function submitAssistencia() {
   submitting.value = true;
   try {
-    await $fetch('/api/professors/tallers/' + detalleId + '/alumnes', {
+    await $fetch('/api/professor/tallers/' + detalleId + '/alumnes', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token.value },
       body: {

@@ -64,7 +64,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost || exit 1"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 15

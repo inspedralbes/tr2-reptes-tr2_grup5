@@ -101,27 +101,30 @@ function goBack() {
 async function loadData() {
   loading.value = true;
   try {
-    // 1. Carregar llista d'assistència des de l'API.
-    const data = await $fetch('/api/professors/assistencia/' + detallId, {
-      headers: { Authorization: 'Bearer ' + token.value }
-    });
-    assistenciaList.value = data;
+     // 1. Carregar llista d'assistència
+     const data = await $fetch(`/api/professors/assistencia/${detallId}`, {
+        headers: { Authorization: `Bearer ${token.value}` }
+     });
+     assistenciaList.value = data;
 
-    // 2. Carregar llista de tallers i buscar el que coincideix amb detallId.
-    const tallers = await $fetch('/api/professors/tallers', {
-      headers: { Authorization: 'Bearer ' + token.value }
-    });
-    let trobat = null;
-    for (let i = 0; i < tallers.length; i++) {
-      if (tallers[i].detall_id == detallId) {
-        trobat = tallers[i];
-        break;
-      }
-    }
-    // 3. Si el trobem, guardar la info del taller.
-    if (trobat) {
-      tallerInfo.value = trobat;
-    }
+     // 2. Carregar info bàsica del taller (Podem reutilitzar el endpoint de llista de tallers i filtrar, o fer call específica)
+     // Per simplicitat i rapidesa, estem assumint que tenim info minima.
+     // Idealment, tindríem un endpoint /api/professors/tallers/:id
+     // Intentem treure el titol de la llista general si està carregada o fem fetch.
+     // Farem un fetch a tallers i buscarem aquest ID. No és súper eficient però reutilitzem endpoints existents.
+     let tallers = await $fetch('/api/professors/tallers', {
+        headers: { Authorization: 'Bearer ' + token.value }
+     });
+     let trobat = null;
+     for (let i = 0; i < tallers.length; i++) {
+        if (tallers[i].detall_id == detallId) {
+           trobat = tallers[i];
+           break;
+        }
+     }
+     if (trobat) {
+        tallerInfo.value = trobat;
+     }
 
   } catch (err) {
     console.error('Error carregant dades', err);
@@ -134,15 +137,10 @@ async function loadData() {
 // A) --- Canviar l'estat d'assistència d'un alumne ---
 async function toggleAssistencia(student, isChecked) {
   try {
-    // 1. Actualització optimista: canviar l'estat local abans de l'API.
-    if (isChecked) {
-      student.ha_assistit = 1;
-    } else {
-      student.ha_assistit = 0;
-    }
-
-    // 2. Enviar el canvi a l'API.
-    await $fetch('/api/professors/assistencia/' + student.id, {
+    // Optimistic update
+    student.ha_assistit = isChecked ? 1 : 0;
+    
+    await $fetch(`/api/professor/assistencia/${student.id}`, {
       method: 'PUT',
       headers: { Authorization: 'Bearer ' + token.value },
       body: { ha_assistit: isChecked }

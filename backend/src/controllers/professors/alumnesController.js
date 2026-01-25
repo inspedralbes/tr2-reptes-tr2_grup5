@@ -107,6 +107,36 @@ const alumnesController = {
             console.error('Error eliminant alumne:', error);
             res.status(500).json({ message: 'Error al servidor.' });
         }
+    },
+
+    saveReview: async (req, res) => {
+        try {
+            const { id, studentId } = req.params; // id=tallerId, studentId=studentId
+            const { avaluacio, comentarios } = req.body; // Support both for compatibility/transition
+
+            // 1. Obtenir info del alumne per saber el taller
+            const alumne = await Alumne.getById(studentId);
+            if (!alumne) {
+                return res.status(404).json({ message: "Alumne no trobat." });
+            }
+            const peticio_detall_id = alumne.peticio_detall_id;
+
+            // 2. Verificar permís (només docent assignat)
+            const [tallerRows] = await db.query("SELECT docent_email FROM peticio_detalls WHERE id = ?", [peticio_detall_id]);
+            if (!tallerRows.length) return res.status(404).json({ message: "Taller associat no trobat." });
+
+            if (tallerRows[0].docent_email !== req.user.email) {
+                return res.status(403).json({ message: "No tens permís per avaluar alumnes d'aquest taller." });
+            }
+
+            // 3. Guardar (prioritize comentarios if exists)
+            await Alumne.updateAvaluacio(studentId, comentarios !== undefined ? comentarios : avaluacio);
+            res.json({ message: "Avaluació guardada correctament." });
+
+        } catch (error) {
+            console.error('Error guardant avaluació:', error);
+            res.status(500).json({ message: 'Error al servidor.' });
+        }
     }
 };
 

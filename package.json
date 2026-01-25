@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/inspedralbes/tr2-reptes-tr2_grup5/issues"
   },
-  "homepage": "https://github.com/inspedralbes/tr2-reptes-tr2_grup5#readme"
+  "homepage": "https://github.com/inspedralbes/tr2-reptes-tr2_grup5#readme",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  }
 }

@@ -62,12 +62,19 @@
               <section class="tallers-section">
                 <h3>Tallers Assignats ({{ compteTallers }})</h3>
                 <div v-if="compteTallers > 0" class="tallers-list">
-                  <div v-for="taller in centre.tallers" :key="taller.id" class="taller-item">
+                  <div 
+                    v-for="taller in centre.tallers" 
+                    :key="taller.id" 
+                    class="taller-item clickable"
+                    @click="openComments(taller)"
+                    title="Clic per veure comentaris"
+                  >
                     <div class="taller-icon">🎓</div>
                     <div class="taller-text">
                       <p class="t-name">{{ taller.titol }}</p>
                       <span class="t-status">{{ taller.estat }}</span>
                     </div>
+                    <div class="taller-arrow">👉</div>
                   </div>
                 </div>
                 <div v-else class="empty-box">Sense tallers actualment</div>
@@ -129,6 +136,26 @@
             </div>
           </div>
         </Transition>
+
+        <!-- MODAL COMENTARIOS (MOVED OUTSIDE TRANSITION) -->
+        <div v-if="showCommentsModal" class="modal-overlay" @click.self="closeCommentsModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Comentaris: {{ selectedTallerName }}</h3>
+              <button class="close-btn" @click="closeCommentsModal">✕</button>
+            </div>
+            <div class="modal-body">
+              <ul v-if="selectedTallerComments.length > 0" class="comments-list">
+                <li v-for="(comment, idx) in selectedTallerComments" :key="idx" class="comment-item">
+                  "{{ comment }}"
+                </li>
+              </ul>
+              <div v-else class="empty-comments">
+                No hi ha comentaris registrats per a aquest taller.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -279,6 +306,68 @@ function clauGrup(grup, index) {
     return 'grup-' + String(index);
   }
 }
+
+// B) --- Integració IA --- (ELIMINAT)
+// import { useGemini } from "../../../composables/useGemini";
+// const { isGenerating, error, generateReputationSummary } = useGemini();
+// ======================================
+// Lògica de Comentaris per Taller
+// ======================================
+const usersComments = ref([]); // Tula els comentaris { nom_taller, comentarios, taller_detall_id }
+const showCommentsModal = ref(false);
+const selectedTallerName = ref("");
+const selectedTallerComments = ref([]);
+
+// Càrrega inicial de comentaris
+const fetchComments = async () => {
+  try {
+    const data = await $fetch(`/api/admin/centres/${centreId}/comments`, {
+       headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    usersComments.value = data || [];
+  } catch (e) {
+    console.error("Error carregant comentaris:", e);
+  }
+};
+// Fetch comments en muntar (si hi ha centreId)
+if (centreId) {
+  fetchComments();
+}
+
+// Obrir modal de comentaris
+function openComments(taller) {
+  // taller ve del v-for de tallers (centre.tallers)
+  // cal coincidir amb taller_detall_id.
+  // taller object from centre.tallers typically has 'id' which might be the relation id or taller id.
+  // let's assume taller.id in the loop corresponds to peticio_detalls.id (the relation) or use matching logic.
+  // Actually, in `centresController.js` usually tallers are joined.
+  // Let's assume taller.id IS the `detall_id`.
+  
+  if (!taller) return;
+  
+  selectedTallerName.value = taller.titol;
+  
+  // Filtrar comentaris per aquest taller
+  // Nota: Al backend hem retornat taller_detall_id (que és peticio_detalls.id)
+  // Cal verificar si taller.id és el mateix. 
+  // En `Centre.js` (getAll/findById) sovint es fa un left join amb peticio_detalls y es guarda com id.
+  
+  const commentsForThisTaller = usersComments.value.filter(c => 
+    c.taller_detall_id === taller.id || c.nom_taller === taller.titol
+  );
+  
+  selectedTallerComments.value = commentsForThisTaller.map(c => c.comentarios);
+  showCommentsModal.value = true;
+}
+
+function closeCommentsModal() {
+  showCommentsModal.value = false;
+  selectedTallerName.value = "";
+  selectedTallerComments.value = [];
+}
+ 
+
+
 </script>
 
 <style scoped>
@@ -342,4 +431,22 @@ function clauGrup(grup, index) {
 .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #64748b; }
 .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #2b63b6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* UI Enhancements */
+.taller-item.clickable { cursor: pointer; position: relative; }
+.taller-item.clickable:hover { background-color: #f1f8ff; border-color: #2b63b6; }
+.taller-arrow { margin-left: auto; font-size: 18px; opacity: 0; transition: opacity 0.2s; }
+.taller-item.clickable:hover .taller-arrow { opacity: 1; }
+
+/* Modal Styles */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px); }
+.modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+.modal-header h3 { margin: 0; color: #2b63b6; font-size: 20px; }
+.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+.modal-body { overflow-y: auto; padding-right: 5px; }
+
+.comments-list { list-style: none; padding: 0; margin: 0; }
+.comment-item { background: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 4px solid #3b82f6; font-style: italic; color: #475569; }
+.empty-comments { text-align: center; color: #94a3b8; padding: 30px; }
 </style>

@@ -41,6 +41,7 @@ router.delete("/centres/:id", centresController.deleteCentre);
 router.get("/centres/:id", centresController.getCentreById);
 
 // A) --- Rutes per a sol·licituds de tallers (Peticions) ---
+router.get("/centres/:id/comments", centresController.getCentreComments);
 // URL base: /api/admin/peticions
 router.get("/peticions", peticionsController.getAll);
 router.get("/peticions/:id", peticionsController.getById);

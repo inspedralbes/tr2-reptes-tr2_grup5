@@ -61,8 +61,9 @@ if (token.value) {
 } else {
   valorAuth = '';
 }
-const resFetch = await useFetch('/api/professors/tallers', {
+const resFetch = await useFetch('/api/professor/tallers', {
   headers: { Authorization: valorAuth }
+});
 });
 
 // ======================================

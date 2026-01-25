@@ -59,6 +59,15 @@ const Alumne = {
             [peticioDetallId]
         );
         return rows[0].exact_count;
+    },
+
+    // Actualitzar l'avaluació d'un alumne
+    updateAvaluacio: async (id, comentaris) => {
+        const [result] = await db.query(
+            "UPDATE assistencia_alumnes SET comentarios = ? WHERE id = ?",
+            [comentaris, id]
+        );
+        return result.affectedRows > 0;
     }
 };
 

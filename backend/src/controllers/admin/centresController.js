@@ -230,6 +230,37 @@ const deleteCentre = async (req, res) => {
     }
     res.status(500).json({ error: error.message });
   }
+}
+
+
+// F) --- Obtenir comentaris (reputació) ---
+const getCentreComments = async (req, res) => {
+  try {
+    const id = req.params.id;
+    // Join: Centres -> Peticions -> PeticioDetalls -> AssistenciaAlumnes
+    // We want all 'comentarios' from 'assistencia_alumnes' linked to this centre
+    // Note: This requires a direct DB query typically, unless models support deep nested joins differently.
+    // Using raw query for simplicity as models seem simple.
+    const db = require("../../config/db"); // Ensure we have db access
+
+    const [rows] = await db.query(`
+      SELECT aa.comentarios, t.titol as nom_taller, pd.id as taller_detall_id
+      FROM assistencia_alumnes aa
+      JOIN peticio_detalls pd ON aa.peticio_detall_id = pd.id
+      JOIN peticions p ON pd.peticio_id = p.id
+      JOIN tallers t ON pd.taller_id = t.id
+      WHERE p.centre_id = ? 
+      AND aa.comentarios IS NOT NULL 
+      AND aa.comentarios != ''
+    `, [id]);
+
+    // Retorna array d'objectes { comentarios, nom_taller, taller_detall_id }
+    res.json(rows);
+
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 module.exports = {
@@ -237,5 +268,6 @@ module.exports = {
   getCentreById,
   createCentre,
   updateCentre,
-  deleteCentre
+  deleteCentre,
+  getCentreComments
 };
