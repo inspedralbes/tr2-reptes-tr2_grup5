@@ -5,9 +5,9 @@ USE enginy_db;
 INSERT INTO usuaris (id, email, password, rol, ultim_acces) VALUES
 (1, 'admin@ceb.cat', '$2b$10$oH9FPzGcSdBpViK2pRyc2uCmHIf3o/q2LdegjRvvJHcOPHnncxZ0q', 'ADMIN', NOW()), -- admin123
 (2, 'coordinador@escola.cat', '$2b$10$U./hVxAhKe1Obgjz1nmIouewmYRjqp5E7VrX13PCM5xOU8NMnDmzC', 'CENTRE', NOW()), -- centre123
-(3, 'profe.referent@escola.cat', '$2b$10$8A5bSwYukCAesP90N4pOJeUPsIup/viCDZN18vAHasnjFcFGI6zKa', 'PROFESSOR', NOW()), -- profe123
-(5, 'pere.prof@la-presentacio.cat', '$2b$10$lZNp1kfUMKfbVqjkxIOa6O4/Uw6Ft2kt8X8LTE8h4.UyMQVZlVHe.', 'PROFESSOR', NOW()), -- pere123
-(6, 'anna.prof@la-presentacio.cat', '$2b$10$xTRaeFUEuyDu5.u5uo.jl.vFAEJkEcx5g2ejEFe4ORxYXlFAZoc9W', 'PROFESSOR', NOW()); -- anna123
+(3, 'profereferent@escola.cat', '$2b$10$8A5bSwYukCAesP90N4pOJeUPsIup/viCDZN18vAHasnjFcFGI6zKa', 'PROFESSOR', NOW()), -- profe123
+(5, 'pereprof@lapresentacio.cat', '$2b$10$lZNp1kfUMKfbVqjkxIOa6O4/Uw6Ft2kt8X8LTE8h4.UyMQVZlVHe.', 'PROFESSOR', NOW()), -- pere123
+(6, 'annaprof@lapresentacio.cat', '$2b$10$xTRaeFUEuyDu5.u5uo.jl.vFAEJkEcx5g2ejEFe4ORxYXlFAZoc9W', 'PROFESSOR', NOW()); -- anna123
 
 
 -- 2. TAULA: administradors

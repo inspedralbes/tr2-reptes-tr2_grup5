@@ -2,7 +2,7 @@
 definePageMeta({
   middleware: [
     function (to, from) {
-      return navigateTo('/centres/peticions');
+      return navigateTo('/admin/tallers');
     }
   ]
 });
