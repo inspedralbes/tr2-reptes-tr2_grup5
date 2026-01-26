@@ -306,14 +306,20 @@
                     max="4"
                     v-model="formModel.num_participants"
                     class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-bold text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all"
+                    @input="validateField(workshop.id, 'num_participants')"
                   />
+                  <p v-if="fieldErrors[workshop.id]?.num_participants" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].num_participants }}</p>
                 </div>
 
                 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-[#BFDBF7]/10 pt-6">
                    <div class="md:col-span-7 space-y-2">
                      <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Docent Responsable *</label>
                      <div class="relative">
-                        <select v-model="formModel.docent_nom" class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none">
+                        <select 
+                          v-model="formModel.docent_nom" 
+                          class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none"
+                          @change="validateField(workshop.id, 'docent_nom')"
+                        >
                            <option value="" disabled>Selecciona un docent</option>
                            <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
                         </select>
@@ -321,6 +327,7 @@
                            <ArrowRight :size="12" class="rotate-90" />
                         </div>
                      </div>
+                     <p v-if="fieldErrors[workshop.id]?.docent_nom" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].docent_nom }}</p>
                    </div>
                    <!-- Optional: Button to add new docent could go here if implemented -->
                 </div>
@@ -423,6 +430,54 @@ const submitting = ref(false);
 const form = ref({
   tallers: []
 });
+
+const fieldErrors = ref({});
+
+function validateField(workshopId, key) {
+  if (!fieldErrors.value[workshopId]) {
+    fieldErrors.value[workshopId] = {};
+  }
+  
+  const workshopForm = form.value.tallers.find(t => t.taller_id === workshopId);
+  if (!workshopForm) return;
+
+  if (key === 'num_participants') {
+    const val = Number(workshopForm.num_participants);
+    if (!val || val < 1) {
+      fieldErrors.value[workshopId].num_participants = 'Introduïu el nombre d\'alumnes.';
+    } else if (val > 4) {
+      fieldErrors.value[workshopId].num_participants = 'El màxim permès és de 4 participants.';
+    } else {
+      delete fieldErrors.value[workshopId].num_participants;
+    }
+  }
+
+  if (key === 'docent_nom') {
+    if (!workshopForm.docent_nom) {
+      fieldErrors.value[workshopId].docent_nom = 'Heu de seleccionar un docent.';
+    } else {
+      delete fieldErrors.value[workshopId].docent_nom;
+    }
+  }
+
+  // Netejar objecte si no hi ha errors
+  if (Object.keys(fieldErrors.value[workshopId]).length === 0) {
+    delete fieldErrors.value[workshopId];
+  }
+}
+
+function validateAll() {
+  let isValid = true;
+  form.value.tallers.forEach(workshopForm => {
+    validateField(workshopForm.taller_id, 'num_participants');
+    validateField(workshopForm.taller_id, 'docent_nom');
+    
+    if (fieldErrors.value[workshopForm.taller_id]) {
+      isValid = false;
+    }
+  });
+  return isValid;
+}
 
 // ======================================
 // COMPUTED PROPERTIES
@@ -598,7 +653,14 @@ const getFormModel = (workshopId) => {
 // I need to bind these inputs to my `form.tallers` state.
 
 async function handleSubmit() {
-  // El trimestre ve fix del taller (assignat en afegir-lo); no cal validar-lo.
+  if (!validateAll()) {
+    useSwal().fire({
+      title: 'Dades incompletes',
+      text: 'Si us plau, revisa els errors en els detalls dels tallers seleccionats.',
+      icon: 'error'
+    });
+    return;
+  }
 
   const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols confirmar la sol·licitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
   if (!confirmResult.isConfirmed) return;
