@@ -312,24 +312,52 @@
                 </div>
 
                 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-[#BFDBF7]/10 pt-6">
-                   <div class="md:col-span-7 space-y-2">
+                   <div class="md:col-span-12 space-y-2">
                      <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Docent Responsable *</label>
                      <div class="relative">
                         <select 
                           v-model="formModel.docent_nom" 
                           class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none"
-                          @change="validateField(workshop.id, 'docent_nom')"
+                          @change="handleDocentChange(workshop.id)"
                         >
                            <option value="" disabled>Selecciona un docent</option>
                            <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
+                           <option value="NEW_TEACHER" class="text-[#1F7A8C] font-black">+ Crear nou docent...</option>
                         </select>
                         <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40">
                            <ArrowRight :size="12" class="rotate-90" />
                         </div>
                      </div>
                      <p v-if="fieldErrors[workshop.id]?.docent_nom" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].docent_nom }}</p>
+
+                     <!-- Quick Teacher Creation Form -->
+                     <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
+                        <div v-if="showAddTeacherInline[workshop.id]" class="mt-4 p-6 bg-[#F8FAFC] border border-[#BFDBF7] rounded-2xl space-y-4 shadow-inner">
+                           <div class="flex items-center gap-2 mb-2">
+                              <UserPlus :size="16" class="text-[#1F7A8C]" />
+                              <span class="text-[10px] font-black text-[#022B3A] uppercase tracking-widest">Creació Ràpida de Docent</span>
+                           </div>
+                           
+                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <input v-model="newTeacher.nom" type="text" placeholder="Nom" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
+                              <input v-model="newTeacher.cognoms" type="text" placeholder="Cognoms" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
+                              <div class="md:col-span-2">
+                                 <input v-model="newTeacher.email" type="email" placeholder="Email (xtec.cat / escola.cat)" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
+                              </div>
+                           </div>
+
+                           <div class="flex justify-end pt-2">
+                              <button 
+                                @click="handleCreateTeacherQuick(workshop.id)"
+                                :disabled="creatingTeacher"
+                                class="px-6 py-2 bg-[#1F7A8C] text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-md hover:bg-[#022B3A] transition-all disabled:opacity-50"
+                              >
+                                {{ creatingTeacher ? 'CREANT...' : 'CREAR I SELECCIONAR' }}
+                              </button>
+                           </div>
+                        </div>
+                     </transition>
                    </div>
-                   <!-- Optional: Button to add new docent could go here if implemented -->
                 </div>
 
                 <div class="md:col-span-2 space-y-2 border-t border-[#BFDBF7]/10 pt-4">
@@ -432,6 +460,72 @@ const form = ref({
 });
 
 const fieldErrors = ref({});
+const showAddTeacherInline = ref({}); // { workshopId: bool }
+const newTeacher = ref({ nom: '', cognoms: '', email: '' });
+const creatingTeacher = ref(false);
+
+function handleDocentChange(workshopId) {
+  const workshopForm = form.value.tallers.find(t => t.taller_id === workshopId);
+  if (!workshopForm) return;
+
+  if (workshopForm.docent_nom === 'NEW_TEACHER') {
+    // Tancar altres si n'hi ha
+    Object.keys(showAddTeacherInline.value).forEach(k => {
+      if (k !== workshopId.toString()) showAddTeacherInline.value[k] = false;
+    });
+    
+    showAddTeacherInline.value[workshopId] = true;
+    newTeacher.value = { nom: '', cognoms: '', email: '' }; // Reset form
+  } else {
+    showAddTeacherInline.value[workshopId] = false;
+    validateField(workshopId, 'docent_nom');
+  }
+}
+
+function toggleQuickTeacherForm(workshopId) {
+  Object.keys(showAddTeacherInline.value).forEach(k => {
+    if (k !== workshopId.toString()) showAddTeacherInline.value[k] = false;
+  });
+  showAddTeacherInline.value[workshopId] = !showAddTeacherInline.value[workshopId];
+}
+
+async function handleCreateTeacherQuick(workshopId) {
+  const { nom, cognoms, email } = newTeacher.value;
+  
+  if (!nom.trim() || !cognoms.trim() || !email.trim()) {
+    useSwal().fire({ title: 'Camps buits', text: 'Si us plau, omple totes les dades del docent.', icon: 'warning' });
+    return;
+  }
+
+  creatingTeacher.value = true;
+  try {
+    const token = tokenCookie.value;
+    await $fetch('/api/centre/professors', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: { nom, cognoms, email }
+    });
+
+    // Actualitzar llista de professors
+    await fetchData(); 
+
+    // Seleccionar el nou professor automàticament
+    const workshopForm = form.value.tallers.find(t => t.taller_id === workshopId);
+    if (workshopForm) {
+      workshopForm.docent_nom = `${nom} ${cognoms}`;
+      validateField(workshopId, 'docent_nom');
+    }
+
+    showAddTeacherInline.value[workshopId] = false;
+    useSwal().fire({ title: 'Fet!', text: 'Docent creat i seleccionat.', icon: 'success', timer: 1500, showConfirmButton: false });
+
+  } catch (err) {
+    console.error(err);
+    useSwal().fire({ title: 'Error', text: err.data?.message || 'No s\'ha pogut crear el docent.', icon: 'error' });
+  } finally {
+    creatingTeacher.value = false;
+  }
+}
 
 function validateField(workshopId, key) {
   if (!fieldErrors.value[workshopId]) {
