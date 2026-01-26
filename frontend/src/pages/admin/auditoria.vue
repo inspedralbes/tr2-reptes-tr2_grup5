@@ -1,5 +1,5 @@
 <template>
-  <section class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <section class="animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- Loading -->
     <div v-if="pendent" class="flex flex-col items-center justify-center py-20">
@@ -13,7 +13,15 @@
     </div>
 
     <template v-else>
-
+      
+      <div class="mb-8">
+        <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+          Registre d'<span class="text-[#1F7A8C]">Auditoria</span>
+        </h1>
+        <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+          Historial d'accions i canvis realitzats en la plataforma.
+        </p>
+      </div>
 
       <!-- Control Bar -->
       <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
