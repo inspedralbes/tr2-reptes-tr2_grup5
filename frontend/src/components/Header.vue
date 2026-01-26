@@ -1,10 +1,9 @@
 <template>
-  <!-- 1. Estructura lateral de la navegació (Sidebar) -->
   <aside
     v-if="header.showHeader"
     class="fixed top-0 left-0 bottom-0 w-[280px] bg-[#022B3A] z-50 flex flex-col shadow-2xl overflow-hidden border-r border-white/5 font-sans"
   >
-    <!-- 2. Logo i distintiu del rol -->
+    <!-- 1. Logo & Brand -->
     <header class="p-8 pb-6 flex flex-col items-start">
       <div class="w-full max-w-[210px]">
         <p class="text-[9px] font-black text-[#1F7A8C] uppercase tracking-widest opacity-80 mb-3 ml-1">
@@ -14,53 +13,36 @@
       </div>
     </header>
 
-    <!-- 3. Navegació del menú principal -->
+    <!-- 2. Menu Navigation -->
     <nav class="flex-1 px-4 mt-4 space-y-4 overflow-y-auto scrollbar-hide">
       <div>
         <p class="px-4 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Menú Principal</p>
         <ul class="space-y-1.5">
-          <!-- Bucle per generar els elements del menú -->
           <li v-for="(btn, i) in menuItems" :key="obtenirClauBoto(btn, i)">
             <NuxtLink
               :to="btn.route"
-              class="relative w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden no-underline"
-              :class="{
-                'bg-gradient-to-r from-[#1F7A8C] to-[#1A6B7A] text-white shadow-lg shadow-[#1F7A8C]/25 translate-x-1': isActive(btn),
-                'text-white/40 hover:text-white hover:bg-white/5': !isActive(btn)
-              }"
+              :class="[
+                'relative w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden no-underline',
+                isActive(btn)
+                  ? 'bg-gradient-to-r from-[#1F7A8C] to-[#1A6B7A] text-white shadow-lg shadow-[#1F7A8C]/25 translate-x-1'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
+              ]"
             >
-              <!-- Indicador lateral quan està actiu -->
               <div
                 v-if="isActive(btn)"
                 class="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[2px_0_15px_rgba(255,255,255,0.6)]"
               />
-              
-              <!-- Icona i etiqueta de l'enllaç -->
-              <div 
-                class="flex items-center gap-4 relative z-10 transition-all"
-                :class="{ 'pl-3': isActive(btn) }"
-              >
+              <div :class="['flex items-center gap-4 relative z-10 transition-all', isActive(btn) ? 'pl-3' : '']">
                 <component
                   :is="getIcon(btn)"
                   :size="20"
                   :strokeWidth="isActive(btn) ? 2.5 : 1.5"
-                  :class="{
-                    'text-white drop-shadow-sm': isActive(btn),
-                    'text-white/40 group-hover:text-white transition-colors': !isActive(btn)
-                  }"
+                  :class="isActive(btn) ? 'text-white drop-shadow-sm' : 'text-white/40 group-hover:text-white transition-colors'"
                 />
-                <span 
-                  class="text-sm tracking-tight"
-                  :class="{
-                    'font-black': isActive(btn),
-                    'font-medium': !isActive(btn)
-                  }"
-                >
+                <span :class="['text-sm tracking-tight', isActive(btn) ? 'font-black' : 'font-medium']">
                   {{ btn.label }}
                 </span>
               </div>
-
-              <!-- Punt indicador de pulsació quan està actiu -->
               <div
                 v-if="isActive(btn)"
                 class="relative z-10 w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"
@@ -71,9 +53,8 @@
       </div>
     </nav>
 
-    <!-- 4. Perfil d'usuari i botó de tancament de sessió -->
+    <!-- 3. User Profile & Logout -->
     <footer class="mt-auto p-4 space-y-2 bg-black/10 border-t border-white/5">
-      <!-- Mini targeta d'usuari -->
       <div class="flex items-center gap-3 px-4 py-2">
         <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white font-black text-xs border border-white/10">
           {{ userInitials }}
@@ -83,8 +64,6 @@
           <p class="text-[9px] font-bold text-white/30 uppercase truncate tracking-wider">{{ userRoleDisplay }}</p>
         </div>
       </div>
-      
-      <!-- Botó de sortida -->
       <button
         @click="handleLogout"
         class="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all font-black text-[10px] uppercase tracking-[0.2em]"
@@ -111,7 +90,8 @@ import {
   GraduationCap,
   BookOpen,
   LogOut,
-  Calendar
+  Calendar,
+  Menu
 } from 'lucide-vue-next';
 
 // ======================================
@@ -122,6 +102,9 @@ import {
 const header = useHeaderStore();
 const route = useRoute();
 const tokenCookie = useCookie('authToken');
+const menuOpen = ref(false);
+
+const allMenuItemsForMobile = computed(() => header.buttons || []);
 
 // 2. Elements del menú filtrats (sense "Sortir")
 const menuItems = computed(function () {
@@ -268,13 +251,7 @@ function isActive(btn) {
 
 // C) --- Mapatge de rutes a icones del menú ---
 function getIcon(btn) {
-  let r = '';
-  if (btn) {
-    if (btn.route) {
-      r = btn.route;
-    }
-  }
-  
+  const r = (btn && btn.route) || '';
   if (r === '/admin/tallers') return Library;
   if (r === '/admin/calendari') return Calendar;
   if (r === '/admin/peticions') return MessageSquare;
@@ -331,6 +308,75 @@ onMounted(function () {
 </script>
 
 <style scoped>
+.nav-bar {
+  width: 280px;
+}
+
+.nav-bar-mobile {
+  display: none;
+}
+
+/* A partir de 1066px: la nav bar i el logo es van reduint */
+@media (max-width: 1066px) {
+  .nav-bar {
+    width: clamp(180px, calc(180px + 100 * (100vw - 480px) / 586), 280px);
+  }
+  .logo-container {
+    max-width: clamp(100px, calc(100px + 110 * (100vw - 480px) / 586), 210px);
+  }
+}
+
+/* A 692px o menys: barra horitzontal dalt, logo esquerra + hamburger dreta */
+@media (max-width: 692px) {
+  .nav-bar {
+    width: 100%;
+    height: 56px;
+    bottom: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .nav-bar-desktop {
+    display: none !important;
+  }
+  .nav-bar-mobile {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 1rem;
+  }
+}
+
+/* Dropdown mòbil: amagat en desktop */
+@media (min-width: 693px) {
+  .mobile-dropdown {
+    display: none !important;
+  }
+}
+
+.mobile-dropdown {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #022B3A;
+  z-index: 49;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.mobile-dropdown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
