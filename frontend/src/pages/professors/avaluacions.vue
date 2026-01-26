@@ -137,7 +137,7 @@ watch(selectedWorkshopId, (newId) => {
 </script>
 
 <template>
-  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-160px)] flex flex-col p-8">
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-160px)] flex flex-col">
     
     <!-- HEADER -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 flex-shrink-0">

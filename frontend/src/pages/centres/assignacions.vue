@@ -1,5 +1,5 @@
 <template>
-  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[80vh]">
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- HEADER -->
     <div class="mb-8">
