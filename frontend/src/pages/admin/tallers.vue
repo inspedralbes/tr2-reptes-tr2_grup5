@@ -1,5 +1,5 @@
 <template>
-  <section class="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto px-6 md:px-8 py-6">
+  <section class="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-6">
     
 
 

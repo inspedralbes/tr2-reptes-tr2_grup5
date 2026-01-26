@@ -95,7 +95,7 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
 </script>
 
 <template>
-  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8 p-8">
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
     
     <!-- 1. HEADER & CONTROLS -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">

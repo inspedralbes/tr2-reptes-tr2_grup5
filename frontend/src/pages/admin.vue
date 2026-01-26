@@ -29,13 +29,11 @@ const currentDate = computed(function () {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 body {
   margin: 0;
 }
 .admin-main-view {
-  font-family: 'Inter', sans-serif;
-  padding: 1rem;
+  /* Removed padding to align with global layout */
 }
 
 .admin-header {

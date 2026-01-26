@@ -211,7 +211,7 @@ const handleDeleteStudent = async (studentId) => {
 </script>
 
 <template>
-  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 p-8">
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- Loading/Error Global States -->
     <div v-if="pending" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
@@ -397,6 +397,16 @@ const handleDeleteStudent = async (studentId) => {
 
         <!-- CATALOG VIEW -->
         <div v-else class="space-y-8">
+          
+          <div class="mb-8">
+            <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+              Afegir <span class="text-[#1F7A8C]">Alumnes</span>
+            </h1>
+            <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+              Gestió d'alumnat assignat als tallers del curs.
+            </p>
+          </div>
+
           <!-- Search & Control Bar -->
           <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="relative flex-1 max-w-md group w-full ml-1">

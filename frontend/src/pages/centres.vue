@@ -1,6 +1,4 @@
 <template>
-  <div class="page">
-  </div>
   <NuxtPage />
 </template>
 
@@ -19,8 +17,5 @@ header.setHeaderCentres();
 </script>
 
 <style scoped>
-.page {
-  text-align: center;
-  margin-top: 50px;
-}
+/* Estils unificats via layout global */
 </style>

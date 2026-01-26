@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen">
+  <div>
     
     <!-- VIEW 1: SELECTION GRID -->
     <div v-if="step === 'selection'" class="animate-in fade-in slide-in-from-left-4 duration-500 pb-24 relative">
        
        <!-- 1. Header -->
-       <div class="mb-10">
+       <div class="mb-8">
           <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
             Sol·licitud de <span class="text-[#1F7A8C]">Tallers</span>
           </h1>
@@ -222,7 +222,7 @@
 
       <!-- Fixed Bottom Bar -->
       <div v-if="addedWorkshops.length > 0 && isRegistrationOpen" class="fixed bottom-0 right-0 left-0 md:left-[280px] bg-white border-t border-[#BFDBF7] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-6 z-40 animate-in slide-in-from-bottom-10 duration-300">
-        <div class="max-w-[1400px] mx-auto flex items-center justify-between px-8 md:px-12">
+        <div class="flex items-center justify-between px-8 md:px-12">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-[#1F7A8C] rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-[#1F7A8C]/30">
               {{ addedWorkshops.length }}
