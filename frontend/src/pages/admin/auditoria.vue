@@ -43,7 +43,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-[#BFDBF7]/10">
-              <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-[#E1E5F2]/5 transition-colors group">
+              <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-[#E1E5F2]/5 transition-colors group">
                 <td class="p-5 pl-8 whitespace-nowrap">
                   <div class="flex items-center gap-2">
                     <History :size="14" class="text-[#022B3A]/20" />
@@ -89,6 +89,10 @@
           <p class="text-sm font-bold">{{ hiHaLogs ? "No s'han trobat registres." : "No hi ha logs d'auditoria." }}</p>
         </div>
       </div>
+
+      <div class="mt-8 flex justify-center">
+        <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+      </div>
     </template>
 
   </section>
@@ -105,6 +109,19 @@ const respostaFetch = await useFetch('/api/admin/logs', {
 });
 
 const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
+
+const totalPages = computed(function () {
+  return Math.max(1, Math.ceil((filteredLogs.value || []).length / itemsPerPage));
+});
+const paginatedLogs = computed(function () {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredLogs.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 const llistaLogs = computed(function () {
   const d = respostaFetch.data;

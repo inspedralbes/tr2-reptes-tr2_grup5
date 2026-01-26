@@ -1,13 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { 
   Search, 
   Filter, 
   Clock, 
   MapPin, 
   User, 
-  ClipboardCheck, 
-  ChevronRight 
+  ClipboardCheck 
 } from 'lucide-vue-next';
 
 // ======================================
@@ -20,6 +19,10 @@ const token = useCookie('authToken').value;
 
 // --- STATE ---
 const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
 
 // --- FETCH DATA ---
 const { data: tallersRaw, pending, error } = await useFetch('/api/professor/tallers', {
@@ -81,6 +84,14 @@ const goToAssistencia = (id) => {
 const missatgeError = computed(() => {
   return (error && error.value && error.value.message) ? error.value.message : 'Error de connexió';
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredSessions.value || []).length / itemsPerPage)));
+const paginatedSessions = computed(() => {
+  const list = filteredSessions.value || [];
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 </script>
 
 <template>
@@ -135,8 +146,8 @@ const missatgeError = computed(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-[#BFDBF7]/10">
-            <template v-if="(filteredSessions || []).length > 0">
-                <tr v-for="session in (filteredSessions || [])" :key="session.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
+            <template v-if="(paginatedSessions || []).length > 0">
+                <tr v-for="session in (paginatedSessions || [])" :key="session.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
                   
                   <!-- TALLER / PROJECTE / ID -->
                   <td class="p-5 pl-8">
@@ -209,17 +220,10 @@ const missatgeError = computed(() => {
         </table>
       </div>
 
-      <!-- Footer / Pagination placeholder -->
+      <!-- Footer / Pagination -->
       <div v-if="(filteredSessions || []).length > 0" class="p-4 bg-[#E1E5F2]/10 border-t border-[#BFDBF7]/20 flex justify-between items-center px-8">
-         <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ (filteredSessions || []).length }} sessions</span>
-         <div class="flex gap-2">
-            <button class="p-2 rounded-lg text-[#022B3A]/20 hover:bg-[#E1E5F2] hover:text-[#022B3A] transition-colors disabled:opacity-50">
-               <ChevronRight :size="16" class="rotate-180" />
-            </button>
-            <button class="p-2 rounded-lg text-[#022B3A]/20 hover:bg-[#E1E5F2] hover:text-[#022B3A] transition-colors">
-               <ChevronRight :size="16" />
-            </button>
-         </div>
+         <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ (paginatedSessions || []).length }} de {{ (filteredSessions || []).length }} sessions</span>
+         <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
       </div>
     </div>
   </div>

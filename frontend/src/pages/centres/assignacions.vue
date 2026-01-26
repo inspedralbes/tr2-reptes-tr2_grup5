@@ -12,10 +12,11 @@
     </div>
 
     <!-- ESTADO 1: LISTADO DE TARJETAS (SI HAY DATOS) -->
-    <div v-if="assignments.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div v-if="assignments.length > 0" class="space-y-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       
       <div 
-        v-for="assign in assignments" 
+        v-for="assign in paginatedAssignments" 
         :key="assign.id" 
         class="bg-white rounded-2xl border border-[#E1E5F2] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col overflow-hidden"
       >
@@ -86,6 +87,10 @@
       </div>
 
     </div>
+    <div class="flex justify-center">
+      <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+    </div>
+    </div>
 
     <!-- ESTADO 2: BUIT (SI NO HAY DATOS) - CAPTURA 1 -->
     <div v-else class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
@@ -110,11 +115,18 @@
 
     </div>
 
+
+    <!-- Modal Detall Assignació (Pop-up de dades del taller assignat) -->
+    <ModalDetallAssignacio
+      v-if="showModalDetall && idDetallForModal"
+      :assignacio-id="idDetallForModal"
+      @close="showModalDetall = false; idDetallForModal = null"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { MapPin, ChevronRight, CalendarDays, Users } from 'lucide-vue-next';
 
 // ======================================
@@ -131,6 +143,9 @@ function getProjectStyles(letter) {
   if (l.includes('C')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
   return 'bg-white/40 text-[#022B3A] border-white/60';
 }
+
+const showModalDetall = ref(false);
+const idDetallForModal = ref(null);
 
 // ======================================
 // Estat Reactiu i Data Fetching
@@ -153,6 +168,16 @@ const { data: centreProfile } = await useFetch('/api/centre/perfil', {
 // ======================================
 // Computed UI Data
 // ======================================
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+const totalPages = computed(() => Math.max(1, Math.ceil((assignments.value || []).length / itemsPerPage)));
+const paginatedAssignments = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (assignments.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
+
 const assignments = computed(() => {
   const list = rawAssignments.value || [];
   const centerEmail = centreProfile.value?.email_oficial || '';
@@ -175,7 +200,8 @@ const assignments = computed(() => {
 // Navigation Actions
 // ======================================
 function navigateToDetails(id) {
-  router.push(`/centres/assignacions/${id}`);
+  idDetallForModal.value = id;
+  showModalDetall.value = true;
 }
 
 function navigateToRequests() {

@@ -24,6 +24,9 @@ const selectedWorkshopId = ref(null);
 const students = ref([]);
 const loadingStudents = ref(false);
 const savingStatus = ref({}); // { [studentId]: boolean }
+const itemsPerPage = 10;
+const currentPageWorkshops = ref(1);
+const currentPageStudents = ref(1);
 
 // --- FETCH DATA (Workshops) ---
 const { data: tallersRaw, pending: loadingWorkshops, error: workshopError } = await useFetch('/api/professor/tallers', {
@@ -64,6 +67,22 @@ const filteredWorkshops = computed(() => {
 const selectedWorkshop = computed(() => {
   return filteredWorkshops.value.find(w => w.id === selectedWorkshopId.value);
 });
+
+const totalPagesWorkshops = computed(() => Math.max(1, Math.ceil((filteredWorkshops.value || []).length / itemsPerPage)));
+const paginatedWorkshops = computed(() => {
+  const list = filteredWorkshops.value || [];
+  const start = (currentPageWorkshops.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPageWorkshops(p) { if (p >= 1 && p <= totalPagesWorkshops.value) currentPageWorkshops.value = p; }
+
+const totalPagesStudents = computed(() => Math.max(1, Math.ceil((students.value || []).length / itemsPerPage)));
+const paginatedStudents = computed(() => {
+  const list = students.value || [];
+  const start = (currentPageStudents.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPageStudents(p) { if (p >= 1 && p <= totalPagesStudents.value) currentPageStudents.value = p; }
 
 // --- METHODS ---
 const fetchStudents = async (detallId) => {
@@ -132,8 +151,9 @@ const getProjectStyles = (project) => {
 
 // Observar canvis en el taller seleccionat
 watch(selectedWorkshopId, (newId) => {
-    if (newId) fetchStudents(newId);
+    if (newId) { fetchStudents(newId); currentPageStudents.value = 1; }
 });
+watch(searchQuery, () => { currentPageWorkshops.value = 1; });
 </script>
 
 <template>
@@ -176,7 +196,7 @@ watch(selectedWorkshopId, (newId) => {
           
           <template v-else-if="filteredWorkshops.length > 0">
             <div 
-              v-for="workshop in filteredWorkshops" 
+              v-for="workshop in paginatedWorkshops" 
               :key="workshop.id"
               @click="selectedWorkshopId = workshop.id"
               :class="[
@@ -222,6 +242,9 @@ watch(selectedWorkshopId, (newId) => {
              No hi ha tallers per avaluar
           </div>
         </div>
+        <div v-if="filteredWorkshops.length > 0" class="flex-shrink-0 pt-3 flex justify-center">
+          <Pagination :current-page="currentPageWorkshops" :total-pages="totalPagesWorkshops" @go-to-page="goToPageWorkshops" />
+        </div>
       </aside>
 
       <!-- RIGHT COLUMN: EVALUATION FORM -->
@@ -258,7 +281,7 @@ watch(selectedWorkshopId, (newId) => {
 
              <div v-else-if="students.length > 0" class="grid grid-cols-1 gap-6">
                 <div 
-                  v-for="student in students" 
+                  v-for="student in paginatedStudents" 
                   :key="student.id"
                   :class="[
                     'bg-white rounded-2xl border transition-all duration-300 relative overflow-hidden',
@@ -342,7 +365,8 @@ watch(selectedWorkshopId, (newId) => {
           </div>
 
           <!-- Final Action Bar -->
-          <div v-if="!loadingStudents && students.length > 0" class="p-6 bg-white border-t border-[#BFDBF7]/20 flex justify-end">
+          <div v-if="!loadingStudents && students.length > 0" class="p-6 bg-white border-t border-[#BFDBF7]/20 flex justify-between items-center flex-wrap gap-4">
+             <Pagination :current-page="currentPageStudents" :total-pages="totalPagesStudents" @go-to-page="goToPageStudents" />
              <div class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-[0.2em] flex items-center gap-4">
                 Els canvis es guarden per alumne individualment
                 <div class="h-4 w-px bg-[#BFDBF7]/40"></div>

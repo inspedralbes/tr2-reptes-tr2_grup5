@@ -72,7 +72,7 @@
     <!-- 3. CONTENT AREA -->
     <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'flex flex-col gap-3'">
       
-      <template v-for="teacher in filteredTeachers" :key="teacher.id">
+      <template v-for="teacher in paginatedTeachers" :key="teacher.id">
         
         <!-- LIST VIEW ROW -->
         <div 
@@ -189,6 +189,9 @@
          <p class="text-sm font-bold">No s'han trobat docents.</p>
       </div>
 
+      <div class="mt-8 flex justify-center col-span-full">
+        <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+      </div>
     </div>
 
     <!-- 4. MODAL (Restored & Styled) -->
@@ -306,6 +309,10 @@ const showModal = ref(false);
 const tokenCookie = useCookie('authToken');
 const searchQuery = ref('');
 const viewMode = ref('grid'); // 'grid' | 'list'
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
 
 const form = ref({ nom: '', cognoms: '', email: '' });
 
@@ -334,6 +341,13 @@ const filteredTeachers = computed(() => {
     data: p // Keep original object for editing
   }));
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredTeachers.value || []).length / itemsPerPage)));
+const paginatedTeachers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredTeachers.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 // ======================================
 // METHODS

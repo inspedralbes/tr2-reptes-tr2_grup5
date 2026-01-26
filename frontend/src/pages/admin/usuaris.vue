@@ -65,7 +65,7 @@
     <!-- 2. CONTENT AREA -->
     <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
       
-      <template v-for="(item, idx) in filteredItems" :key="mostrarCentres ? item.id : clauUsuari(item, idx)">
+      <template v-for="(item, idx) in paginatedItems" :key="mostrarCentres ? item.id : clauUsuari(item, idx)">
         
         <!-- LIST VIEW - CENTRES -->
         <div 
@@ -223,6 +223,9 @@
         </p>
       </button>
 
+      <div class="mt-8 flex justify-center col-span-full">
+        <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+      </div>
     </div>
 
     <!-- Modal FormCrearCentre (només en pestanya Centres) -->
@@ -282,6 +285,19 @@ const mostrarCentres = ref(true);
 const searchTerm = ref('');
 const isExiting = ref(false);
 const viewMode = ref('grid'); // 'grid' | 'list'
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch([searchTerm, mostrarCentres], () => { currentPage.value = 1; });
+
+const totalPages = computed(function () {
+  return Math.max(1, Math.ceil((filteredItems.value || []).length / itemsPerPage));
+});
+const paginatedItems = computed(function () {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredItems.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 const showFormCrearCentre = ref(false);
 const showFormCrearUsuari = ref(false);
 const showFormEditarCentre = ref(false);
