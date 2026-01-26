@@ -17,7 +17,8 @@ export default defineNuxtConfig({
 
   css: [
     'sweetalert2/dist/sweetalert2.css',
-    './src/assets/css/sweetalert-theme.css'
+    './src/assets/css/sweetalert-theme.css',
+    './src/assets/css/main.css'
   ],
 
   modules: [
