@@ -209,13 +209,7 @@
           </button>
         </div>
 
-        <!-- Helper Alert -->
-        <div class="bg-[#EFF6FF] border-b border-[#BFDBF7]/40 px-8 py-3 flex gap-3">
-           <Info :size="14" class="text-[#3B82F6] shrink-0 mt-0.5" />
-           <p class="text-[10px] font-medium text-[#1E40AF] leading-relaxed">
-             El docent rebrà un correu (si el sistema de notificacions està actiu) per configurar la seva contrasenya.
-           </p>
-        </div>
+
 
         <!-- Form -->
         <form @submit.prevent="handleSave" class="p-8 space-y-5">
