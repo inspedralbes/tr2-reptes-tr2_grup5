@@ -1,9 +1,10 @@
 <template>
   <div class="page">
     <div class="header-actions">
-      <h2>Gestió de Llista - {{ titolTaller }}</h2>
+      <!-- 1. Capçalera de la pàgina -->
+      <h2>Gestió de Llista - {{ workshopTitle }}</h2>
       <div class="actions">
-        <button class="btn-primary" @click="openModal" :disabled="!taller">
+        <button class="btn-primary" @click="handleOpenModal" :disabled="!tallerDada">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
           Afegir Alumnes
         </button>
@@ -11,16 +12,17 @@
       </div>
     </div>
 
-    <div v-if="pending" class="loading">Carregant dades...</div>
-    <div v-else-if="error" class="error">Error: {{ error.message }}</div>
+    <!-- 2. Estats de càrrega i error -->
+    <div v-if="isPending === true" class="loading">Carregant dades...</div>
+    <div v-else-if="isError === true" class="error">Error: {{ errorMsg }}</div>
 
     <div v-else class="content-container">
       <div class="info-banner">
         <p>Com a docent assignat, pots afegir alumnes a la llista. Aquesta llista serà visible per al professor referent per passar llista.</p>
       </div>
 
-      <!-- Llista d'alumnes ja registrats -->
-      <div v-if="assistencia && assistencia.length > 0" class="students-list">
+      <!-- 3. Llistat d'alumnes ja registrats -->
+      <div v-if="assistenciaList.length > 0" class="students-list">
         <h3>Alumnes a la Llista</h3>
         <table>
           <thead>
@@ -32,12 +34,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="student in assistencia" :key="student.id">
+            <tr v-for="student in assistenciaList" :key="student.id">
               <td>{{ student.nom }}</td>
               <td>{{ student.cognoms }}</td>
               <td>{{ student.email }}</td>
               <td>
-                <button class="btn-delete" @click="deleteStudent(student.id)" title="Eliminar de la llista">
+                <button class="btn-delete" @click="handleDeleteStudent(student.id)" title="Eliminar de la llista">
                    🗑️
                 </button>
               </td>
@@ -50,11 +52,11 @@
       </div>
     </div>
 
-    <!-- MODAL -->
-    <div v-if="showModal" class="modal-overlay">
+    <!-- 4. MODAL PER AFEGIR ALUMNES -->
+    <div v-if="showModal === true" class="modal-overlay">
       <div class="modal-content">
-        <h3>Afegir Alumnes ({{ placesTaller }} places totals)</h3>
-        <form @submit.prevent="submitAssistencia">
+        <h3>Afegir Alumnes ({{ workshopCapacity }} places totals)</h3>
+        <form @submit.prevent="handleSubmitAssistencia">
           <div class="students-form-grid">
             <div v-for="(student, index) in studentsForm" :key="index" class="student-row">
               <span class="row-number">#{{ index + 1 }}</span>
@@ -67,14 +69,13 @@
               <div class="form-group">
                 <input v-model="student.email" type="email" placeholder="Email" required />
               </div>
-              <!-- Eliminat checkbox d'assistència inicial -->
             </div>
           </div>
           
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="closeModal">Cancel·lar</button>
-            <button type="submit" class="btn-primary" :disabled="submitting">
-              {{ textBotoEnviar }}
+            <button type="button" class="btn-secondary" @click="handleCloseModal">Cancel·lar</button>
+            <button type="submit" class="btn-primary" :disabled="submitting === true">
+              {{ submitButtonText }}
             </button>
           </div>
         </form>
@@ -86,153 +87,247 @@
 
 <script setup>
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Importacions i Dependències
 // ======================================
+
+// 1. Serveis de rutes de Nuxt
 const route = useRoute();
 const router = useRouter();
-const detalleId = route.params.id;
+
+// 2. ID del detall del taller des dels paràmetres de la URL
+const detallIdUrl = route.params.id;
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Estat Reactiu del Component
 // ======================================
-const token = useCookie('authToken');
+
+// 1. Variables de control de la interfície
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
 const showModal = ref(false);
 const submitting = ref(false);
 const studentsForm = ref([]);
 
-const resTallers = await useFetch('/api/professor/tallers', {
-  headers: { Authorization: 'Bearer ' + token.value }
+// 2. Comunicació amb l'API (sense desestructuració)
+const headersAPI = {};
+if (tokenRef) {
+  headersAPI.Authorization = 'Bearer ' + tokenRef;
+}
+
+const resultatTallers = await useFetch('/api/professor/tallers', {
+  headers: headersAPI
 });
 
-const resAssistencia = await useFetch('/api/professor/tallers/' + detalleId + '/alumnes', {
-  headers: { Authorization: 'Bearer ' + token.value }
+const resultatAssistencia = await useFetch('/api/professor/tallers/' + detallIdUrl + '/alumnes', {
+  headers: headersAPI
 });
 
-const assistencia = computed(function () {
-  let d = resAssistencia.data;
-  if (d && d.value) return d.value;
-  return [];
-});
+// ======================================
+// Propietats Computades (Tractament de dades)
+// ======================================
 
-const taller = computed(function () {
-  let d = resTallers.data;
-  if (!d || !d.value) return null;
-  let arr = d.value;
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i].detall_id == detalleId) {
-      return arr[i];
+// 1. Llista d'assistència actual (Bucle for si calgués processar)
+const assistenciaList = computed(function () {
+  let llista = [];
+  if (resultatAssistencia.data) {
+    if (resultatAssistencia.data.value) {
+      llista = resultatAssistencia.data.value;
     }
   }
-  return null;
+  return llista;
 });
 
-const pending = resAssistencia.pending;
-const error = resAssistencia.error;
-const refreshAssistencia = resAssistencia.refresh;
-
-const titolTaller = computed(function () {
-  if (taller.value && taller.value.titol) {
-    return taller.value.titol;
+// 2. Detall del taller seleccionat (Cerca manual amb bucle)
+const tallerDada = computed(function () {
+  let objecteTallers = null;
+  if (resultatTallers.data) {
+    if (resultatTallers.data.value) {
+      objecteTallers = resultatTallers.data.value;
+    }
   }
-  return '';
+  
+  if (!objecteTallers) { return null; }
+  
+  let trobat = null;
+  for (let i = 0; i < objecteTallers.length; i++) {
+    const t = objecteTallers[i];
+    if (String(t.detall_id) === String(detallIdUrl)) {
+      trobat = t;
+      break;
+    }
+  }
+  return trobat;
 });
 
-const placesTaller = computed(function () {
-  if (taller.value && taller.value.num_participants) {
-    return taller.value.num_participants;
+// 3. Estats de càrrega i error per a la interfície
+const isPending = computed(function () {
+  let p = false;
+  if (resultatAssistencia.pending) {
+    if (resultatAssistencia.pending.value === true) { p = true; }
   }
-  return 0;
+  return p;
 });
 
-const textBotoEnviar = computed(function () {
-  if (submitting.value) {
-    return 'Enviant...';
-  } else {
-    return 'Enviar Llista';
+const isError = computed(function () {
+  let e = false;
+  if (resultatAssistencia.error) {
+    if (resultatAssistencia.error.value) { e = true; }
   }
+  return e;
+});
+
+const errorMsg = computed(function () {
+  let text = '';
+  if (resultatAssistencia.error) {
+    if (resultatAssistencia.error.value) {
+      if (resultatAssistencia.error.value.message) {
+        text = resultatAssistencia.error.value.message;
+      }
+    }
+  }
+  return text;
+});
+
+// 4. Formateig visual per al Header
+const workshopTitle = computed(function () {
+  let titol = '';
+  const td = tallerDada.value;
+  if (td) {
+    if (td.titol) { titol = td.titol; }
+  }
+  return titol;
+});
+
+const workshopCapacity = computed(function () {
+  let num = 0;
+  const td = tallerDada.value;
+  if (td) {
+    if (td.num_participants) { num = td.num_participants; }
+  }
+  return num;
+});
+
+const submitButtonText = computed(function () {
+  let t = 'Enviar Llista';
+  if (submitting.value === true) {
+    t = 'Enviant...';
+  }
+  return t;
 });
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Declaracions de funcions (Lògica d'accions)
 // ======================================
 
-function openModal() {
-  if (!taller.value) return;
+// A) --- Gestió del Modal ---
 
-  let total = 0;
-  if (taller.value.num_participants) {
-    total = taller.value.num_participants;
-  }
-  let current = 0;
-  if (assistencia.value && assistencia.value.length) {
-    current = assistencia.value.length;
-  }
-  let remaining = total - current;
+function handleOpenModal() {
+  const tallerObj = tallerDada.value;
+  if (!tallerObj) { return; }
 
-  if (remaining <= 0) {
-    useSwal().fire({ title: 'Atenció', text: 'La llista està plena.', icon: 'warning' });
+  const totalPlaces = tallerObj.num_participants || 0;
+  const numAlumnesActuals = assistenciaList.value.length;
+  const placesRestants = totalPlaces - numAlumnesActuals;
+
+  if (placesRestants <= 0) {
+    const swalW = useSwal();
+    swalW.fire({ title: 'Atenció', text: 'La llista està plena.', icon: 'warning' });
     return;
   }
 
-  let nova = [];
-  for (let i = 0; i < remaining; i++) {
-    let ob = {};
-    ob.nom = '';
-    ob.cognoms = '';
-    ob.email = '';
-    ob.ha_assistit = true;
-    nova.push(ob);
+  // Creem tantes files com places restants hi hagi
+  const novaLlistaForm = [];
+  for (let k = 0; k < placesRestants; k++) {
+    const objecteBuit = {
+      nom: '',
+      cognoms: '',
+      email: '',
+      ha_assistit: true
+    };
+    novaLlistaForm.push(objecteBuit);
   }
-  studentsForm.value = nova;
+  studentsForm.value = novaLlistaForm;
   showModal.value = true;
 }
 
-function closeModal() {
+function handleCloseModal() {
   showModal.value = false;
 }
 
-async function deleteStudent(studentId) {
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols eliminar aquest alumne de la llista?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
+// B) --- Accions de l'API (Guardar i Eliminar) ---
+
+async function handleDeleteStudent(idStudent) {
+  const swalAsk = useSwal();
+  const resConfirm = await swalAsk.fire({ 
+    title: 'Confirmar', 
+    text: 'Segur que vols eliminar aquest alumne de la llista?', 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  if (resConfirm.isConfirmed === false) {
+    return;
+  }
+
   try {
-    await $fetch('/api/professor/tallers/' + detalleId + '/alumnes/' + studentId, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token.value }
-    });
-    refreshAssistencia();
-  } catch (e) {
-    let msg = 'Error eliminant alumne: ';
-    if (e && e.message) {
-      msg = msg + e.message;
+    const opcionsCapçaleraDel = {};
+    if (tokenRef) {
+      opcionsCapçaleraDel.Authorization = 'Bearer ' + tokenRef;
     }
-    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
+
+    await $fetch('/api/professor/tallers/' + detallIdUrl + '/alumnes/' + idStudent, {
+      method: 'DELETE',
+      headers: opcionsCapçaleraDel
+    });
+    
+    // Refresquem les dades de l'API
+    if (resultatAssistencia.refresh) {
+      await resultatAssistencia.refresh();
+    }
+  } catch (errDel) {
+    console.error('Error eliminant alumne:', errDel);
+    let msgE = 'Error desconegut';
+    if (errDel.message) { msgE = errDel.message; }
+    swalAsk.fire({ title: 'Error', text: 'No s\'ha pogut eliminar l\'alumne: ' + msgE, icon: 'error' });
   }
 }
 
-async function submitAssistencia() {
+async function handleSubmitAssistencia() {
   submitting.value = true;
   try {
-    await $fetch('/api/professor/tallers/' + detalleId + '/alumnes', {
+    const opcionsCapçaleraPost = {};
+    if (tokenRef) {
+      opcionsCapçaleraPost.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    await $fetch('/api/professor/tallers/' + detallIdUrl + '/alumnes', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + token.value },
+      headers: opcionsCapçaleraPost,
       body: {
         alumnes: studentsForm.value
       }
     });
-    await refreshAssistencia();
-    closeModal();
-    useSwal().fire({ title: 'Fet', text: 'Llista enviada correctament!', icon: 'success' });
-  } catch (err) {
-    console.error('Error enviant llista:', err);
-    let msg = 'Error enviant la llista: ';
-    if (err && err.data && err.data.message) {
-      msg = msg + err.data.message;
-    } else if (err && err.message) {
-      msg = msg + err.message;
-    } else {
-      msg = msg + 'Error desconegut';
+
+    if (resultatAssistencia.refresh) {
+      await resultatAssistencia.refresh();
     }
-    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
+    
+    handleCloseModal();
+    const swalSuccess = useSwal();
+    swalSuccess.fire({ title: 'Fet', text: 'Llista enviada correctament!', icon: 'success' });
+    
+  } catch (errPost) {
+    console.error('Error enviant llista d\'alumnes:', errPost);
+    let msgP = 'Error desconegut';
+    if (errPost.data) {
+      if (errPost.data.message) { msgP = errPost.data.message; }
+    } else if (errPost.message) {
+      msgP = errPost.message;
+    }
+    const swalErrorP = useSwal();
+    swalErrorP.fire({ title: 'Error', text: 'Error enviant la llista: ' + msgP, icon: 'error' });
   } finally {
     submitting.value = false;
   }

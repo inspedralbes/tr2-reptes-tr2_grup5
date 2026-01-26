@@ -1,5 +1,5 @@
 <template>
-  <section class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <section class="animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- Loading -->
     <div v-if="pendent" class="flex flex-col items-center justify-center py-20">
@@ -13,7 +13,15 @@
     </div>
 
     <template v-else>
-
+      
+      <div class="mb-8">
+        <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
+          Registre d'<span class="text-[#1F7A8C]">Auditoria</span>
+        </h1>
+        <p class="text-[#022B3A]/40 text-[10px] font-black uppercase tracking-[0.2em]">
+          Historial d'accions i canvis realitzats en la plataforma.
+        </p>
+      </div>
 
       <!-- Control Bar -->
       <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -99,95 +107,241 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { Search, History, ArrowRight } from 'lucide-vue-next';
 
-const token = useCookie('authToken');
+// ======================================
+// Configuració i Serveis
+// ======================================
 
-const respostaFetch = await useFetch('/api/admin/logs', {
-  headers: { Authorization: 'Bearer ' + token.value },
+// 1. Dades d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// 2. Petició a l'API per obtenir els logs (sense desestructuració)
+const opcionsCapçalera = {};
+if (tokenRef) {
+  opcionsCapçalera.Authorization = 'Bearer ' + tokenRef;
+}
+
+const resultatFetch = await useFetch('/api/admin/logs', {
+  headers: opcionsCapçalera,
   initialCache: false
 });
+
+// ======================================
+// Estat Reactiu del Component
+// ======================================
 
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
+// ======================================
+// Propietats Computades
+// ======================================
 
-const totalPages = computed(function () {
-  return Math.max(1, Math.ceil((filteredLogs.value || []).length / itemsPerPage));
-});
-const paginatedLogs = computed(function () {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return (filteredLogs.value || []).slice(start, start + itemsPerPage);
-});
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
-
+// 1. Accés a la llista de logs reactiva
 const llistaLogs = computed(function () {
-  const d = respostaFetch.data;
-  if (d && d.value) return d.value;
-  return [];
-});
-
-const pendent = computed(function () {
-  return !!respostaFetch.pending?.value;
-});
-
-const errorFetch = computed(function () {
-  return !!(respostaFetch.error && respostaFetch.error.value);
-});
-
-const textError = computed(function () {
-  const e = respostaFetch.error?.value;
-  return (e && e.message) ? e.message : '';
-});
-
-const hiHaLogs = computed(function () {
-  const l = llistaLogs.value;
-  return !!(l && l.length > 0);
-});
-
-const filteredLogs = computed(function () {
-  const q = (searchQuery.value || '').toLowerCase().trim();
-  const list = llistaLogs.value || [];
-  if (!q) return list;
-  return list.filter(function (log) {
-    const u = (usuariLog(log) || '').toLowerCase();
-    const t = (taulaLog(log) || '').toLowerCase();
-    const a = (log.accio || '').toLowerCase();
-    return u.includes(q) || t.includes(q) || a.includes(q);
-  });
-});
-
-function getActionStyle(action) {
-  const a = (action || '').toUpperCase();
-  switch (a) {
-    case 'DELETE': return 'bg-red-50 text-red-600 border-red-100';
-    case 'UPDATE': return 'bg-[#BFDBF7]/20 text-[#1F7A8C] border-[#BFDBF7]/40';
-    case 'CREATE': return 'bg-[#7cb518]/10 text-[#7cb518] border-[#7cb518]/20';
-    case 'LOGIN': return 'bg-[#E1E5F2] text-[#022B3A]/60 border-[#BFDBF7]/20';
-    case 'EXPORT': return 'bg-amber-50 text-amber-600 border-amber-100';
-    default: return 'bg-gray-50 text-gray-500 border-gray-100';
+  let dades = [];
+  if (resultatFetch.data) {
+    if (resultatFetch.data.value) {
+      dades = resultatFetch.data.value;
+    }
   }
+  return dades;
+});
+
+// 2. Filtre de cerca (Bucle for en comptes de .filter)
+const filteredLogs = computed(function () {
+  const query = searchQuery.value;
+  let tBusca = '';
+  if (query) {
+    tBusca = query.toLowerCase().trim();
+  }
+  
+  const llistaOriginal = llistaLogs.value;
+  const resultatFiltrat = [];
+  
+  for (let i = 0; i < llistaOriginal.length; i++) {
+    const log = llistaOriginal[i];
+    
+    let coincideix = false;
+    if (tBusca === '') {
+      coincideix = true;
+    } else {
+      let u = '';
+      if (log.usuari_email) { u = log.usuari_email.toLowerCase(); }
+      
+      let t = '';
+      if (log.taula_afectada) { t = log.taula_afectada.toLowerCase(); }
+      
+      let a = '';
+      if (log.accio) { a = log.accio.toLowerCase(); }
+      
+      if (u.indexOf(tBusca) !== -1) {
+        coincideix = true;
+      } else if (t.indexOf(tBusca) !== -1) {
+        coincideix = true;
+      } else if (a.indexOf(tBusca) !== -1) {
+        coincideix = true;
+      }
+    }
+    
+    if (coincideix === true) {
+      resultatFiltrat.push(log);
+    }
+  }
+  return resultatFiltrat;
+});
+
+// 3. Paginació: Càlcul de pàgines totals
+const totalPages = computed(function () {
+  const totalElements = filteredLogs.value.length;
+  let pagines = 1;
+  if (totalElements > 0) {
+    pagines = Math.ceil(totalElements / itemsPerPage);
+  }
+  return pagines;
+});
+
+// 4. Paginació: Logs de la pàgina actual (Sense .slice)
+const paginatedLogs = computed(function () {
+  const llistaF = filteredLogs.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const llistaPagina = [];
+  for (let k = 0; k < llistaF.length; k++) {
+    if (k >= inici) {
+      if (k < fi) {
+        llistaPagina.push(llistaF[k]);
+      }
+    }
+  }
+  return llistaPagina;
+});
+
+// 5. Estat de càrrega
+const pendent = computed(function () {
+  let estPendent = false;
+  if (resultatFetch.pending) {
+    if (resultatFetch.pending.value === true) {
+      estPendent = true;
+    }
+  }
+  return estPendent;
+});
+
+// 6. Estat d'error
+const errorFetch = computed(function () {
+  let hiHaError = false;
+  if (resultatFetch.error) {
+    if (resultatFetch.error.value) {
+      hiHaError = true;
+    }
+  }
+  return hiHaError;
+});
+
+// 7. Text de l'error
+const textError = computed(function () {
+  let msg = '';
+  if (resultatFetch.error) {
+    if (resultatFetch.error.value) {
+      if (resultatFetch.error.value.message) {
+        msg = resultatFetch.error.value.message;
+      }
+    }
+  }
+  return msg;
+});
+
+// 8. Comprovació de si hi ha logs per mostrar
+const hiHaLogs = computed(function () {
+  const ll = llistaLogs.value;
+  let existeixen = false;
+  if (ll) {
+    if (ll.length > 0) {
+      existeixen = true;
+    }
+  }
+  return existeixen;
+});
+
+// ======================================
+// Vigilants (Watchers)
+// ======================================
+
+// 1. Quan canviem la cerca, tornem a la pàgina 1
+watch(searchQuery, function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Estils visuals per tipus d'acció ---
+function getActionStyle(accioIn) {
+  let a = '';
+  if (accioIn) { a = accioIn.toUpperCase(); }
+  
+  if (a === 'DELETE') { return 'bg-red-50 text-red-600 border-red-100'; }
+  if (a === 'UPDATE') { return 'bg-[#BFDBF7]/20 text-[#1F7A8C] border-[#BFDBF7]/40'; }
+  if (a === 'CREATE') { return 'bg-[#7cb518]/10 text-[#7cb518] border-[#7cb518]/20'; }
+  if (a === 'LOGIN') { return 'bg-[#E1E5F2] text-[#022B3A]/60 border-[#BFDBF7]/20'; }
+  if (a === 'EXPORT') { return 'bg-amber-50 text-amber-600 border-amber-100'; }
+  
+  return 'bg-gray-50 text-gray-500 border-gray-100';
 }
 
-function formatDate(valor) {
-  if (!valor) return '—';
-  const d = new Date(valor);
-  return d.toLocaleString('ca-CA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+// B) --- Helpers per al contingut de la taula ---
+function formatDate(valorDada) {
+  if (!valorDada) { return '—'; }
+  const dObj = new Date(valorDada);
+  const opc = { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  };
+  return dObj.toLocaleString('ca-ES', opc);
 }
 
-function taulaLog(log) {
-  return log.taula_afectada || '—';
+function taulaLog(objecteLog) {
+  if (objecteLog.taula_afectada) {
+    return objecteLog.taula_afectada;
+  }
+  return '—';
 }
 
-function usuariLog(log) {
-  return log.usuari_email || '—';
+function usuariLog(objecteLogU) {
+  if (objecteLogU.usuari_email) {
+    return objecteLogU.usuari_email;
+  }
+  return '—';
 }
 
-function truncate(text, max) {
-  if (!text) return '—';
-  const str = String(text);
-  return str.length <= max ? str : str.slice(0, max) + '...';
+function truncate(textInput, maxChars) {
+  if (!textInput) { return '—'; }
+  const str = String(textInput);
+  if (str.length <= maxChars) {
+    return str;
+  }
+  return str.slice(0, maxChars) + '...';
+}
+
+// C) --- Navegació entre pàgines ---
+function goToPage(pagNum) {
+  const pagMaxim = totalPages.value;
+  if (pagNum >= 1) {
+    if (pagNum <= pagMaxim) {
+      currentPage.value = pagNum;
+    }
+  }
 }
 </script>

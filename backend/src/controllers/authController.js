@@ -129,23 +129,15 @@ const authController = {
         if (adminRows.length > 0) {
           name = adminRows[0].nom + " " + adminRows[0].cognoms;
         }
-      } else {
-        if (rol === "CENTRE") {
-            const centre = await Centre.findByUserId(id);
-            if (centre) {
-                if (centre.nom_coordinador) {
-                    name = centre.nom_coordinador;
-                } else {
-                    name = centre.nom_centre;
-                }
-            }
-        } else {
-            if (rol === "PROFESSOR") {
-                const prof = await Professor.getByUserId(id);
-                if (prof) {
-                name = prof.nom + " " + prof.cognoms;
-                }
-            }
+      } else if (rol === "CENTRE") {
+        const centre = await Centre.findByUserId(id);
+        if (centre) {
+          name = centre.nom_coordinador || centre.nom_centre;
+        }
+      } else if (rol === "PROFESSOR") {
+        const prof = await Professor.getByUserId(id);
+        if (prof) {
+          name = `${prof.nom} ${prof.cognoms}`;
         }
       }
 
@@ -154,7 +146,7 @@ const authController = {
       responseData.rol = rol;
       responseData.name = name;
 
-      res.json(responseData);
+      res.json({ id, rol, name });
     } catch (error) {
       console.error("Error a getMe:", error);
       res.status(500).json({ message: "Error al obtenir dades de l'usuari." });

@@ -11,21 +11,41 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { useHeaderStore } from '@/stores/header';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+// (Aquest component no requereix definitions d'estat local addicional)
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Ganxo de muntatge per configurar la capçalera ---
 onMounted(function () {
-  const s = useHeaderStore();
-  const path = useRoute().path;
+  // 1. Obtenim la store de la capçalera
+  const store = useHeaderStore();
+  
+  // 2. Obtenim la ruta actual
+  const ruta = useRoute();
+  const path = ruta.path;
+  
+  // 3. Configurem la capçalera basant-nos en el prefix de la ruta
   if (path.startsWith('/admin')) {
-    s.setHeaderAdmin();
+    store.setHeaderAdmin();
   } else if (path.startsWith('/centres')) {
-    s.setHeaderCentres();
+    store.setHeaderCentres();
   } else if (path.startsWith('/professors')) {
-    s.setHeaderProfessors();
+    store.setHeaderProfessors();
   } else if (path.startsWith('/alumnes')) {
-    s.setHeaderAlumnes();
+    store.setHeaderAlumnes();
   } else {
-    s.setHeaderAdmin();
+    // Si no coincideix amb cap, posem l'administrador per defecte
+    store.setHeaderAdmin();
   }
 });
 </script>
@@ -34,7 +54,7 @@ onMounted(function () {
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #ffffff;
 }
 
 .main-content {
@@ -43,7 +63,7 @@ onMounted(function () {
 }
 
 .page-container {
-  padding: 2.5rem;
+  padding: 1.5rem 2.5rem;
   max-width: 1300px;
   margin: 0 auto;
 }

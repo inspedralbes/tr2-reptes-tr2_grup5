@@ -201,6 +201,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   Briefcase,
   FileText,
@@ -215,18 +218,28 @@ import {
   X
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Propietats que rep el component
 const props = defineProps({
   tallerId: { type: [Number, String], required: true }
 });
 
+// 2. Esdeveniments que emet el component
 const emit = defineEmits(['close', 'updated']);
 
-const tokenRef = useCookie('authToken');
+// 3. Cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
 
+// 4. Dades estàtiques per a les opcions del formulari
 const sectors = ['Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció', 'Comerç i Turisme', 'Transport', 'Hoteleria', 'Informació i Comunicació', 'Financer', 'Immobiliari', 'Professional'];
 const modalities = [ { id: 'A', colorClass: 'bg-[#fb6107]' }, { id: 'B', colorClass: 'bg-[#7cb518]' }, { id: 'C', colorClass: 'bg-[#fbb02d]' } ];
 const quarters = ['1r', '2n', '3r'];
 
+// 5. Estat reactiu del formulari
 const form = ref({
   titol: '',
   descripcio: '',
@@ -239,6 +252,7 @@ const form = ref({
   data_execucio: ''
 });
 
+// 6. Estats de control i errors
 const loading = ref(false);
 const loadingInitial = ref(true);
 const message = ref('');
@@ -246,149 +260,308 @@ const error = ref('');
 const fieldErrors = ref({});
 const dadesOriginals = ref(null);
 
+// 7. Càlcul dinàmic de la durada segons la modalitat
+const duradaCalculada = computed(function () {
+  const mod = form.value.modalitat;
+  if (mod === 'A') {
+    return '20 hores (10 sessions de 2 hores)';
+  }
+  if (mod === 'B') {
+    return '20 hores (10 sessions de 2 hores)';
+  }
+  if (mod === 'C') {
+    return '30 hores (10 sessions de 3 hores)';
+  }
+  return 'Selecciona una modalitat';
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Validació d'un camp específic ---
 function validateField(key) {
-  const v = form.value;
+  const dadesVal = form.value;
+  const errors = fieldErrors.value;
+
+  // 1. Validació del títol
   if (key === 'titol') {
-    if (!(v.titol || '').trim()) { fieldErrors.value.titol = 'Introduïu un títol.'; return; }
-    delete fieldErrors.value.titol;
-    return;
-  }
-  if (key === 'sector') {
-    if (!(v.sector || '').trim()) { fieldErrors.value.sector = 'Seleccioneu un sector.'; return; }
-    delete fieldErrors.value.sector;
-    return;
-  }
-  if (key === 'modalitat') {
-    if (!(v.modalitat || '').trim()) { fieldErrors.value.modalitat = 'Seleccioneu una modalitat.'; return; }
-    delete fieldErrors.value.modalitat;
-    return;
-  }
-  if (key === 'trimestres') {
-    if (!(v.trimestres || []).length) { fieldErrors.value.trimestres = 'Seleccioneu almenys un trimestre.'; return; }
-    delete fieldErrors.value.trimestres;
-    return;
-  }
-  if (key === 'places_maximes') {
-    const n = Number(v.places_maximes);
-    if (isNaN(n) || n < 1) { fieldErrors.value.places_maximes = 'Les places han de ser com a mínim 1.'; return; }
-    delete fieldErrors.value.places_maximes;
-    return;
+    let titolStr = dadesVal.titol;
+    if (!titolStr) {
+      errors.titol = 'Introduïu un títol.';
+    } else {
+      let net = titolStr.trim();
+      if (!net) {
+        errors.titol = 'Introduïu un títol.';
+      } else {
+        delete errors.titol;
+      }
+    }
+  } 
+  
+  // 2. Validació del sector
+  else if (key === 'sector') {
+    let secStr = dadesVal.sector;
+    if (!secStr) {
+      errors.sector = 'Seleccioneu un sector.';
+    } else {
+      delete errors.sector;
+    }
+  } 
+  
+  // 3. Validació de modalitat
+  else if (key === 'modalitat') {
+    if (!dadesVal.modalitat) {
+      errors.modalitat = 'Seleccioneu una modalitat.';
+    } else {
+      delete errors.modalitat;
+    }
+  } 
+  
+  // 4. Validació dels trimestres seleccionats
+  else if (key === 'trimestres') {
+    const llista = dadesVal.trimestres;
+    if (!llista) {
+      errors.trimestres = 'Seleccioneu almenys un trimestre.';
+    } else if (llista.length === 0) {
+      errors.trimestres = 'Seleccioneu almenys un trimestre.';
+    } else {
+      delete errors.trimestres;
+    }
+  } 
+  
+  // 5. Validació del número de places
+  else if (key === 'places_maximes') {
+    const num = Number(dadesVal.places_maximes);
+    if (isNaN(num) === true) {
+      errors.places_maximes = 'Les places han de ser com a mínim 1.';
+    } else if (num < 1) {
+      errors.places_maximes = 'Les places han de ser com a mínim 1.';
+    } else {
+      delete errors.places_maximes;
+    }
   }
 }
 
+// B) --- Validació completa del formulari ---
 function validateAll() {
   validateField('titol');
   validateField('sector');
   validateField('modalitat');
   validateField('trimestres');
   validateField('places_maximes');
-  return Object.keys(fieldErrors.value).length === 0;
+  
+  const llistaClaus = Object.keys(fieldErrors.value);
+  let esValid = false;
+  if (llistaClaus.length === 0) {
+    esValid = true;
+  }
+  return esValid;
 }
 
-const duradaCalculada = computed(() => {
-  if (form.value.modalitat === 'A' || form.value.modalitat === 'B') return '20 hores (10 sessions de 2 hores)';
-  if (form.value.modalitat === 'C') return '30 hores (10 sessions de 3 hores)';
-  return 'Selecciona una modalitat';
-});
-
+// C) --- Tractament de la cadena de trimestres de l'API ---
 function parseTrimestres(val) {
-  if (!val) return [];
-  const parts = String(val).split(',').map(s => s.trim()).filter(Boolean);
-  // Normalitzar: si ve "1r Trimestre" o similar, quedar-nos amb "1r", "2n", "3r"
-  return parts.map((p) => {
-    if (p === '1r' || p.startsWith('1r')) return '1r';
-    if (p === '2n' || p.startsWith('2n')) return '2n';
-    if (p === '3r' || p.startsWith('3r')) return '3r';
-    return p;
-  });
+  if (!val) { return []; }
+  
+  // 1. Convertim la cadena en array per comes
+  const partsRaw = String(val).split(',');
+  const partsNetes = [];
+  for (let i = 0; i < partsRaw.length; i++) {
+    const p = partsRaw[i].trim();
+    if (p !== '') {
+      // 2. Normalitzem el format (ex: "1r Trimestre" -> "1r")
+      let valorFinal = p;
+      if (p === '1r' || p.startsWith('1r')) { valorFinal = '1r'; }
+      else if (p === '2n' || p.startsWith('2n')) { valorFinal = '2n'; }
+      else if (p === '3r' || p.startsWith('3r')) { valorFinal = '3r'; }
+      partsNetes.push(valorFinal);
+    }
+  }
+  return partsNetes;
 }
 
+// D) --- Neteja del format de data per a l'input type="date" ---
 function formatDataExecucio(val) {
-  if (val == null || val === '') return '';
+  if (val === null) { return ''; }
+  if (val === undefined) { return ''; }
+  
   const s = String(val);
-  // YYYY-MM-DD (input date) o ISO (YYYY-MM-DDTHH:mm:...)
-  if (s.length >= 10) return s.slice(0, 10);
-  return s;
+  // 1. Ens quedem amb la part YYYY-MM-DD
+  let resultat = s;
+  if (s.length >= 10) {
+    resultat = s.slice(0, 10);
+  }
+  return resultat;
 }
 
+// E) --- Assignació de dades al model del formulari ---
 function omplirForm(d) {
-  if (!d || typeof d !== 'object') return;
-  form.value.titol = (d.titol || '').trim();
-  form.value.descripcio = (d.descripcio || '').trim();
-  form.value.sector = (d.sector || '').trim();
-  form.value.modalitat = (d.modalitat || '').trim();
-  form.value.places_maximes = d.places_maximes !== undefined && d.places_maximes !== null ? Number(d.places_maximes) : 12;
+  if (!d) { return; }
+  
+  // 1. Assignem cada camp directament
+  form.value.titol = '';
+  if (d.titol) { form.value.titol = d.titol.trim(); }
+  
+  form.value.descripcio = '';
+  if (d.descripcio) { form.value.descripcio = d.descripcio.trim(); }
+  
+  form.value.sector = '';
+  if (d.sector) { form.value.sector = d.sector.trim(); }
+  
+  form.value.modalitat = '';
+  if (d.modalitat) { form.value.modalitat = d.modalitat.trim(); }
+  
+  form.value.places_maximes = 12;
+  if (d.places_maximes !== undefined) {
+    if (d.places_maximes !== null) {
+      form.value.places_maximes = Number(d.places_maximes);
+    }
+  }
+  
+  // 2. Processament de dades complexes (trimestres i dates)
   form.value.trimestres = parseTrimestres(d.trimestres_disponibles);
-  form.value.ubicacio = (d.ubicacio || '').trim();
-  form.value.adreca = (d.adreca || '').trim();
+  form.value.ubicacio = '';
+  if (d.ubicacio) { form.value.ubicacio = d.ubicacio.trim(); }
+  
+  form.value.adreca = '';
+  if (d.adreca) { form.value.adreca = d.adreca.trim(); }
+  
   form.value.data_execucio = formatDataExecucio(d.data_execucio);
 }
 
+// F) --- Recuperació de les dades originals ---
 function resetForm() {
-  if (dadesOriginals.value) {
-    omplirForm(dadesOriginals.value);
+  const originals = dadesOriginals.value;
+  if (originals) {
+    omplirForm(originals);
   }
   message.value = '';
   error.value = '';
   fieldErrors.value = {};
 }
 
+// G) --- Càrrega del taller des de l'API ---
 async function carregarTaller() {
-  if (!props.tallerId) {
+  const idTaller = props.tallerId;
+  if (!idTaller) {
     loadingInitial.value = false;
     return;
   }
+  
   loadingInitial.value = true;
   error.value = '';
+  
   try {
-    const tok = tokenRef.value;
-    const d = await $fetch('/api/admin/tallers/' + String(props.tallerId), {
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+    const tok = tokenRef;
+    const opcionsCapçalera = {};
+    if (tok) {
+      opcionsCapçalera.Authorization = 'Bearer ' + tok;
+    }
+
+    const dadesAPI = await $fetch('/api/admin/tallers/' + String(idTaller), {
+      headers: opcionsCapçalera
     });
-    dadesOriginals.value = d;
-    omplirForm(d);
-  } catch (err) {
-    error.value = err?.data?.message || err?.message || 'Error en carregar el taller.';
+    
+    dadesOriginals.value = dadesAPI;
+    omplirForm(dadesAPI);
+    
+  } catch (errCarrega) {
+    console.error('Error carregant taller:', errCarrega);
+    let msgErr = 'Error en carregar el taller.';
+    if (errCarrega.data) {
+      if (errCarrega.data.message) {
+        msgErr = errCarrega.data.message;
+      }
+    }
+    error.value = msgErr;
   } finally {
     loadingInitial.value = false;
   }
 }
 
-watch(() => props.tallerId, (id) => {
-  if (id) carregarTaller();
-}, { immediate: true });
-
+// H) --- Enviament de les actualitzacions al servidor ---
 async function submitForm() {
   error.value = '';
   message.value = '';
-  if (!validateAll()) return;
+  
+  // 1. Validem el formulari complet
+  const esValid = validateAll();
+  if (esValid === false) {
+    return;
+  }
 
   loading.value = true;
   try {
-    const trimestresStr = (form.value.trimestres || []).join(', ');
+    const model = form.value;
+    
+    // 2. Convertim els trimestres a cadena (sense .join)
+    let trimestresStr = '';
+    const llistaT = model.trimestres;
+    for (let j = 0; j < llistaT.length; j++) {
+      if (j > 0) { trimestresStr = trimestresStr + ', '; }
+      trimestresStr = trimestresStr + llistaT[j];
+    }
+    
+    // 3. Preparem l'objecte per enviar
     const payload = {
-      titol: form.value.titol,
-      descripcio: form.value.descripcio || null,
-      sector: form.value.sector,
-      modalitat: form.value.modalitat,
-      places_maximes: Number(form.value.places_maximes) || 12,
+      titol: model.titol,
+      descripcio: null,
+      sector: model.sector,
+      modalitat: model.modalitat,
+      places_maximes: Number(model.places_maximes),
       trimestres_disponibles: trimestresStr,
-      ubicacio: form.value.ubicacio || null,
-      adreca: form.value.adreca || null,
-      data_execucio: form.value.data_execucio || null
+      ubicacio: null,
+      adreca: null,
+      data_execucio: null
     };
-    const tok = tokenRef.value;
-    await $fetch('/api/admin/tallers/' + props.tallerId, {
+    
+    if (model.descripcio) { payload.descripcio = model.descripcio; }
+    if (model.ubicacio) { payload.ubicacio = model.ubicacio; }
+    if (model.adreca) { payload.adreca = model.adreca; }
+    if (model.data_execucio) { payload.data_execucio = model.data_execucio; }
+
+    const idAct = props.tallerId;
+    const tok = tokenRef;
+    const headers = {};
+    if (tok) {
+      headers.Authorization = 'Bearer ' + tok;
+    }
+
+    // 4. Petició PUT
+    await $fetch('/api/admin/tallers/' + idAct, {
       method: 'PUT',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {},
+      headers: headers,
       body: payload
     });
-    useSwal().fire({ title: 'Fet', text: 'Taller actualitzat correctament.', icon: 'success' }).then(() => { emit('updated'); });
-  } catch (err) {
-    console.error('Error actualitzant taller:', err);
-    error.value = err?.data?.message || err?.message || 'Error en desar els canvis.';
+
+    // 5. Confirmació i notificació
+    const swal = useSwal();
+    swal.fire({ 
+      title: 'Fet', 
+      text: 'Taller actualitzat correctament.', 
+      icon: 'success' 
+    }).then(function () { 
+      emit('updated'); 
+    });
+    
+  } catch (errSubmit) {
+    console.error('Error actualitzant taller:', errSubmit);
+    let msgError = 'Error en desar els canvis.';
+    if (errSubmit.data) {
+      if (errSubmit.data.message) {
+        msgError = errSubmit.data.message;
+      }
+    }
+    error.value = msgError;
   } finally {
     loading.value = false;
   }
 }
+
+// I) --- Vigilant de canvis a la ID del taller ---
+watch(function () { return props.tallerId; }, function (nouId) {
+  if (nouId) {
+    carregarTaller();
+  }
+}, { immediate: true });
 </script>

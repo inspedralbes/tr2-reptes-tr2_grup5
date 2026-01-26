@@ -1,13 +1,13 @@
 <template>
   <div class="page detail-page">
-    <div v-if="pendent" class="loading-state">
+    <div v-if="isPendentApi === true" class="loading-state">
       <div class="spinner"></div>
       <p>Carregant dades del centre...</p>
     </div>
 
-    <div v-else-if="centre" class="detail-container">
+    <div v-else-if="dadesCentre" class="detail-container">
       <div class="top-nav">
-        <button class="btn-back" @click="tornarEnrere">
+        <button class="btn-back" @click="handleGoBack">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           Tornar al llistat
         </button>
@@ -16,25 +16,25 @@
       <div class="main-card">
         <header class="detail-header">
           <div class="header-info">
-            <span class="codi-tag">{{ codiCentre }}</span>
-            <h1>{{ centre.nom_centre }}</h1>
+            <span class="codi-tag">{{ codiCentreUI }}</span>
+            <h1>{{ dadesCentre.nom_centre }}</h1>
             <p class="location">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-              {{ centre.municipi }}
+              {{ dadesCentre.municipi }}
             </p>
           </div>
 
           <div class="detail-tabs">
             <button
-              :class="classeTabInfo"
-              @click="activeTab = 'info'"
+              :class="classeTabInfoUI"
+              @click="handleCanviarPestanya('info')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               Info i Tallers
             </button>
             <button
-              :class="classeTabPersonal"
-              @click="activeTab = 'personal'"
+              :class="classeTabPersonalUI"
+              @click="handleCanviarPestanya('personal')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
               Personal (Professors/Alumnes)
@@ -43,30 +43,30 @@
         </header>
 
         <Transition name="slide-fade" mode="out-in">
-          <div v-if="activeTab === 'info'" key="info" class="tab-content">
+          <div v-if="pestanyaActiva === 'info'" key="info" class="tab-content">
             <div class="detail-grid">
               <section class="info-section">
                 <h3>Dades de Contacte</h3>
                 <div class="info-card">
                   <div class="data-row">
                     <span class="label">Email Oficial</span>
-                    <span class="value">{{ emailOficial }}</span>
+                    <span class="value">{{ emailOficialUI }}</span>
                   </div>
                   <div class="data-row">
                     <span class="label">Telèfon</span>
-                    <span class="value">{{ telefonCentre }}</span>
+                    <span class="value">{{ telefonUI }}</span>
                   </div>
                 </div>
               </section>
 
               <section class="tallers-section">
-                <h3>Tallers Assignats ({{ compteTallers }})</h3>
-                <div v-if="compteTallers > 0" class="tallers-list">
+                <h3>Tallers Assignats ({{ nTallers }})</h3>
+                <div v-if="nTallers > 0" class="tallers-list">
                   <div 
-                    v-for="taller in centre.tallers" 
+                    v-for="taller in dadesCentre.tallers" 
                     :key="taller.id" 
                     class="taller-item clickable"
-                    @click="openComments(taller)"
+                    @click="handleObrirComentaris(taller)"
                     title="Clic per veure comentaris"
                   >
                     <div class="taller-icon">🎓</div>
@@ -90,15 +90,15 @@
                   <h3>Equip Docent</h3>
                 </div>
                 <div class="p-cards">
-                  <div v-for="profe in llistaProfessors" :key="profe.id" class="person-card teacher">
+                  <div v-for="profe in professorsList" :key="profe.id" class="person-card teacher">
                     <div class="p-info">
                       <p class="p-name">{{ profe.nom }} {{ profe.cognoms }}</p>
                       <p class="p-role">Professor/a del centre</p>
                     </div>
                   </div>
-                  <div v-if="llistaProfessorsLength === 0" class="person-card teacher">
+                  <div v-if="professorsList.length === 0" class="person-card teacher">
                     <div class="p-info">
-                      <p class="p-name">{{ nomCoordinador }}</p>
+                      <p class="p-name">{{ nomCoordinadorUI }}</p>
                       <p class="p-role">Responsable de projectes</p>
                     </div>
                   </div>
@@ -112,23 +112,23 @@
                 </div>
                 <div class="p-stats-grid">
                   <div class="stat-box">
-                    <span class="stat-num">{{ totalAlumnes }}</span>
+                    <span class="stat-num">{{ totalAlumnesNum }}</span>
                     <span class="stat-label">Alumnes totals</span>
                   </div>
                   <div class="stat-box secondary">
-                    <span class="stat-num">{{ compteGrups }}</span>
+                    <span class="stat-num">{{ grupsList.length }}</span>
                     <span class="stat-label">Grups actius</span>
                   </div>
                 </div>
 
                 <div class="alumnes-list mt-6">
-                  <div v-for="(grup, index) in llistaGrups" :key="clauGrup(grup, index)" class="person-card student">
+                  <div v-for="(grup, index) in grupsList" :key="handleGetClauGrup(grup, index)" class="person-card student">
                     <div class="p-info">
                       <p class="p-name">Grup de {{ grup.nom }}</p>
                       <p class="p-role">{{ grup.n_alumnes }} alumnes • {{ grup.taller }}</p>
                     </div>
                   </div>
-                  <div v-if="llistaGrupsLength === 0" class="empty-mini">
+                  <div v-if="grupsList.length === 0" class="empty-mini">
                     No hi ha grups assignats actualment.
                   </div>
                 </div>
@@ -137,17 +137,17 @@
           </div>
         </Transition>
 
-        <!-- MODAL COMENTARIOS (MOVED OUTSIDE TRANSITION) -->
-        <div v-if="showCommentsModal" class="modal-overlay" @click.self="closeCommentsModal">
+        <!-- MODAL DE COMENTARIS (Dins de la targeta però fora de la transició) -->
+        <div v-if="visibleModalComentaris === true" class="modal-overlay" @click.self="handleTancarModalComentaris">
           <div class="modal-content">
             <div class="modal-header">
-              <h3>Comentaris: {{ selectedTallerName }}</h3>
-              <button class="close-btn" @click="closeCommentsModal">✕</button>
+              <h3>Comentaris: {{ nomTallerSeleccionat }}</h3>
+              <button class="close-btn" @click="handleTancarModalComentaris">✕</button>
             </div>
             <div class="modal-body">
-              <ul v-if="selectedTallerComments.length > 0" class="comments-list">
-                <li v-for="(comment, idx) in selectedTallerComments" :key="idx" class="comment-item">
-                  "{{ comment }}"
+              <ul v-if="llistaComentarisTaller.length > 0" class="comments-list">
+                <li v-for="(com, idx) in llistaComentarisTaller" :key="idx" class="comment-item">
+                  "{{ com }}"
                 </li>
               </ul>
               <div v-else class="empty-comments">
@@ -163,108 +163,139 @@
 
 <script setup>
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Importem les dependències
 // ======================================
-const route = useRoute();
-const activeTab = ref('info');
-const token = useCookie('authToken').value;
-const centreId = route.params.id;
+import { ref, computed, onMounted } from 'vue';
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Configuració i Serveis
 // ======================================
-const respostaFetch = await useFetch('/api/admin/centres/' + centreId, {
-  headers: token ? { Authorization: 'Bearer ' + token } : {}
+
+// 1. Serveis de rutes i cookies
+const routeInstancia = useRoute();
+const routerInstancia = useRouter();
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+const idCentreUrl = routeInstancia.params.id;
+
+// 2. Petició a l'API per dades del centre
+const resultatApiCentre = await useFetch('/api/admin/centres/' + idCentreUrl, {
+  headers: tokenRef ? { Authorization: 'Bearer ' + tokenRef } : {}
 });
 
-const centre = computed(function () {
-  let d = respostaFetch.data;
-  if (d && d.value) {
-    return d.value;
+// ======================================
+// Estat Reactiu (Esquema)
+// ======================================
+
+const pestanyaActiva = ref('info');
+const totsElsComentaris = ref([]);
+const visibleModalComentaris = ref(false);
+const nomTallerSeleccionat = ref("");
+const llistaComentarisTaller = ref([]);
+
+// ======================================
+// Propietats Computades (Anàlisi de dades)
+// ======================================
+
+// 1. Dades bases del centre i estat de càrrega
+const dadesCentre = computed(function () {
+  let val = null;
+  if (resultatApiCentre.data) {
+    if (resultatApiCentre.data.value) {
+      val = resultatApiCentre.data.value;
+    }
   }
-  return null;
+  return val;
 });
 
-const pendent = computed(function () {
-  if (respostaFetch.pending) {
-    return respostaFetch.pending.value;
+const isPendentApi = computed(function () {
+  let p = false;
+  if (resultatApiCentre.pending) {
+    if (resultatApiCentre.pending.value === true) {
+      p = true;
+    }
   }
-  return false;
+  return p;
 });
 
-const codiCentre = computed(function () {
-  if (centre.value && centre.value.codi_centre) {
-    return centre.value.codi_centre;
-  } else {
-    return 'SENSE CODI';
+// 2. Camps de text segurs del centre
+const codiCentreUI = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.codi_centre) {
+      return c.codi_centre;
+    }
   }
+  return 'SENSE CODI';
 });
 
-const emailOficial = computed(function () {
-  if (centre.value && centre.value.email_oficial) {
-    return centre.value.email_oficial;
-  } else {
-    return 'No disponible';
+const emailOficialUI = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.email_oficial) {
+      return c.email_oficial;
+    }
   }
+  return 'No disponible';
 });
 
-const telefonCentre = computed(function () {
-  if (centre.value && centre.value.telefon) {
-    return centre.value.telefon;
-  } else {
-    return '—';
+const telefonUI = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.telefon) {
+      return c.telefon;
+    }
   }
+  return '—';
 });
 
-const compteTallers = computed(function () {
-  if (centre.value && centre.value.tallers) {
-    return centre.value.tallers.length;
-  } else {
-    return 0;
+// 3. Comptadors i llistes
+const nTallers = computed(function () {
+  const c = dadesCentre.value;
+  let count = 0;
+  if (c) {
+    if (c.tallers) {
+      count = c.tallers.length;
+    }
   }
+  return count;
 });
 
-const llistaProfessors = computed(function () {
-  if (centre.value && centre.value.professors) {
-    return centre.value.professors;
-  } else {
-    return [];
+const professorsList = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.professors) {
+      return c.professors;
+    }
   }
+  return [];
 });
 
-const llistaProfessorsLength = computed(function () {
-  return llistaProfessors.value.length;
-});
-
-const nomCoordinador = computed(function () {
-  if (centre.value && centre.value.nom_coordinador) {
-    return centre.value.nom_coordinador;
-  } else {
-    return 'Coordinador General';
+const nomCoordinadorUI = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.nom_coordinador) {
+      return c.nom_coordinador;
+    }
   }
+  return 'Coordinador General';
 });
 
-const llistaGrups = computed(function () {
-  if (centre.value && centre.value.responsables_grups) {
-    return centre.value.responsables_grups;
-  } else {
-    return [];
+const grupsList = computed(function () {
+  const c = dadesCentre.value;
+  if (c) {
+    if (c.responsables_grups) {
+      return c.responsables_grups;
+    }
   }
+  return [];
 });
 
-const llistaGrupsLength = computed(function () {
-  return llistaGrups.value.length;
-});
-
-const compteGrups = computed(function () {
-  return llistaGrups.value.length;
-});
-
-const totalAlumnes = computed(function () {
-  let grups = centre.value && centre.value.responsables_grups ? centre.value.responsables_grups : [];
+const totalAlumnesNum = computed(function () {
+  const llistaG = grupsList.value;
   let suma = 0;
-  for (let i = 0; i < grups.length; i++) {
-    let n = grups[i].n_alumnes;
+  for (let i = 0; i < llistaG.length; i++) {
+    const n = llistaG[i].n_alumnes;
     if (n) {
       suma = suma + n;
     }
@@ -272,102 +303,107 @@ const totalAlumnes = computed(function () {
   return suma;
 });
 
-const classeTabInfo = computed(function () {
-  if (activeTab.value === 'info') {
+// 4. Estils de classes per pestanyes
+const classeTabInfoUI = computed(function () {
+  if (pestanyaActiva.value === 'info') {
     return 'tab-btn active';
-  } else {
-    return 'tab-btn';
   }
+  return 'tab-btn';
 });
 
-const classeTabPersonal = computed(function () {
-  if (activeTab.value === 'personal') {
+const classeTabPersonalUI = computed(function () {
+  if (pestanyaActiva.value === 'personal') {
     return 'tab-btn active';
-  } else {
-    return 'tab-btn';
   }
+  return 'tab-btn';
 });
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Declaracions de funcions
 // ======================================
 
-// A) --- Tornar enrere al llistat ---
-function tornarEnrere() {
-  const r = useRouter();
-  r.back();
+// A) --- Gestió d'accions d'usuari ---
+
+function handleGoBack() {
+  routerInstancia.back();
 }
 
-// A) --- Clau única per al grup al v-for ---
-function clauGrup(grup, index) {
-  if (grup && grup.nom) {
-    return 'grup-' + String(index) + '-' + grup.nom;
-  } else {
-    return 'grup-' + String(index);
+function handleCanviarPestanya(nomP) {
+  pestanyaActiva.value = nomP;
+}
+
+function handleGetClauGrup(g, idx) {
+  let cl = 'grup-' + String(idx);
+  if (g) {
+    if (g.nom) {
+      cl = cl + '-' + String(g.nom);
+    }
   }
+  return cl;
 }
 
-// B) --- Integració IA --- (ELIMINAT)
-// import { useGemini } from "../../../composables/useGemini";
-// const { isGenerating, error, generateReputationSummary } = useGemini();
-// ======================================
-// Lògica de Comentaris per Taller
-// ======================================
-const usersComments = ref([]); // Tula els comentaris { nom_taller, comentarios, taller_detall_id }
-const showCommentsModal = ref(false);
-const selectedTallerName = ref("");
-const selectedTallerComments = ref([]);
+// B) --- Lògica de comentaris i API ---
 
-// Càrrega inicial de comentaris
-const fetchComments = async () => {
+async function carregarComentarisApi() {
   try {
-    const data = await $fetch(`/api/admin/centres/${centreId}/comments`, {
-       headers: token ? { Authorization: 'Bearer ' + token } : {}
+    const headersC = {};
+    if (tokenRef) {
+      headersC.Authorization = 'Bearer ' + tokenRef;
+    }
+    const dadesC = await $fetch('/api/admin/centres/' + idCentreUrl + '/comments', {
+      headers: headersC
     });
-    usersComments.value = data || [];
-  } catch (e) {
-    console.error("Error carregant comentaris:", e);
+    totsElsComentaris.value = dadesC || [];
+  } catch (errC) {
+    console.error('Error carregant comentaris del centre:', errC);
   }
-};
-// Fetch comments en muntar (si hi ha centreId)
-if (centreId) {
-  fetchComments();
 }
 
-// Obrir modal de comentaris
-function openComments(taller) {
-  // taller ve del v-for de tallers (centre.tallers)
-  // cal coincidir amb taller_detall_id.
-  // taller object from centre.tallers typically has 'id' which might be the relation id or taller id.
-  // let's assume taller.id in the loop corresponds to peticio_detalls.id (the relation) or use matching logic.
-  // Actually, in `centresController.js` usually tallers are joined.
-  // Let's assume taller.id IS the `detall_id`.
+function handleObrirComentaris(tallerObj) {
+  if (!tallerObj) { return; }
+  nomTallerSeleccionat.value = tallerObj.titol || "Taller";
   
-  if (!taller) return;
+  const llistaTots = totsElsComentaris.value;
+  const filtrats = [];
   
-  selectedTallerName.value = taller.titol;
+  // Filtrem i mapegem manualment (Bucles for)
+  for (let j = 0; j < llistaTots.length; j++) {
+    const c = llistaTots[j];
+    let coincideix = false;
+    
+    // Comprovem per ID o per títol
+    if (String(c.taller_detall_id) === String(tallerObj.id)) {
+      coincideix = true;
+    } else if (c.nom_taller === tallerObj.titol) {
+      coincideix = true;
+    }
+    
+    if (coincideix === true) {
+      if (c.comentarios) {
+        filtrats.push(c.comentarios);
+      }
+    }
+  }
   
-  // Filtrar comentaris per aquest taller
-  // Nota: Al backend hem retornat taller_detall_id (que és peticio_detalls.id)
-  // Cal verificar si taller.id és el mateix. 
-  // En `Centre.js` (getAll/findById) sovint es fa un left join amb peticio_detalls y es guarda com id.
-  
-  const commentsForThisTaller = usersComments.value.filter(c => 
-    c.taller_detall_id === taller.id || c.nom_taller === taller.titol
-  );
-  
-  selectedTallerComments.value = commentsForThisTaller.map(c => c.comentarios);
-  showCommentsModal.value = true;
+  llistaComentarisTaller.value = filtrats;
+  visibleModalComentaris.value = true;
 }
 
-function closeCommentsModal() {
-  showCommentsModal.value = false;
-  selectedTallerName.value = "";
-  selectedTallerComments.value = [];
+function handleTancarModalComentaris() {
+  visibleModalComentaris.value = false;
+  nomTallerSeleccionat.value = "";
+  llistaComentarisTaller.value = [];
 }
- 
 
+// ======================================
+// Cicle de vida
+// ======================================
 
+onMounted(function () {
+  if (idCentreUrl) {
+    carregarComentarisApi();
+  }
+});
 </script>
 
 <style scoped>

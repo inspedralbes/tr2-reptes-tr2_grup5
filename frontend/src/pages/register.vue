@@ -1,9 +1,9 @@
 <template>
   <main class="min-h-screen bg-[#E1E5F2] flex flex-col items-center justify-center p-6 font-sans relative overflow-y-auto">
     
-    <!-- Botó superior esquerra: INICI -->
+    <!-- 1. BOTÓ DE RETORN A L'INICI -->
     <button 
-      @click="goToInici"
+      @click="handleGoToInici"
       type="button"
       class="absolute top-8 left-8 flex items-center gap-2 text-[#022B3A]/40 hover:text-[#1F7A8C] transition-all group z-20"
     >
@@ -13,10 +13,10 @@
       <span class="text-[10px] font-black uppercase tracking-widest">Inici</span>
     </button>
 
-    <!-- Contenidor principal -->
+    <!-- 2. CONTENIDOR DEL FORMULARI -->
     <div class="w-full max-w-4xl animate-in zoom-in-95 duration-500 pb-12 mt-16 md:mt-0">
        
-       <!-- Capçalera -->
+       <!-- Capçalera visual -->
        <header class="mb-12 text-center">
           <h2 class="text-4xl font-light text-[#022B3A] tracking-tighter mb-2">
             Sol·licitud de <span class="font-extrabold text-[#1F7A8C]">Registre</span>
@@ -26,7 +26,7 @@
           </p>
        </header>
 
-       <form @submit.prevent="submitForm" class="space-y-12" novalidate>
+       <form @submit.prevent="handleSubmitFormulari" class="space-y-12" novalidate>
              
              <!-- SECCIÓ 1: DADES DEL CENTRE -->
              <div class="space-y-6">
@@ -39,30 +39,30 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                    
-                   <!-- Codi Centre (form.codi_centre) -->
+                   <!-- Camp: Codi Centre -->
                    <div class="space-y-2">
                       <label for="codi" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Codi Centre *</label>
                       <input 
                         id="codi"
-                        v-model="form.codi_centre"
+                        v-model="formulariRegistre.codi_centre"
                         type="text"
                         maxlength="50"
                         class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                         placeholder="Ex: 0800..."
-                        @input="validateField('codi_centre')"
+                        @input="executarValidacioCamp('codi_centre')"
                       />
-                      <p v-if="fieldErrors.codi_centre" class="text-sm text-red-600 mt-1">{{ fieldErrors.codi_centre }}</p>
+                      <p v-if="errorsCamps.codi_centre" class="text-sm text-red-600 mt-1">{{ errorsCamps.codi_centre }}</p>
                    </div>
 
-                   <!-- Nom del Centre (form.nom_centre) -->
+                   <!-- Camp: Selecció del Centre -->
                    <div class="space-y-2">
                       <label for="nomCentre" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del Centre *</label>
                       <div class="relative">
                         <select 
                             id="nomCentre"
-                            v-model="form.nom_centre"
+                            v-model="formulariRegistre.nom_centre"
                             class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all appearance-none cursor-pointer"
-                            @change="onNomCentreChange"
+                            @change="handleCanviNomCentre"
                         >
                             <option value="" disabled>-- Selecciona un centre --</option>
                             <option value="Institut Pedralbes">Institut Pedralbes</option>
@@ -74,32 +74,32 @@
                             <Building2 :size="14" />
                         </div>
                       </div>
-                      <p v-if="fieldErrors.nom_centre" class="text-sm text-red-600 mt-1">{{ fieldErrors.nom_centre }}</p>
+                      <p v-if="errorsCamps.nom_centre" class="text-sm text-red-600 mt-1">{{ errorsCamps.nom_centre }}</p>
                    </div>
 
-                   <!-- Nom del centre (manual) - només quan nom_centre === Altres (form.nom_centre_manual) -->
-                   <div v-if="mostrarNomManual" class="md:col-span-2 space-y-2">
+                   <!-- Camp: Nom del centre (manual) -->
+                   <div v-if="isNomManualVisible === true" class="md:col-span-2 space-y-2">
                       <label for="nomCentreManual" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom del centre (manual) *</label>
                       <input 
                         id="nomCentreManual"
-                        v-model="form.nom_centre_manual"
+                        v-model="formulariRegistre.nom_centre_manual"
                         type="text"
                         maxlength="255"
                         class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                         placeholder="Introduïu el nom del centre"
-                        @input="validateField('nom_centre_manual')"
+                        @input="executarValidacioCamp('nom_centre_manual')"
                       />
-                      <p v-if="fieldErrors.nom_centre_manual" class="text-sm text-red-600 mt-1">{{ fieldErrors.nom_centre_manual }}</p>
+                      <p v-if="errorsCamps.nom_centre_manual" class="text-sm text-red-600 mt-1">{{ errorsCamps.nom_centre_manual }}</p>
                    </div>
 
-                   <!-- Adreça (form.adreca) -->
+                   <!-- Camp: Adreça -->
                    <div class="md:col-span-2 space-y-2">
                       <label for="adreca" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Adreça Completa</label>
                       <div class="relative group">
                          <MapPin :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                          <input 
                            id="adreca"
-                           v-model="form.adreca"
+                           v-model="formulariRegistre.adreca"
                            type="text"
                            maxlength="255"
                            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
@@ -108,14 +108,14 @@
                       </div>
                    </div>
 
-                   <!-- Email oficial (form.email_oficial) -->
+                   <!-- Camp: Email oficial -->
                    <div class="md:col-span-2 space-y-2">
                       <label for="email" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email Oficial</label>
                       <div class="relative group">
                          <Mail :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                          <input 
                            id="email"
-                           v-model="form.email_oficial"
+                           v-model="formulariRegistre.email_oficial"
                            type="email"
                            maxlength="255"
                            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
@@ -124,14 +124,14 @@
                       </div>
                    </div>
 
-                   <!-- Municipi (form.municipi) -->
+                   <!-- Camp: Municipi -->
                    <div class="space-y-2">
                       <label for="municipi" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Municipi</label>
                       <div class="relative group">
                          <Globe :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                          <input 
                            id="municipi"
-                           v-model="form.municipi"
+                           v-model="formulariRegistre.municipi"
                            type="text"
                            maxlength="100"
                            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
@@ -140,14 +140,14 @@
                       </div>
                    </div>
 
-                   <!-- Telèfon (form.telefon) -->
+                   <!-- Camp: Telèfon -->
                    <div class="space-y-2">
                       <label for="telefon" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Telèfon</label>
                       <div class="relative group">
                          <Phone :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                          <input 
                            id="telefon"
-                           v-model="form.telefon"
+                           v-model="formulariRegistre.telefon"
                            type="tel"
                            maxlength="20"
                            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
@@ -158,10 +158,10 @@
                 </div>
              </div>
 
-             <!-- Línia separadora -->
+             <!-- Línia decorativa -->
              <div class="w-full h-px bg-[#BFDBF7]/40"></div>
 
-             <!-- SECCIÓ 2: COORDINADOR -->
+             <!-- SECCIÓ 2: INFORMACIÓ DEL COORDINADOR -->
              <div class="space-y-6">
                 <div class="flex items-center gap-3 mb-6 px-1">
                    <div class="w-8 h-8 rounded-lg bg-[#1F7A8C]/10 flex items-center justify-center text-[#1F7A8C]">
@@ -171,58 +171,60 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <!-- Nom Coordinador (form.nom_coordinador) -->
+                   
+                   <!-- Camp: Nom Coordinador -->
                    <div class="space-y-2">
                       <label for="nomCoordinador" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Nom Coordinador</label>
                       <input 
                         id="nomCoordinador"
-                        v-model="form.nom_coordinador"
+                        v-model="formulariRegistre.nom_coordinador"
                         type="text"
                         maxlength="255"
                         class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                         placeholder="Nom i Cognoms"
                       />
                    </div>
-                   <!-- Email Coordinador (form.email_coordinador) -->
+
+                   <!-- Camp: Email Coordinador -->
                    <div class="space-y-2">
                       <label for="emailCoordinador" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Email Coordinador *</label>
                       <input 
                         id="emailCoordinador"
-                        v-model="form.email_coordinador"
+                        v-model="formulariRegistre.email_coordinador"
                         type="email"
                         maxlength="255"
                         class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                         placeholder="coordinador@centre.cat"
-                        @input="validateField('email_coordinador')"
+                        @input="executarValidacioCamp('email_coordinador')"
                       />
-                      <p v-if="fieldErrors.email_coordinador" class="text-sm text-red-600 mt-1">{{ fieldErrors.email_coordinador }}</p>
+                      <p v-if="errorsCamps.email_coordinador" class="text-sm text-red-600 mt-1">{{ errorsCamps.email_coordinador }}</p>
                    </div>
 
-                   <!-- Contrasenya (compte del centre) (form.password) -->
+                   <!-- Camp: Contrasenya -->
                    <div class="md:col-span-2 space-y-2">
                       <label for="password" class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Contrasenya (Compte del Centre) *</label>
                       <div class="relative group">
                          <Lock :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
                          <input 
                            id="password"
-                           v-model="form.password"
+                           v-model="formulariRegistre.password"
                            type="password"
                            class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl pl-11 pr-4 py-4 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 shadow-sm"
                            placeholder="••••••••"
-                           @input="validateField('password')"
+                           @input="executarValidacioCamp('password')"
                          />
                       </div>
-                      <p v-if="fieldErrors.password" class="text-sm text-red-600 mt-1">{{ fieldErrors.password }}</p>
+                      <p v-if="errorsCamps.password" class="text-sm text-red-600 mt-1">{{ errorsCamps.password }}</p>
                    </div>
                 </div>
                 
-                <!-- Checkbox: és la primera vegada? (form.es_primera_vegada) -->
+                <!-- Checkbox: Primera vegada -->
                 <div class="pt-2">
                    <label class="flex items-center gap-3 cursor-pointer group select-none p-4 rounded-xl hover:bg-white/50 transition-colors -ml-4">
                       <div class="relative flex-shrink-0">
                          <input 
                            type="checkbox" 
-                           v-model="form.es_primera_vegada"
+                           v-model="formulariRegistre.es_primera_vegada"
                            class="peer sr-only" 
                          />
                          <div class="w-5 h-5 border-2 border-[#BFDBF7] rounded-md peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] transition-all bg-white group-hover:border-[#1F7A8C]/50"></div>
@@ -235,23 +237,23 @@
                 </div>
              </div>
 
-             <!-- Missatges d'èxit i d'error (lògica del Codi A) -->
-             <p v-if="message" class="text-sm text-green-600">{{ message }}</p>
-             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+             <!-- Missatges de feedback de l'API -->
+             <p v-if="msgFeedbackExit" class="text-sm text-green-600 font-bold p-4 bg-green-50 rounded-xl border border-green-100">{{ msgFeedbackExit }}</p>
+             <p v-if="msgErrorApi" class="text-sm text-red-600 font-bold p-4 bg-red-50 rounded-xl border border-red-100">{{ msgErrorApi }}</p>
 
-             <!-- Peu: botons i submit -->
+             <!-- Barra d'accions finals -->
              <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
                  <div class="flex gap-4 w-full md:w-auto">
                     <button 
                       type="button"
-                      @click="goBack"
+                      @click="handleGoBack"
                       class="flex-1 md:flex-none px-8 py-4 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 hover:text-[#022B3A] hover:shadow-lg transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 h-[54px]"
                     >
                        <ArrowLeft :size="16" /> Tornar
                     </button>
                     <button 
                       type="button"
-                      @click="resetForm"
+                      @click="handleResetFormulari"
                       class="flex-1 md:flex-none px-8 py-4 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 h-[54px]"
                     >
                        <Eraser :size="16" /> Netejar
@@ -260,22 +262,23 @@
                  
                  <button 
                    type="submit"
-                   :disabled="loading"
+                   :disabled="isPendentPeticio === true"
                    class="w-full md:w-auto px-12 py-4 bg-[#1F7A8C] text-white rounded-xl shadow-lg shadow-[#1F7A8C]/20 hover:bg-[#022B3A] hover:shadow-2xl transition-all text-[11px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-3 h-[54px] disabled:opacity-70 disabled:cursor-not-allowed"
                  >
-                    <template v-if="loading">
-                      <span>Enviant...</span>
-                    </template>
-                    <template v-else>
-                      <Send :size="16" />
-                      <span>{{ textBoto }}</span>
-                    </template>
+                    <div v-if="isPendentPeticio === true" class="flex items-center gap-2">
+                       <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                       <span>Enviant...</span>
+                    </div>
+                    <div v-else class="flex items-center gap-3">
+                       <Send :size="16" />
+                       <span>{{ textBotoEnviarUI }}</span>
+                    </div>
                  </button>
              </div>
        </form>
     </div>
 
-    <!-- Peu de pàgina -->
+    <!-- Peu de pàgina secundari -->
     <div class="mt-16 flex flex-wrap justify-center gap-x-8 gap-y-2 px-6 pb-8">
       <a href="#" class="text-[10px] font-bold text-[#022B3A]/30 hover:text-[#1F7A8C] transition-colors uppercase tracking-widest">Ajuda</a>
       <a href="#" class="text-[10px] font-bold text-[#022B3A]/30 hover:text-[#1F7A8C] transition-colors uppercase tracking-widest">Privacitat</a>
@@ -286,6 +289,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   Home,
   Building2,
@@ -302,21 +308,19 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// Metadades i layout
+// Configuració del Component
 // ======================================
+
+// 1. Definim que aquesta pàgina no utilitza el layout general
 definePageMeta({
   layout: false
 });
 
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Estat Reactiu (Esquema del Formulari i Errors)
 // ======================================
-// (useRouter / navigateTo s’usen a les funcions)
 
-// ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
-// ======================================
-const form = ref({
+const formulariRegistre = ref({
   codi_centre: '',
   nom_centre: '',
   nom_centre_manual: '',
@@ -331,172 +335,237 @@ const form = ref({
   estat: 'pendent'
 });
 
-const loading = ref(false);
-const message = ref('');
-const error = ref('');
-const fieldErrors = ref({});
+const isPendentPeticio = ref(false);
+const msgFeedbackExit = ref('');
+const msgErrorApi = ref('');
+const errorsCamps = ref({});
 
-function validEmail(s) {
-  const t = (s || '').trim();
-  if (!t) return false;
-  const idx = t.indexOf('@');
-  if (idx === -1) return false;
-  const after = t.slice(idx + 1);
-  return after.includes('.');
-}
+// ======================================
+// Propietats Computades (Anàlisi de dades)
+// ======================================
 
-function validateField(key) {
-  const v = form.value;
-  if (key === 'codi_centre') {
-    if (!(v.codi_centre || '').trim()) { fieldErrors.value.codi_centre = 'Introduïu el codi del centre.'; return; }
-    delete fieldErrors.value.codi_centre;
-    return;
-  }
-  if (key === 'nom_centre') {
-    if (!(v.nom_centre || '').trim()) { fieldErrors.value.nom_centre = 'Seleccioneu un centre.'; return; }
-    delete fieldErrors.value.nom_centre;
-    return;
-  }
-  if (key === 'nom_centre_manual') {
-    if (v.nom_centre !== 'Altres') { delete fieldErrors.value.nom_centre_manual; return; }
-    if (!(v.nom_centre_manual || '').trim()) { fieldErrors.value.nom_centre_manual = 'Introduïu el nom del centre.'; return; }
-    delete fieldErrors.value.nom_centre_manual;
-    return;
-  }
-  if (key === 'email_coordinador') {
-    if (!validEmail(v.email_coordinador)) { fieldErrors.value.email_coordinador = 'Introduïu un email vàlid (ha de contenir @ i un punt).'; return; }
-    delete fieldErrors.value.email_coordinador;
-    return;
-  }
-  if (key === 'password') {
-    const p = (v.password || '');
-    if (!p) { fieldErrors.value.password = 'La contrasenya és obligatòria.'; return; }
-    if (p.length < 6) { fieldErrors.value.password = 'La contrasenya ha de tenir almenys 6 caràcters.'; return; }
-    delete fieldErrors.value.password;
-    return;
-  }
-}
-
-function onNomCentreChange() {
-  validateField('nom_centre');
-  validateField('nom_centre_manual');
-}
-
-function validateAll() {
-  validateField('codi_centre');
-  validateField('nom_centre');
-  validateField('nom_centre_manual');
-  validateField('email_coordinador');
-  validateField('password');
-  return Object.keys(fieldErrors.value).length === 0;
-}
-
-const mostrarNomManual = computed(function () {
-  if (form.value.nom_centre === 'Altres') {
+// 1. Control de visibilitat del camp manual per a centres no llistats
+const isNomManualVisible = computed(function () {
+  if (formulariRegistre.value.nom_centre === 'Altres') {
     return true;
   }
   return false;
 });
 
-const textBoto = computed(function () {
-  if (loading.value) {
+// 2. Text dinàmic del botó principal
+const textBotoEnviarUI = computed(function () {
+  if (isPendentPeticio.value === true) {
     return 'Enviant...';
   }
   return 'Enviar sol·licitud';
 });
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Declaracions de funcions
 // ======================================
 
-// A) --- Anar a la pàgina d’inici (botó Inici) ---
-function goToInici() {
+// A) --- Validacions ---
+
+function comprovarFormatEmail(textEmail) {
+  const t = String(textEmail || '').trim();
+  let valid = false;
+  if (t !== '') {
+    const arrobaIdx = t.indexOf('@');
+    if (arrobaIdx !== -1) {
+      const partDespres = t.slice(arrobaIdx + 1);
+      if (partDespres.indexOf('.') !== -1) {
+        valid = true;
+      }
+    }
+  }
+  return valid;
+}
+
+function executarValidacioCamp(clau) {
+  const dades = formulariRegistre.value;
+  
+  if (clau === 'codi_centre') {
+    const textCodi = String(dades.codi_centre || '').trim();
+    if (textCodi === '') {
+      errorsCamps.value.codi_centre = 'Introduïu el codi del centre.';
+    } else {
+      errorsCamps.value.codi_centre = null;
+    }
+  }
+
+  if (clau === 'nom_centre') {
+    const selectCentre = String(dades.nom_centre || '').trim();
+    if (selectCentre === '') {
+      errorsCamps.value.nom_centre = 'Seleccioneu un centre.';
+    } else {
+      errorsCamps.value.nom_centre = null;
+    }
+  }
+
+  if (clau === 'nom_centre_manual') {
+    if (dades.nom_centre === 'Altres') {
+      const manualCentre = String(dades.nom_centre_manual || '').trim();
+      if (manualCentre === '') {
+        errorsCamps.value.nom_centre_manual = 'Introduïu el nom del centre.';
+      } else {
+        errorsCamps.value.nom_centre_manual = null;
+      }
+    } else {
+      errorsCamps.value.nom_centre_manual = null;
+    }
+  }
+
+  if (clau === 'email_coordinador') {
+    const emailCoord = String(dades.email_coordinador || '').trim();
+    if (comprovarFormatEmail(emailCoord) === false) {
+      errorsCamps.value.email_coordinador = 'Email de coordinador no vàlid.';
+    } else {
+      errorsCamps.value.email_coordinador = null;
+    }
+  }
+
+  if (clau === 'password') {
+    const pass = dades.password || '';
+    if (pass === '') {
+      errorsCamps.value.password = 'La contrasenya és obligatòria.';
+    } else if (pass.length < 6) {
+      errorsCamps.value.password = 'Mínim 6 caràcters per seguretat.';
+    } else {
+      errorsCamps.value.password = null;
+    }
+  }
+}
+
+function validarTotElFormulari() {
+  executarValidacioCamp('codi_centre');
+  executarValidacioCamp('nom_centre');
+  executarValidacioCamp('nom_centre_manual');
+  executarValidacioCamp('email_coordinador');
+  executarValidacioCamp('password');
+  
+  let esValid = true;
+  if (errorsCamps.value.codi_centre) { esValid = false; }
+  if (errorsCamps.value.nom_centre) { esValid = false; }
+  if (errorsCamps.value.nom_centre_manual) { esValid = false; }
+  if (errorsCamps.value.email_coordinador) { esValid = false; }
+  if (errorsCamps.value.password) { esValid = false; }
+  
+  return esValid;
+}
+
+// B) --- Handlers d'accions UI ---
+
+function handleGoToInici() {
   navigateTo('/');
 }
 
-// A) --- Netejar el formulari i els missatges ---
-function resetForm() {
-  form.value.codi_centre = '';
-  form.value.nom_centre = '';
-  form.value.nom_centre_manual = '';
-  form.value.password = '';
-  form.value.adreca = '';
-  form.value.municipi = '';
-  form.value.telefon = '';
-  form.value.nom_coordinador = '';
-  form.value.email_coordinador = '';
-  form.value.email_oficial = '';
-  form.value.es_primera_vegada = false;
-  form.value.estat = 'pendent';
-  message.value = '';
-  error.value = '';
-  fieldErrors.value = {};
+function handleGoBack() {
+  // Tornem enrere en l'historial del navegador
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    navigateTo('/');
+  }
 }
 
-// A) --- Tornar enrere a la pàgina anterior (botó Tornar) ---
-function goBack() {
-  history.back();
+function handleResetFormulari() {
+  formulariRegistre.value.codi_centre = '';
+  formulariRegistre.value.nom_centre = '';
+  formulariRegistre.value.nom_centre_manual = '';
+  formulariRegistre.value.password = '';
+  formulariRegistre.value.adreca = '';
+  formulariRegistre.value.municipi = '';
+  formulariRegistre.value.telefon = '';
+  formulariRegistre.value.nom_coordinador = '';
+  formulariRegistre.value.email_coordinador = '';
+  formulariRegistre.value.email_oficial = '';
+  formulariRegistre.value.es_primera_vegada = false;
+  formulariRegistre.value.estat = 'pendent';
+  
+  msgFeedbackExit.value = '';
+  msgErrorApi.value = '';
+  errorsCamps.value = {};
 }
 
-// A) --- Enviar el formulari de sol·licitud de registre ---
-async function submitForm() {
-  error.value = '';
-  message.value = '';
-  if (!validateAll()) return;
+function handleCanviNomCentre() {
+  executarValidacioCamp('nom_centre');
+  executarValidacioCamp('nom_centre_manual');
+}
 
-  loading.value = true;
+// C) --- API i enviament ---
+
+async function handleSubmitFormulari() {
+  // 1. Netegem estats de resposta
+  msgErrorApi.value = '';
+  msgFeedbackExit.value = '';
+
+  // 2. Validem tot el formulari abans d'enviar
+  const esCorrecte = validarTotElFormulari();
+  if (esCorrecte === false) { return; }
+
+  isPendentPeticio.value = true;
+  
   try {
-    const payload = {};
-    payload.codi_centre = form.value.codi_centre;
-    payload.nom_centre = form.value.nom_centre;
-    if (form.value.nom_centre_manual) {
-      payload.nom_centre_manual = form.value.nom_centre_manual;
-    } else {
-      payload.nom_centre_manual = null;
-    }
-    payload.password = form.value.password;
-    payload.adreca = form.value.adreca;
-    payload.municipi = form.value.municipi;
-    payload.telefon = form.value.telefon;
-    payload.nom_coordinador = form.value.nom_coordinador;
-    payload.email_coordinador = form.value.email_coordinador;
-    if (form.value.email_oficial) {
-      payload.email_centre = form.value.email_oficial;
-    } else {
-      payload.email_centre = null;
-    }
-    if (form.value.es_primera_vegada) {
-      payload.es_primera_vegada = true;
-    } else {
-      payload.es_primera_vegada = false;
-    }
+    // 3. Construïm el payload neteja d'extres
+    const dadesForm = formulariRegistre.value;
+    const bodyPeticio = {
+      codi_centre: dadesForm.codi_centre,
+      nom_centre: dadesForm.nom_centre,
+      nom_centre_manual: dadesForm.nom_centre === 'Altres' ? dadesForm.nom_centre_manual : null,
+      password: dadesForm.password,
+      adreca: dadesForm.adreca,
+      municipi: dadesForm.municipi,
+      telefon: dadesForm.telefon,
+      nom_coordinador: dadesForm.nom_coordinador,
+      email_coordinador: dadesForm.email_coordinador,
+      email_centre: dadesForm.email_oficial || null,
+      es_primera_vegada: dadesForm.es_primera_vegada === true
+    };
 
-    const res = await $fetch('/api/solicituds-registre', {
+    // 4. Executem la petició d'alta de sol·licitud
+    const respostaApi = await $fetch('/api/solicituds-registre', {
       method: 'POST',
-      body: payload
+      body: bodyPeticio
     });
 
-    let missatgeRes = 'Sol·licitud enviada correctament.';
-    if (res && res.message) {
-      missatgeRes = res.message;
+    // 5. Gestionem l'èxit
+    let missatgeFinal = 'Sol·licitud enviada correctament.';
+    if (respostaApi) {
+      if (respostaApi.message) {
+        missatgeFinal = respostaApi.message;
+      }
     }
-    message.value = missatgeRes;
-    resetForm();
-  } catch (err) {
-    console.error('Error enviant sol·licitud:', err);
-    let missatgeErr = 'Error en enviar la sol·licitud';
-    if (err && err.data && err.data.message) {
-      missatgeErr = err.data.message;
-    } else if (err && err.message) {
-      missatgeErr = err.message;
+    msgFeedbackExit.value = missatgeFinal;
+    
+    // Netejem el formulari després de l'èxit
+    handleResetFormulari();
+    
+    // Mostrem confirmació visual a l'usuari
+    const swalInst = useSwal();
+    swalInst.fire({
+      title: 'Sol·licitud Enviada',
+      text: missatgeFinal,
+      icon: 'success'
+    });
+
+  } catch (errorPet) {
+    // 6. Gestionem l'error d'enviament
+    console.error('Error enviant sol·licitud de registre:', errorPet);
+    let msgE = 'Error en enviar la sol·licitud. Torneu-ho a provar més tard.';
+    if (errorPet.data) {
+      if (errorPet.data.message) {
+        msgE = errorPet.data.message;
+      }
+    } else if (errorPet.message) {
+      msgE = errorPet.message;
     }
-    error.value = missatgeErr;
+    msgErrorApi.value = msgE;
   } finally {
-    loading.value = false;
+    isPendentPeticio.value = false;
   }
 }
 </script>
 
 <style scoped>
-/* Fons #E1E5F2 i colors de marca a les classes Tailwind. */
+/* Estils de fons i marca gestionats via Tailwind */
 </style>

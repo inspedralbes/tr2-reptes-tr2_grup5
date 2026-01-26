@@ -93,22 +93,22 @@
     </div>
 
     <!-- ESTADO 2: BUIT (SI NO HAY DATOS) - CAPTURA 1 -->
-    <div v-else class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
+    <div v-else class="flex flex-col items-center justify-center py-24 bg-white rounded-[2.5rem] border border-[#E1E5F2]/30 shadow-sm animate-in fade-in zoom-in-95 duration-700">
         
         <!-- Icon Gradient Box -->
-        <div class="w-24 h-24 bg-gradient-to-br from-indigo-100 to-blue-50 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
-            <CalendarDays :size="40" class="text-[#6366f1]" stroke-width="1.5" />
+        <div class="w-24 h-24 bg-[#F0F7F9] rounded-3xl flex items-center justify-center mb-8 shadow-sm">
+            <CalendarDays :size="40" class="text-[#1F7A8C]" stroke-width="1.5" />
         </div>
 
-        <h2 class="text-3xl font-black text-[#022B3A] mb-3 tracking-tight">Encara no tens cap taller assignat</h2>
+        <h2 class="text-3xl font-black text-[#022B3A] mb-4 tracking-tight">Encara no tens cap taller assignat</h2>
         
-        <p class="text-[#64748B] text-center max-w-md font-medium leading-relaxed mb-10">
+        <p class="text-[#022B3A]/30 text-center max-w-sm font-bold leading-relaxed mb-10 text-[13px]">
             Quan l'administració accepti les teves sol·licituds, els tallers confirmats apareixeran aquí.
         </p>
 
         <button 
             @click="navigateToRequests"
-            class="bg-[#3B82F6] text-white px-8 py-4 rounded-xl font-bold text-sm shadow-xl shadow-blue-200 hover:bg-[#2563EB] hover:scale-105 transition-all flex items-center gap-2"
+            class="bg-[#1F7A8C] text-white px-10 py-4 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-[#1F7A8C]/30 hover:bg-[#022B3A] hover:scale-[1.02] transition-all flex items-center gap-3 active:scale-95"
         >
             Anar a Sol·licituds
         </button>

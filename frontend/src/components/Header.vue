@@ -76,6 +76,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   Library,
   Users,
@@ -87,74 +90,166 @@ import {
   GraduationCap,
   BookOpen,
   LogOut,
-  Calendar
+  Calendar,
+  Menu
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Accés a les stores i composables
 const header = useHeaderStore();
 const route = useRoute();
 const tokenCookie = useCookie('authToken');
+const menuOpen = ref(false);
 
+const allMenuItemsForMobile = computed(() => header.buttons || []);
+
+// 2. Elements del menú filtrats (sense "Sortir")
 const menuItems = computed(function () {
-  const b = header.buttons || [];
+  const b = header.buttons;
+  let buttonsArray = [];
+  if (b) {
+    buttonsArray = b;
+  }
+  
   const result = [];
-  for (let i = 0; i < b.length; i++) {
-    if (b[i].label !== 'Sortir' && b[i].route !== '/login') {
-      result.push(b[i]);
+  for (let i = 0; i < buttonsArray.length; i++) {
+    const item = buttonsArray[i];
+    if (item.label !== 'Sortir') {
+      if (item.route !== '/login') {
+        result.push(item);
+      }
     }
   }
   return result;
 });
 
+// 3. Etiqueta informativa del rol actiu
 const roleLabel = computed(function () {
-  const m = menuItems.value;
-  if (m.length === 0) return (header.title || '').toUpperCase() || 'PANEL';
-  const r = m[0].route || '';
-  if (r.startsWith('/admin')) return 'ADMIN PANEL';
-  if (r.startsWith('/centres')) return 'CENTRE PANEL';
-  if (r.startsWith('/professors')) return 'DOCENT PANEL';
-  if (r.startsWith('/alumnes')) return 'ALUMNE PANEL';
-  return (header.title || 'PANEL').toUpperCase();
+  const items = menuItems.value;
+  if (items.length === 0) {
+    let t = 'PANEL';
+    if (header.title) {
+      t = header.title.toUpperCase();
+    }
+    return t;
+  }
+  
+  const r = items[0].route;
+  let routeStr = '';
+  if (r) {
+    routeStr = r;
+  }
+  
+  if (routeStr.startsWith('/admin')) {
+    return 'ADMIN PANEL';
+  }
+  if (routeStr.startsWith('/centres')) {
+    return 'CENTRE PANEL';
+  }
+  if (routeStr.startsWith('/professors')) {
+    return 'DOCENT PANEL';
+  }
+  if (routeStr.startsWith('/alumnes')) {
+    return 'ALUMNE PANEL';
+  }
+  
+  let finalTitle = 'PANEL';
+  if (header.title) {
+    finalTitle = header.title.toUpperCase();
+  }
+  return finalTitle;
 });
 
+// 4. Inicials de l'usuari pel cercle del perfil
 const userInitials = computed(function () {
   const name = userName.value;
-  if (name === 'Usuari' || !name) return '—';
-  const parts = name.split(' ');
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (!name || name === 'Usuari') {
+    return '—';
   }
-  return name[0].toUpperCase();
+  
+  const segments = name.split(' ');
+  const parts = [];
+  for (let j = 0; j < segments.length; j++) {
+    if (segments[j].length > 1) {
+      parts.push(segments[j]);
+    }
+  }
+  
+  if (parts.length >= 2) {
+    const l1 = parts[0][0];
+    const l2 = parts[1][0];
+    return (l1 + l2).toUpperCase();
+  }
+  
+  return name.substring(0, 2).toUpperCase();
 });
 
+// 5. Nom de l'usuari actual
 const userName = computed(function () {
-  return header.userName || 'Usuari';
+  let nameStr = 'Usuari';
+  if (header.userName) {
+    nameStr = header.userName;
+  }
+  return nameStr;
 });
 
+// 6. Text descriptiu del rol de l'usuari
 const userRoleDisplay = computed(function () {
   const role = header.userRole;
-  if (role === 'ADMIN') return 'Administrador';
-  if (role === 'CENTRE') return 'Gestió de Centre';
-  if (role === 'PROFESSOR') return 'Docent Referent';
-  if (role === 'ALUMNE') return 'Portal Alumne';
-  return header.title || '—';
+  if (role === 'ADMIN') {
+    return 'Administrador';
+  }
+  if (role === 'CENTRE') {
+    return 'Gestió de Centre';
+  }
+  if (role === 'PROFESSOR') {
+    return 'Docent Referent';
+  }
+  if (role === 'ALUMNE') {
+    return 'Portal Alumne';
+  }
+  
+  let fallback = '—';
+  if (header.title) {
+    fallback = header.title;
+  }
+  return fallback;
 });
 
-onMounted(() => {
-  header.fetchUserProfile();
-});
+// ======================================
+// Declaracions de funcions
+// ======================================
 
+// A) --- Obtenir la clau única per al bucle v-for ---
 function obtenirClauBoto(btn, i) {
-  if (btn && btn.route) return btn.route + '-' + String(i);
+  if (btn) {
+    if (btn.route) {
+      return btn.route + '-' + String(i);
+    }
+  }
   return 'btn-' + String(i);
 }
 
+// B) --- Comprovar si una ruta del menú és l'activa ---
 function isActive(btn) {
   const path = route.path;
-  if (path === btn.route) return true;
-  if (btn.route && btn.route !== '/' && path.startsWith(btn.route + '/')) return true;
+  if (path === btn.route) {
+    return true;
+  }
+  if (btn.route) {
+    if (btn.route !== '/') {
+      if (path.startsWith(btn.route + '/')) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
+// C) --- Mapatge de rutes a icones del menú ---
 function getIcon(btn) {
   const r = (btn && btn.route) || '';
   if (r === '/admin/tallers') return Library;
@@ -172,30 +267,116 @@ function getIcon(btn) {
   if (r === '/professors/avaluacions') return BarChart3;
   if (r.startsWith('/alumnes/enquesta')) return MessageSquare;
   if (r.startsWith('/alumnes/info')) return Library;
+  
   return List;
 }
 
-function navegar(btn) {
-  try {
-    if (btn && btn.route === '/login') {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('authToken');
-      }
-      header.setHeader({ showHeader: false });
+// D) --- Funció per gestionar l'acció de sortir de l'app ---
+function handleLogout() {
+  // 1. Busquem el botó de sortida o logout
+  const b = header.buttons;
+  let buttonsArray = [];
+  if (b) {
+    buttonsArray = b;
+  }
+  
+  let sortirBtn = null;
+  for (let k = 0; k < buttonsArray.length; k++) {
+    const item = buttonsArray[k];
+    if (item.route === '/login' || item.label === 'Sortir') {
+      sortirBtn = item;
+      break;
     }
-  } catch (e) {}
-  navigateTo(btn.route);
+  }
+  
+  // 2. Si el trobem, naveguem a la ruta de login
+  let rutaDesti = '/login';
+  if (sortirBtn) {
+    rutaDesti = sortirBtn.route;
+  }
+  
+  // 3. Netegem la sessió i naveguem
+  header.setHeader({ showHeader: false });
+  navigateTo(rutaDesti);
 }
 
-function handleLogout() {
-  const sortirBtn = (header.buttons || []).find(function (b) {
-    return b.route === '/login' || b.label === 'Sortir';
-  });
-  navegar(sortirBtn || { route: '/login' });
-}
+// E) --- Ganxo de muntatge per carregar el perfil ---
+onMounted(function () {
+  // 1. Carreguem les dades de l'usuari al iniciar el component
+  header.fetchUserProfile();
+});
 </script>
 
 <style scoped>
+.nav-bar {
+  width: 280px;
+}
+
+.nav-bar-mobile {
+  display: none;
+}
+
+/* A partir de 1066px: la nav bar i el logo es van reduint */
+@media (max-width: 1066px) {
+  .nav-bar {
+    width: clamp(180px, calc(180px + 100 * (100vw - 480px) / 586), 280px);
+  }
+  .logo-container {
+    max-width: clamp(100px, calc(100px + 110 * (100vw - 480px) / 586), 210px);
+  }
+}
+
+/* A 692px o menys: barra horitzontal dalt, logo esquerra + hamburger dreta */
+@media (max-width: 692px) {
+  .nav-bar {
+    width: 100%;
+    height: 56px;
+    bottom: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .nav-bar-desktop {
+    display: none !important;
+  }
+  .nav-bar-mobile {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 1rem;
+  }
+}
+
+/* Dropdown mòbil: amagat en desktop */
+@media (min-width: 693px) {
+  .mobile-dropdown {
+    display: none !important;
+  }
+}
+
+.mobile-dropdown {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #022B3A;
+  z-index: 49;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.mobile-dropdown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

@@ -149,6 +149,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { 
   X, 
   MapPin, 
@@ -159,48 +162,95 @@ import {
   AlertCircle
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Propietats que rep el component
 const props = defineProps({
   assignacioId: { type: [Number, String], required: true }
 });
 
+// 2. Esdeveniments que emet el component
 const emit = defineEmits(['close']);
 
+// 3. Cookie d'autenticació
 const tokenCookie = useCookie('authToken');
 
-const { data: assignacio, pending, error } = await useFetch(`/api/centre/assignacions/${props.assignacioId}`, {
+// 4. Carreguem les dades de l'assignació (sense desestructuració)
+const resultatFeth = await useFetch('/api/centre/assignacions/' + props.assignacioId, {
   headers: {
     Authorization: tokenCookie.value ? 'Bearer ' + tokenCookie.value : ''
   },
-  key: `modal-assignacio-${props.assignacioId}`
+  key: 'modal-assignacio-' + props.assignacioId
 });
 
-const getHeaderGradient = computed(() => {
-  const mod = assignacio.value?.modalitat?.toUpperCase() || '';
-  if (mod.includes('A')) return 'bg-gradient-to-br from-[#3b82f6] to-[#2563eb]';
-  if (mod.includes('B')) return 'bg-gradient-to-br from-[#10b981] to-[#059669]';
-  if (mod.includes('C')) return 'bg-gradient-to-br from-[#f59e0b] to-[#d97706]';
+const assignacio = resultatFeth.data;
+const pending = resultatFeth.pending;
+const error = resultatFeth.error;
+
+// 5. Propietat computada per al fons de la capçalera segons modalitat
+const getHeaderGradient = computed(function () {
+  let modStr = '';
+  if (assignacio.value) {
+    if (assignacio.value.modalitat) {
+      modStr = assignacio.value.modalitat.toUpperCase();
+    }
+  }
+  
+  if (modStr.includes('A')) {
+    return 'bg-gradient-to-br from-[#3b82f6] to-[#2563eb]';
+  }
+  if (modStr.includes('B')) {
+    return 'bg-gradient-to-br from-[#10b981] to-[#059669]';
+  }
+  if (modStr.includes('C')) {
+    return 'bg-gradient-to-br from-[#f59e0b] to-[#d97706]';
+  }
+  
   return 'bg-[#022B3A]';
 });
 
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Obtenir les inicials d'un nom ---
 function getInitials(name) {
-  if (!name) return '??';
-  const parts = name.trim().split(' ');
-  if (parts.length >= 2) {
-    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  if (!name) {
+    return '??';
   }
+  
+  const net = name.trim();
+  const parts = net.split(' ');
+  
+  if (parts.length >= 2) {
+    const l1 = parts[0].charAt(0);
+    const l2 = parts[1].charAt(0);
+    return (l1 + l2).toUpperCase();
+  }
+  
   return parts[0].charAt(0).toUpperCase();
 }
 
+// B) --- Formatar la data de forma compacta (numerica) ---
 function formatDateCompact(dateStr) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (!dateStr) {
+    return '—';
+  }
+  const dataObject = new Date(dateStr);
+  const opcions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return dataObject.toLocaleDateString('ca-ES', opcions);
 }
 
+// C) --- Formatar la data de forma textual i bonica ---
 function formatDateNice(dateStr) {
-  if (!dateStr) return 'Pendent de data';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (!dateStr) {
+    return 'Pendent de data';
+  }
+  const dataObject = new Date(dateStr);
+  const opcions = { weekday: 'long', day: 'numeric', month: 'long' };
+  return dataObject.toLocaleDateString('ca-ES', opcions);
 }
 </script>
 
