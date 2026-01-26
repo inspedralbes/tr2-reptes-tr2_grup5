@@ -70,10 +70,10 @@
              <span>Assistència confirmada</span>
           </div>
           <div class="space-y-5">
-            <div v-for="(center, idx) in centerRanking" :key="idx" class="flex items-center justify-between p-5 hover:bg-[#E1E5F2]/20 rounded-2xl transition-all duration-300 group/row border border-transparent hover:border-[#E1E5F2]">
+            <div v-for="(center, idx) in paginatedCenterRanking" :key="(currentPageRanking - 1) * itemsPerPage + idx" class="flex items-center justify-between p-5 hover:bg-[#E1E5F2]/20 rounded-2xl transition-all duration-300 group/row border border-transparent hover:border-[#E1E5F2]">
                 <div class="flex items-center gap-6">
-                   <div :class="['w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all duration-500 shadow-sm group-hover/row:scale-110', getRankBadgeStyle(idx)]">
-                      {{ idx + 1 }}
+                   <div :class="['w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all duration-500 shadow-sm group-hover/row:scale-110', getRankBadgeStyle((currentPageRanking - 1) * itemsPerPage + idx)]">
+                      {{ (currentPageRanking - 1) * itemsPerPage + idx + 1 }}
                    </div>
                    <div>
                       <p class="text-base font-black text-[#022B3A] tracking-tight group-hover/row:text-[#1F7A8C] transition-colors">{{ center.name }}</p>
@@ -88,6 +88,9 @@
                 </div>
             </div>
           </div>
+        </div>
+        <div v-if="centerRanking.length > 0" class="p-4 border-t border-[#E1E5F2]/40 flex justify-center">
+          <Pagination :current-page="currentPageRanking" :total-pages="totalPagesRanking" @go-to-page="goToPageRanking" />
         </div>
       </div>
 
@@ -105,9 +108,9 @@
             </div>
           </div>
           <div class="space-y-5">
-            <div v-for="(workshop, idx) in topWorkshops" :key="idx" class="p-6 bg-[#E1E5F2]/10 border border-[#E1E5F2]/40 rounded-2xl flex items-center justify-between hover:bg-white hover:border-[#1F7A8C]/30 hover:shadow-xl hover:shadow-[#1F7A8C]/5 transition-all duration-500 group/item">
+            <div v-for="(workshop, idx) in paginatedTopWorkshops" :key="(currentPageTopWorkshops - 1) * itemsPerPage + idx" class="p-6 bg-[#E1E5F2]/10 border border-[#E1E5F2]/40 rounded-2xl flex items-center justify-between hover:bg-white hover:border-[#1F7A8C]/30 hover:shadow-xl hover:shadow-[#1F7A8C]/5 transition-all duration-500 group/item">
               <div class="flex items-center gap-5">
-                 <div class="w-8 h-8 rounded-lg bg-[#022B3A] text-white flex items-center justify-center font-black text-[10px]">#{{ idx + 1 }}</div>
+                 <div class="w-8 h-8 rounded-lg bg-[#022B3A] text-white flex items-center justify-center font-black text-[10px]">#{{ (currentPageTopWorkshops - 1) * itemsPerPage + idx + 1 }}</div>
                  <div>
                    <h4 class="text-xs font-black text-[#022B3A] uppercase tracking-[0.15em] mb-1 group-hover/item:text-[#1F7A8C] transition-colors">{{ workshop.title }}</h4>
                    <p class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">{{ workshop.requests }} Sol·licituds aquest any</p>
@@ -117,6 +120,9 @@
                  <ArrowUpRight :size="12" :strokeWidth="3" /> {{ workshop.growth }}
               </div>
             </div>
+          </div>
+          <div v-if="topWorkshops.length > 0" class="px-10 pb-6 flex justify-center">
+            <Pagination :current-page="currentPageTopWorkshops" :total-pages="totalPagesTopWorkshops" @go-to-page="goToPageTopWorkshops" />
           </div>
         </div>
 
@@ -167,6 +173,9 @@ const token = useCookie('authToken');
 // ======================================
 // Estat Reactiu i Refs (Variables i Formularis)
 // ======================================
+const itemsPerPage = 10;
+const currentPageRanking = ref(1);
+const currentPageTopWorkshops = ref(1);
 const header = ref({
   userName: 'Administrador' 
 });
@@ -223,6 +232,22 @@ const topWorkshops = computed(() => {
     sector: w.sector
   }));
 });
+
+const totalPagesRanking = computed(() => Math.max(1, Math.ceil((centerRanking.value || []).length / itemsPerPage)));
+const paginatedCenterRanking = computed(() => {
+  const list = centerRanking.value || [];
+  const start = (currentPageRanking.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPageRanking(p) { if (p >= 1 && p <= totalPagesRanking.value) currentPageRanking.value = p; }
+
+const totalPagesTopWorkshops = computed(() => Math.max(1, Math.ceil((topWorkshops.value || []).length / itemsPerPage)));
+const paginatedTopWorkshops = computed(() => {
+  const list = topWorkshops.value || [];
+  const start = (currentPageTopWorkshops.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPageTopWorkshops(p) { if (p >= 1 && p <= totalPagesTopWorkshops.value) currentPageTopWorkshops.value = p; }
 
 // ======================================
 // Lògica i Funcions (Handlers i Lifecycle)

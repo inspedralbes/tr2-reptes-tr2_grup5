@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { 
   ArrowLeft,
   User,
@@ -10,8 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  ExternalLink,
-  ChevronRight
+  ExternalLink
 } from 'lucide-vue-next';
 
 // ======================================
@@ -30,6 +29,10 @@ const error = ref(null);
 const assistenciaList = ref([]);
 const tallerInfo = ref(null);
 const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
 
 // --- COMPUTED ---
 const filteredStudents = computed(() => {
@@ -50,6 +53,14 @@ const stats = computed(() => {
   const percent = total > 0 ? Math.round((present / total) * 100) : 0;
   return { present, total, percent };
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredStudents.value || []).length / itemsPerPage)));
+const paginatedStudents = computed(() => {
+  const list = filteredStudents.value || [];
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 const getProjectStyles = (project) => {
   if (!project) return 'bg-white/40 text-[#022B3A] border-white/60';
@@ -211,8 +222,8 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-[#BFDBF7]/10">
-              <template v-if="filteredStudents.length > 0">
-                <tr v-for="student in filteredStudents" :key="student.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
+              <template v-if="paginatedStudents.length > 0">
+                <tr v-for="student in paginatedStudents" :key="student.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
                   
                   <!-- Student Identity -->
                   <td class="p-6 pl-10">
@@ -267,6 +278,12 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="filteredStudents.length > 0" class="px-8 py-4 border-t border-[#BFDBF7]/20 flex justify-between items-center">
+          <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ paginatedStudents.length }} de {{ filteredStudents.length }} alumnes</span>
+          <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
         </div>
 
         <!-- Footer Card Summary -->

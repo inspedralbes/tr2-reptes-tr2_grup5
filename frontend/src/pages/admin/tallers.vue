@@ -68,12 +68,12 @@
       <p v-if="!hiHaTallers" class="text-center py-16 text-[#022B3A]/60 font-medium">No hi ha tallers disponibles actualment.</p>
 
       <!-- Hi ha tallers però la cerca no en mostra cap -->
-      <p v-else-if="filteredTallers.length === 0" class="text-center py-16 text-[#022B3A]/60 font-medium">Cap taller coincideix amb la cerca.</p>
+      <p v-else-if="filteredTallers.length === 0" class="text-center py-16 text-[#022B3A]/60 font-medium col-span-full">Cap taller coincideix amb la cerca.</p>
 
       <!-- Graella o llista + targeta "Nou Projecte" (només en graella) -->
       <div v-else :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
         
-        <template v-for="taller in filteredTallers" :key="taller.id">
+        <template v-for="taller in paginatedTallers" :key="taller.id">
           
           <!-- Vista llista -->
           <div 
@@ -227,6 +227,10 @@
           </div>
         </button>
       </div>
+
+      <div class="mt-8 flex justify-center col-span-full">
+        <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+      </div>
     </div>
 
     <!-- Popups: Crear i Editar Taller -->
@@ -275,6 +279,19 @@ const respostaFetch = await useFetch('/api/admin/tallers', {
 
 const searchQuery = ref('');
 const viewMode = ref('grid');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
+
+const totalPages = computed(function () {
+  return Math.max(1, Math.ceil((filteredTallers.value || []).length / itemsPerPage));
+});
+const paginatedTallers = computed(function () {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredTallers.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 const tallers = computed(function () {
   if (respostaFetch.data && respostaFetch.data.value) {

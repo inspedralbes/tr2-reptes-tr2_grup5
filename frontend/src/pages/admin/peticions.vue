@@ -33,7 +33,6 @@
               filterStatus === 'all' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
             ]"
           >
-            <div v-if="filterStatus === 'all'" class="w-1 h-1 bg-white rounded-full"></div>
             Totes
           </button>
           
@@ -44,7 +43,6 @@
               filterStatus === 'PENDENT' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
             ]"
           >
-            <div v-if="filterStatus === 'PENDENT'" class="w-1 h-1 bg-white rounded-full"></div>
             Pendents
           </button>
 
@@ -55,7 +53,6 @@
               filterStatus === 'ASSIGNADA' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
             ]"
           >
-            <div v-if="filterStatus === 'ASSIGNADA'" class="w-1 h-1 bg-white rounded-full"></div>
             Assignades
           </button>
 
@@ -66,7 +63,6 @@
               filterStatus === 'REBUTJADA' ? 'bg-[#022B3A] text-white shadow-sm' : 'text-[#022B3A]/40 hover:bg-[#022B3A]/5 hover:text-[#022B3A]'
             ]"
           >
-            <div v-if="filterStatus === 'REBUTJADA'" class="w-1 h-1 bg-white rounded-full"></div>
             Rebutjades
           </button>
         </div>
@@ -87,13 +83,6 @@
             <List :size="14" />
           </button>
         </div>
-      </div>
-    </div>
-
-    <div v-if="assignmentResult" :class="[classeResultatAssignacio, 'p-4 rounded-xl font-bold text-sm']">
-      <strong>{{ assignmentResult.message }}</strong>
-      <div v-if="assignmentResult.summary" class="mt-2 text-xs opacity-90">
-        Assignades: {{ assignmentResult.summary.success }} | Rebutjades: {{ assignmentResult.summary.rejected }} | Errors: {{ assignmentResult.summary.errors }}
       </div>
     </div>
 
@@ -264,31 +253,8 @@
       </div>
     </div>
 
-    <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
-      <button 
-        @click="goToPage(currentPage - 1)"
-        :disabled="currentPage === 1"
-        class="p-3 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20 transition-all shadow-sm"
-      >
-        <ChevronLeft :size="16" :strokeWidth="2.5" />
-      </button>
-      <div class="flex items-center gap-2 px-2">
-        <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="goToPage(page)"
-          :class="['w-10 h-10 flex items-center justify-center rounded-xl text-[12px] font-black transition-all border', currentPage === page ? 'bg-[#1F7A8C] text-white border-[#1F7A8C] shadow-lg shadow-[#1F7A8C]/20 scale-105' : 'bg-white border-[#BFDBF7]/60 text-[#022B3A]/40 hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20']"
-        >
-          {{ page }}
-        </button>
-      </div>
-      <button 
-        @click="goToPage(currentPage + 1)"
-        :disabled="currentPage === totalPages"
-        class="p-3 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E1E5F2]/20 hover:text-[#022B3A] hover:border-[#022B3A]/20 transition-all shadow-sm"
-      >
-        <ChevronRight :size="16" :strokeWidth="2.5" />
-      </button>
+    <div class="mt-8 flex justify-center">
+      <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
     </div>
 
     <div class="p-8 bg-white/50 rounded-2xl border border-dashed border-[#BFDBF7] flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
@@ -311,7 +277,7 @@
 </template>
 
 <script setup>
-import { Search, LayoutGrid, List, Check, X, Calendar, Building2, Clock, Info, Star, ChevronLeft, ChevronRight, Sparkles } from 'lucide-vue-next';
+import { Search, LayoutGrid, List, Check, X, Calendar, Building2, Clock, Info, Star, Sparkles } from 'lucide-vue-next';
 
 const header = useHeaderStore();
 header.setHeaderAdmin();
@@ -319,7 +285,6 @@ header.setHeaderAdmin();
 const tokenCookie = useCookie('authToken');
 const actionLoading = ref(false);
 const autoAssignLoading = ref(false);
-const assignmentResult = ref(null);
 const detallsPeticions = ref([]);
 const pending = ref(true);
 const error = ref(null);
@@ -347,13 +312,6 @@ const textError = computed(function () {
 
 const hiHaDetalls = computed(function () {
   return detallsPeticions.value && detallsPeticions.value.length > 0;
-});
-
-const classeResultatAssignacio = computed(function () {
-  if (assignmentResult.value && assignmentResult.value.success) {
-    return 'bg-[#dcfce7] text-[#15803d] border-l-4 border-[#22c55e]';
-  }
-  return 'bg-[#fee2e2] text-[#b91c1c] border-l-4 border-[#ef4444]';
 });
 
 // Lògica de filtratge combinada (Cerca + Estat)
@@ -503,19 +461,26 @@ async function executeAutoAssignment() {
   const confirmResult = await useSwal().fire({ title: 'Confirmar', text: "Vols executar l'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.", icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
   if (!confirmResult.isConfirmed) return;
   autoAssignLoading.value = true;
-  assignmentResult.value = null;
   try {
     const tok = tokenCookie.value;
     const result = await $fetch('/api/admin/matching/auto', { method: 'POST', headers: { Authorization: tok ? 'Bearer ' + tok : '' } });
-    assignmentResult.value = { success: true, message: 'Assignació automàtica completada!', summary: result.summary };
     await fetchPeticions();
-    setTimeout(() => { assignmentResult.value = null; }, 8000);
+    const s = result.summary || {};
+    const assignades = s.success ?? 0;
+    const rebutjades = s.rejected ?? 0;
+    const errors = s.errors ?? 0;
+    await useSwal().fire({
+      title: 'Assignació automàtica completada!',
+      html: `Assignades: <strong>${assignades}</strong> | Rebutjades: <strong>${rebutjades}</strong> | Errors: <strong>${errors}</strong>`,
+      icon: 'success'
+    });
   } catch (err) {
     console.error('Error executant assignació automàtica:', err);
-    assignmentResult.value = {
-      success: false,
-      message: 'Error: ' + (err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.')
-    };
+    await useSwal().fire({
+      title: 'Error',
+      text: err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.',
+      icon: 'error'
+    });
   } finally {
     autoAssignLoading.value = false;
   }

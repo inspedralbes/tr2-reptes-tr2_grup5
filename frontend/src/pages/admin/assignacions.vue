@@ -84,7 +84,7 @@
 
     <!-- 4. Requests Content -->
     <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
-      <template v-for="req in filteredRequests" :key="req.id">
+      <template v-for="req in paginatedRequests" :key="req.id">
         
         <!-- GRID VIEW -->
         <div 
@@ -215,6 +215,10 @@
          <p class="text-[#022B3A]/40 font-medium text-sm">No hi ha sol·licituds de registre pendents de validar.</p>
       </div>
     </div>
+
+    <div class="mt-8 flex justify-center">
+      <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+    </div>
   </div>
 </template>
 
@@ -251,6 +255,17 @@ const solicitudes = ref([]);
 const loading = ref(true);
 const searchQuery = ref('');
 const viewMode = ref('grid');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredRequests.value.length / itemsPerPage)));
+const paginatedRequests = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredRequests.value.slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('ca-ES', { 
