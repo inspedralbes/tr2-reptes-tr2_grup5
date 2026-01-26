@@ -1,4 +1,7 @@
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { ref, computed, watch } from 'vue';
 import { 
   Search, 
@@ -10,94 +13,235 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables
+// Configuració i Serveis
 // ======================================
-const header = useHeaderStore();
-header.setHeaderProfessors();
-const router = useRouter();
-const token = useCookie('authToken').value;
 
-// --- STATE ---
+// 1. Configuració de la capçalera específica per a professors
+const headerStore = useHeaderStore();
+headerStore.setHeaderProfessors();
+
+// 2. Control de rutes i autenticació
+const routerInstancia = useRouter();
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// 3. Petició a l'API per obtenir el catàleg de tallers (sense desestructuració)
+const headersAPI = {};
+if (tokenRef) {
+  headersAPI.Authorization = 'Bearer ' + tokenRef;
+}
+
+const resultatSessions = await useFetch('/api/professor/tallers', {
+  headers: headersAPI,
+  key: 'professor-tallers-attendance-secure'
+});
+
+// ======================================
+// Estat Reactiu del Component
+// ======================================
+
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
+// ======================================
+// Propietats Computades (Tractament de dades)
+// ======================================
 
-// --- FETCH DATA ---
-const { data: tallersRaw, pending, error } = await useFetch('/api/professor/tallers', {
-  headers: token ? { Authorization: 'Bearer ' + token } : {},
-  key: 'professor-tallers-attendance-secure'
-});
-
-// Dades base sempre inicialitzades de forma segura
-const tallers = computed(() => {
-  return (tallersRaw && tallersRaw.value) ? tallersRaw.value : [];
-});
-
-// Llista de tallers on l'usuari és referent (canTakeAttendance)
-const referentTallers = computed(() => {
-  const list = tallers.value;
-  if (!Array.isArray(list)) return [];
-  return list.filter(t => t && t.permissions && t.permissions.canTakeAttendance);
-});
-
-// Mapping API -> High Fidelity UI for Attendance Sessions
-const filteredSessions = computed(() => {
-  const query = (searchQuery.value || '').toLowerCase();
-  const baseList = referentTallers.value || [];
-  
-  return baseList
-    .filter(t => {
-      if (!t) return false;
-      const titol = (t.titol || '').toLowerCase();
-      const municipi = (t.municipi || '').toLowerCase();
-      return titol.includes(query) || municipi.includes(query);
-    })
-    .map(t => ({
-      id: t.detall_id || t.id,
-      title: t.titol || 'Taller',
-      project: t.sector || 'PROJECTE',
-      date: 'Pendent de sessió',
-      location: t.ubicacio || t.municipi || 'No especificada',
-      trimestre: t.trimestre || '1r',
-      docent: t.docent_nom || 'Pendent'
-    }));
-});
-
-// --- METHODS ---
-const getProjectStyles = (project) => {
-  if (!project) return 'bg-white/40 text-[#022B3A] border-white/60';
-  const p = project.toUpperCase();
-  if (p.includes('A') || p.includes('MANUF')) return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20';
-  if (p.includes('B') || p.includes('ENER')) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20';
-  if (p.includes('C') || p.includes('AGRO')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
-  return 'bg-white/40 text-[#022B3A] border-white/60';
-};
-
-const goToAssistencia = (id) => {
-  if (id) {
-    router.push('/professors/assistencia/' + id);
+// 1. Llista base de tallers (segura)
+const tallersLlistaRaw = computed(function () {
+  let llista = [];
+  if (resultatSessions.data) {
+    if (resultatSessions.data.value) {
+      llista = resultatSessions.data.value;
+    }
   }
-};
-
-const missatgeError = computed(() => {
-  return (error && error.value && error.value.message) ? error.value.message : 'Error de connexió';
+  return llista;
 });
 
-const totalPages = computed(() => Math.max(1, Math.ceil((filteredSessions.value || []).length / itemsPerPage)));
-const paginatedSessions = computed(() => {
-  const list = filteredSessions.value || [];
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return list.slice(start, start + itemsPerPage);
+// 2. Filtre de tallers on l'usuari té permís d'assistència (Bucle for)
+const referentTallers = computed(function () {
+  const llistaT = tallersLlistaRaw.value;
+  const resultatReferent = [];
+  for (let i = 0; i < llistaT.length; i++) {
+    const t = llistaT[i];
+    if (t) {
+      if (t.permissions) {
+        if (t.permissions.canTakeAttendance === true) {
+          resultatReferent.push(t);
+        }
+      }
+    }
+  }
+  return resultatReferent;
 });
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
+
+// 3. Filtre final per cerca i mapeig UI (Bucle for)
+const filteredSessions = computed(function () {
+  const queryRaw = searchQuery.value;
+  let textBusca = '';
+  if (queryRaw) {
+    textBusca = queryRaw.toLowerCase().trim();
+  }
+  
+  const llistaAssig = referentTallers.value;
+  const resultatFiltrat = [];
+  
+  for (let j = 0; j < llistaAssig.length; j++) {
+    const t = llistaAssig[j];
+    let coincideix = false;
+    
+    if (textBusca === '') {
+      coincideix = true;
+    } else {
+      let tTitol = '';
+      if (t.titol) { tTitol = t.titol.toLowerCase(); }
+      
+      let tMuni = '';
+      if (t.municipi) { tMuni = t.municipi.toLowerCase(); }
+      
+      if (tTitol.indexOf(textBusca) !== -1) {
+        coincideix = true;
+      } else if (tMuni.indexOf(textBusca) !== -1) {
+        coincideix = true;
+      }
+    }
+    
+    if (coincideix === true) {
+      // Mapegem manualment a l'estructura de la interfície
+      const sessioUI = {
+        id: t.detall_id || t.id,
+        title: t.titol || 'Taller',
+        project: t.sector || 'PROJECTE',
+        date: 'Pendent de sessió',
+        location: t.ubicacio || t.municipi || 'No especificada',
+        trimestre: t.trimestre || '1r',
+        docent: t.docent_nom || 'Pendent'
+      };
+      resultatFiltrat.push(sessioUI);
+    }
+  }
+  return resultatFiltrat;
+});
+
+// 4. Càlcul del total de pàgines per a la paginació
+const totalPages = computed(function () {
+  const totalItems = filteredSessions.value.length;
+  let nPagines = 1;
+  if (totalItems > 0) {
+    nPagines = Math.ceil(totalItems / itemsPerPage);
+  }
+  return nPagines;
+});
+
+// 5. Sessions que es mostren a la pàgina actual (Sense .slice)
+const paginatedSessions = computed(function () {
+  const llistaTota = filteredSessions.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const resultatPag = [];
+  for (let k = 0; k < llistaTota.length; k++) {
+    if (k >= inici) {
+      if (k < fi) {
+        resultatPag.push(llistaTota[k]);
+      }
+    }
+  }
+  return resultatPag;
+});
+
+// 6. Estats de càrrega i error (Sense desestructuració)
+const isPendent = computed(function () {
+  let p = false;
+  if (resultatSessions.pending) {
+    if (resultatSessions.pending.value === true) { p = true; }
+  }
+  return p;
+});
+
+const isError = computed(function () {
+  let e = false;
+  if (resultatSessions.error) {
+    if (resultatSessions.error.value) { e = true; }
+  }
+  return e;
+});
+
+const textError = computed(function () {
+  let text = 'Error de connexió';
+  if (resultatSessions.error) {
+    if (resultatSessions.error.value) {
+      if (resultatSessions.error.value.message) {
+        text = resultatSessions.error.value.message;
+      }
+    }
+  }
+  return text;
+});
+
+// ======================================
+// Vigilants (Watchers)
+// ======================================
+
+// 1. Si canvia la cerca, tornem directament a la pàgina 1
+watch(searchQuery, function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió d'estils visuals ---
+
+function getProjectStyles(sectorNom) {
+  if (!sectorNom) { return 'bg-white/40 text-[#022B3A] border-white/60'; }
+  const sUpper = String(sectorNom).toUpperCase();
+  
+  if (sUpper.indexOf('A') !== -1 || sUpper.indexOf('MANUF') !== -1) { return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20'; }
+  if (sUpper.indexOf('B') !== -1 || sUpper.indexOf('ENER') !== -1) { return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20'; }
+  if (sUpper.indexOf('C') !== -1 || sUpper.indexOf('AGRO') !== -1) { return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20'; }
+  
+  return 'bg-white/40 text-[#022B3A] border-white/60';
+}
+
+function getDocentIconStyles(nomDocent) {
+  if (nomDocent === 'Pendent') {
+    return 'bg-amber-100 text-amber-600';
+  }
+  return 'bg-[#1F7A8C]/10 text-[#1F7A8C]';
+}
+
+function getDocentTextStyles(nomDocent) {
+  if (nomDocent === 'Pendent') {
+    return 'text-amber-600 italic';
+  }
+  return 'text-[#022B3A]';
+}
+
+// B) --- Navegació ---
+
+function handleGoToAttendance(idSessio) {
+  if (idSessio) {
+    routerInstancia.push('/professors/assistencia/' + idSessio);
+  }
+}
+
+function handleGoToPage(numP) {
+  const maxP = totalPages.value;
+  if (numP >= 1) {
+    if (numP <= maxP) {
+      currentPage.value = numP;
+    }
+  }
+}
 </script>
 
 <template>
   <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
     
-    <!-- 1. HEADER & CONTROLS -->
+    <!-- 1. CAPÇALERA I FILTRES -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
@@ -108,7 +252,7 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
         </p>
       </div>
 
-      <!-- Search & Filter Capsule -->
+      <!-- Barra de cerca -->
       <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-[#BFDBF7]/60 shadow-sm w-full md:w-auto">
         <div class="relative flex-1 group">
           <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
@@ -123,16 +267,17 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
       </div>
     </div>
 
-    <!-- State Handlers -->
-    <div v-if="error" class="bg-red-50 border border-red-100 p-4 rounded-xl text-red-600 text-sm italic">
-        {{ missatgeError }}
+    <!-- 2. GESTIÓ D'ESTATS (ERROR/CÀRREGA) -->
+    
+    <div v-if="isError === true" class="bg-red-50 border border-red-100 p-4 rounded-xl text-red-600 text-sm italic">
+        {{ textError }}
     </div>
 
-    <div v-if="pending" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
+    <div v-if="isPendent === true" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
         Carregant sessions d'assistència...
     </div>
 
-    <!-- 2. DATA TABLE CARD -->
+    <!-- 3. TAULA DE DADES -->
     <div v-else class="bg-white rounded-2xl border border-[#BFDBF7]/60 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -146,10 +291,10 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
             </tr>
           </thead>
           <tbody class="divide-y divide-[#BFDBF7]/10">
-            <template v-if="(paginatedSessions || []).length > 0">
-                <tr v-for="session in (paginatedSessions || [])" :key="session.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
+            <template v-if="paginatedSessions.length > 0">
+                <tr v-for="session in paginatedSessions" :key="session.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
                   
-                  <!-- TALLER / PROJECTE / ID -->
+                  <!-- Detall del taller -->
                   <td class="p-5 pl-8">
                     <div class="flex items-start gap-4">
                        <div class="w-10 h-10 rounded-lg bg-[#E1E5F2]/30 text-[#022B3A] flex items-center justify-center font-black text-[10px] border border-[#BFDBF7]/40 shrink-0">
@@ -171,7 +316,7 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
                     </div>
                   </td>
 
-                  <!-- UBICACIÓ -->
+                  <!-- Ubicació de la sessió -->
                   <td class="p-5">
                      <div class="flex items-center gap-2 text-[#022B3A]/60">
                         <MapPin :size="14" />
@@ -179,29 +324,29 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
                      </div>
                   </td>
 
-                  <!-- TRIMESTRE -->
+                  <!-- Trimestre assignat -->
                   <td class="p-5">
                      <span class="bg-[#F4F7FB] text-[#8E9AAF] text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border border-[#E1E5F2]/40">
                         {{ session.trimestre }}
                      </span>
                   </td>
 
-                  <!-- DOCENT -->
+                  <!-- Nom del docent -->
                   <td class="p-5">
                      <div class="flex items-center gap-2">
-                        <div :class="['w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold', session.docent === 'Pendent' ? 'bg-amber-100 text-amber-600' : 'bg-[#1F7A8C]/10 text-[#1F7A8C]']">
+                        <div :class="['w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold', getDocentIconStyles(session.docent)]">
                            <User :size="12" />
                         </div>
-                        <span :class="['text-[11px] font-bold', session.docent === 'Pendent' ? 'text-amber-600 italic' : 'text-[#022B3A]']">
+                        <span :class="['text-[11px] font-bold', getDocentTextStyles(session.docent)]">
                            {{ session.docent }}
                         </span>
                      </div>
                   </td>
 
-                  <!-- ACCIONS -->
+                  <!-- Botó de passar llista -->
                   <td class="p-5 pr-8 text-right">
                      <button 
-                       @click="goToAssistencia(session.id)"
+                       @click="handleGoToAttendance(session.id)"
                        class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-md bg-[#1F7A8C] text-white hover:bg-[#022B3A] shadow-[#1F7A8C]/20 hover:scale-105 active:scale-95"
                      >
                         <ClipboardCheck :size="14" :strokeWidth="2" />
@@ -220,14 +365,18 @@ function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = 
         </table>
       </div>
 
-      <!-- Footer / Pagination -->
-      <div v-if="(filteredSessions || []).length > 0" class="p-4 bg-[#E1E5F2]/10 border-t border-[#BFDBF7]/20 flex justify-between items-center px-8">
-         <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ (paginatedSessions || []).length }} de {{ (filteredSessions || []).length }} sessions</span>
-         <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+      <!-- Peu de taula amb paginació -->
+      <div v-if="filteredSessions.length > 0" class="p-4 bg-[#E1E5F2]/10 border-t border-[#BFDBF7]/20 flex justify-between items-center px-8">
+         <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ paginatedSessions.length }} de {{ filteredSessions.length }} sessions</span>
+         <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="handleGoToPage" />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Estils gestionats globalment amb Tailwind */
+</style>
 
 <style scoped>
 /* Tailwind handles the design */

@@ -270,34 +270,50 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { Search, LayoutGrid, List, Plus, MapPin, Clock, Edit3, Trash2 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Configuració i Serveis
 // ======================================
-const header = useHeaderStore();
-header.setHeaderAdmin();
+
+// 1. Configuració de la capçalera d'administrador
+const headerStore = useHeaderStore();
+headerStore.setHeaderAdmin();
+
+// 2. Cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// 3. Petició a l'API per obtenir centres (sense desestructuració)
+const opcionsCapçalera = {};
+if (tokenRef) {
+  opcionsCapçalera.Authorization = 'Bearer ' + tokenRef;
+}
+
+const resultatCentres = await useFetch('/api/admin/centres', {
+  headers: opcionsCapçalera
+});
+
+// 4. Petició a l'API per obtenir usuaris (sense desestructuració)
+const resultatUsuaris = await useFetch('/api/admin/usuaris', {
+  headers: opcionsCapçalera
+});
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Estat Reactiu del Component
 // ======================================
+
 const mostrarCentres = ref(true);
 const searchTerm = ref('');
 const isExiting = ref(false);
-const viewMode = ref('grid'); // 'grid' | 'list'
+const viewMode = ref('grid'); 
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch([searchTerm, mostrarCentres], () => { currentPage.value = 1; });
-
-const totalPages = computed(function () {
-  return Math.max(1, Math.ceil((filteredItems.value || []).length / itemsPerPage));
-});
-const paginatedItems = computed(function () {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return (filteredItems.value || []).slice(start, start + itemsPerPage);
-});
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
+// Estats per als modals de creació i edició
 const showFormCrearCentre = ref(false);
 const showFormCrearUsuari = ref(false);
 const showFormEditarCentre = ref(false);
@@ -307,140 +323,307 @@ const usuariIdEditar = ref(null);
 const showModalDetall = ref(false);
 const idDetallForModal = ref(null);
 
-const tokenRef = useCookie('authToken');
+// ======================================
+// Propietats Computades (Tractament de dades)
+// ======================================
 
-const respostaCentres = await useFetch('/api/admin/centres', {
-  headers: tokenRef.value ? { Authorization: 'Bearer ' + tokenRef.value } : {}
-});
-
-const respostaUsuaris = await useFetch('/api/admin/usuaris', {
-  headers: tokenRef.value ? { Authorization: 'Bearer ' + tokenRef.value } : {}
-});
-
+// 1. Llista base de centres processada
 const centresList = computed(function () {
-  let d = respostaCentres.data;
-  if (!d || !d.value) return [];
-  let arr = d.value;
-  let resultat = [];
-  for (let i = 0; i < arr.length; i++) {
-    let c = arr[i];
-    let ob = {};
-    ob.id = c.id;
-    ob.codi_centre = c.codi_centre;
-    ob.nom_centre = c.nom_centre;
-    ob.municipi = c.municipi;
-    ob.email_oficial = c.email_oficial;
+  let llistaOriginal = [];
+  if (resultatCentres.data) {
+    if (resultatCentres.data.value) {
+      llistaOriginal = resultatCentres.data.value;
+    }
+  }
+  
+  const resultat = [];
+  for (let i = 0; i < llistaOriginal.length; i++) {
+    const c = llistaOriginal[i];
+    const ob = {
+      id: c.id,
+      codi_centre: c.codi_centre,
+      nom_centre: c.nom_centre,
+      municipi: c.municipi,
+      email_oficial: c.email_oficial,
+      tallers: []
+    };
     if (c.tallers) {
       ob.tallers = c.tallers;
-    } else {
-      ob.tallers = [];
     }
     resultat.push(ob);
   }
   return resultat;
 });
 
+// 2. Llista base d'usuaris processada
 const usuarisList = computed(function () {
-  let d = respostaUsuaris.data;
-  if (!d || !d.value) return [];
-  let arr = d.value;
-  let resultat = [];
-  for (let i = 0; i < arr.length; i++) {
-    let u = arr[i];
-    let ob = {};
-    ob.id = u.id;
-    ob.email = u.email;
-    ob.rol = u.rol;
-    ob.nom_centre = u.nom_centre;
-    ob.ultim_acces = u.ultim_acces;
-    resultat.push(ob);
+  let llistaOriginalUsuaris = [];
+  if (resultatUsuaris.data) {
+    if (resultatUsuaris.data.value) {
+      llistaOriginalUsuaris = resultatUsuaris.data.value;
+    }
   }
-  return resultat;
+  
+  const resultatU = [];
+  for (let j = 0; j < llistaOriginalUsuaris.length; j++) {
+    const u = llistaOriginalUsuaris[j];
+    const obU = {
+      id: u.id,
+      email: u.email,
+      rol: u.rol,
+      nom_centre: u.nom_centre,
+      ultim_acces: u.ultim_acces
+    };
+    resultatU.push(obU);
+  }
+  return resultatU;
 });
 
+// 3. Filtre de centres segons cerca (Bucle for)
 const centresFiltrats = computed(function () {
-  let q = searchTerm.value;
-  if (q && q.toLowerCase) {
-    q = q.toLowerCase().trim();
-  } else {
-    q = '';
+  const query = searchTerm.value;
+  let tNeta = '';
+  if (query) {
+    tNeta = query.toLowerCase().trim();
   }
-  let llista = centresList.value;
-  let resultat = [];
-  for (let i = 0; i < llista.length; i++) {
-    let c = llista[i];
-    let nom = c.nom_centre ? c.nom_centre.toLowerCase() : '';
-    let codi = c.codi_centre ? c.codi_centre.toLowerCase() : '';
-    if (nom.indexOf(q) >= 0 || codi.indexOf(q) >= 0) {
-      resultat.push(c);
+  
+  const llistaC = centresList.value;
+  const resultatC = [];
+  
+  for (let k = 0; k < llistaC.length; k++) {
+    const ct = llistaC[k];
+    let nom = '';
+    if (ct.nom_centre) { nom = ct.nom_centre.toLowerCase(); }
+    
+    let codi = '';
+    if (ct.codi_centre) { codi = ct.codi_centre.toLowerCase(); }
+    
+    let coincideixC = false;
+    if (tNeta === '') {
+      coincideixC = true;
+    } else {
+      if (nom.indexOf(tNeta) !== -1) {
+        coincideixC = true;
+      } else if (codi.indexOf(tNeta) !== -1) {
+        coincideixC = true;
+      }
+    }
+    
+    if (coincideixC === true) {
+      resultatC.push(ct);
     }
   }
-  return resultat;
+  return resultatC;
 });
 
+// 4. Filtre d'usuaris segons cerca (Bucle for)
 const usuarisFiltrats = computed(function () {
-  let q = searchTerm.value;
-  if (q && q.toLowerCase) {
-    q = q.toLowerCase().trim();
-  } else {
-    q = '';
+  const queryU = searchTerm.value;
+  let tNetaU = '';
+  if (queryU) {
+    tNetaU = queryU.toLowerCase().trim();
   }
-  let llista = usuarisList.value;
-  let resultat = [];
-  for (let i = 0; i < llista.length; i++) {
-    let u = llista[i];
-    let email = u.email ? u.email.toLowerCase() : '';
-    if (email.indexOf(q) >= 0) {
-      resultat.push(u);
+  
+  const llistaU = usuarisList.value;
+  const resultatU = [];
+  
+  for (let m = 0; m < llistaU.length; m++) {
+    const us = llistaU[m];
+    let email = '';
+    if (us.email) { email = us.email.toLowerCase(); }
+    
+    let coincideixU = false;
+    if (tNetaU === '') {
+      coincideixU = true;
+    } else {
+      if (email.indexOf(tNetaU) !== -1) {
+        coincideixU = true;
+      }
+    }
+    
+    if (coincideixU === true) {
+      resultatU.push(us);
     }
   }
-  return resultat;
+  return resultatU;
 });
 
+// 5. Llista final d'ítems segons la pestanya activa
 const filteredItems = computed(function () {
-  if (mostrarCentres.value) return centresFiltrats.value;
-  return usuarisFiltrats.value;
-});
-
-const centresFiltratsLength = computed(function () {
-  return centresFiltrats.value.length;
-});
-
-const classePageExit = computed(function () {
-  if (isExiting.value) {
-    return 'page-exit';
+  if (mostrarCentres.value === true) {
+    return centresFiltrats.value;
   } else {
-    return '';
+    return usuarisFiltrats.value;
   }
 });
 
-function classeTab(tipus) {
-  const actiu = (tipus === 'centres' && mostrarCentres.value) || (tipus === 'usuaris' && !mostrarCentres.value);
-  return [
-    'px-5 py-2 rounded-lg text-[9px] font-black transition-all uppercase tracking-widest border',
-    actiu ? 'bg-[#022B3A] text-white border-white/30 shadow-lg shadow-[#022B3A]/10' : 'text-[#022B3A]/30 border-transparent hover:text-[#022B3A] hover:bg-[#E1E5F2]/50'
-  ].join(' ');
-}
+// 6. Càlcul del total de pàgines
+const totalPages = computed(function () {
+  const llistaFinal = filteredItems.value;
+  const total = llistaFinal.length;
+  let pagines = 1;
+  if (total > 0) {
+    pagines = Math.ceil(total / itemsPerPage);
+  }
+  return pagines;
+});
 
-function classeBotoView(mode) {
-  const actiu = viewMode.value === mode;
-  return [
-    'p-2 rounded-lg shadow-sm border transition-all',
-    actiu ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]'
-  ].join(' ');
-}
+// 7. Ítems de la pàgina actual (Sense .slice)
+const paginatedItems = computed(function () {
+  const llistaF = filteredItems.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const llistaPaginada = [];
+  for (let x = 0; x < llistaF.length; x++) {
+    if (x >= inici) {
+      if (x < fi) {
+        llistaPaginada.push(llistaF[x]);
+      }
+    }
+  }
+  return llistaPaginada;
+});
+
+// 8. Classe per a l'animació de sortida
+const classePageExit = computed(function () {
+  if (isExiting.value === true) {
+    return 'page-exit';
+  }
+  return '';
+});
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Vigilants (Watchers)
 // ======================================
 
-async function handleNavigation(id) {
-  idDetallForModal.value = id;
+// 1. Reiniciem a la pàgina 1 si canvia el filtre o la cerca
+watch([searchTerm, mostrarCentres], function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió d'estils i classes visuals ---
+
+function classeTab(tabActiu) {
+  let esAquestaTaba = false;
+  if (tabActiu === 'centres') {
+    if (mostrarCentres.value === true) {
+      esAquestaTaba = true;
+    }
+  } else if (tabActiu === 'usuaris') {
+    if (mostrarCentres.value === false) {
+      esAquestaTaba = true;
+    }
+  }
+  
+  let classes = 'px-5 py-2 rounded-lg text-[9px] font-black transition-all uppercase tracking-widest border ';
+  if (esAquestaTaba === true) {
+    classes = classes + 'bg-[#022B3A] text-white border-white/30 shadow-lg shadow-[#022B3A]/10';
+  } else {
+    classes = classes + 'text-[#022B3A]/30 border-transparent hover:text-[#022B3A] hover:bg-[#E1E5F2]/50';
+  }
+  return classes;
+}
+
+function classeBotoView(modeRef) {
+  let esActiu = false;
+  if (viewMode.value === modeRef) {
+    esActiu = true;
+  }
+  
+  let clasesBoto = 'p-2 rounded-lg shadow-sm border transition-all ';
+  if (esActiu === true) {
+    clasesBoto = clasesBoto + 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm';
+  } else {
+    clasesBoto = clasesBoto + 'text-[#022B3A]/20 border border-transparent hover:text-[#022B3A]';
+  }
+  return clasesBoto;
+}
+
+function getRoleStyles(rol) {
+  if (rol === 'ADMIN') { return 'bg-[#fb6107]/10 backdrop-blur-xl text-[#fb6107] border-[#fb6107]/20 shadow-sm'; }
+  if (rol === 'CENTRE') { return 'bg-[#7cb518]/10 backdrop-blur-xl text-[#7cb518] border-[#7cb518]/20 shadow-sm'; }
+  if (rol === 'PROFESSOR') { return 'bg-[#fbb02d]/15 backdrop-blur-xl text-[#fbb02d] border-[#fbb02d]/30 shadow-sm'; }
+  return 'bg-white/40 backdrop-blur-md text-[#022B3A] border-white/60 shadow-sm';
+}
+
+// B) --- Helpers de dades per al template ---
+
+function codiCentre(centreDada) {
+  if (centreDada.codi_centre) {
+    return centreDada.codi_centre;
+  }
+  return 'SENSE CODI';
+}
+
+function teTallers(centreO) {
+  if (centreO.tallers) {
+    if (centreO.tallers.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function comptarTallers(centreI) {
+  if (centreI.tallers) {
+    return centreI.tallers.length;
+  }
+  return 0;
+}
+
+function municipiCentre(cInput) {
+  if (cInput.municipi) {
+    return cInput.municipi;
+  }
+  return '—';
+}
+
+function emailCentre(ceInput) {
+  if (ceInput.email_oficial) {
+    return ceInput.email_oficial;
+  }
+  return '—';
+}
+
+function nomCentreUsuari(uInput) {
+  if (uInput.nom_centre) {
+    return uInput.nom_centre;
+  }
+  return '—';
+}
+
+function formatDate(dataStr) {
+  if (!dataStr) {
+    return 'Mai';
+  }
+  const dObject = new Date(dataStr);
+  if (isNaN(dObject.getTime())) {
+    return 'Mai';
+  }
+  return dObject.toLocaleDateString('ca-ES');
+}
+
+function clauUsuari(usuari, index) {
+  if (usuari.id) {
+    return usuari.id;
+  }
+  return 'usuari-index-' + String(index);
+}
+
+// C) --- Gestió d'accions (Navegació, Edició, Eliminació) ---
+
+async function handleNavigation(idC) {
+  idDetallForModal.value = idC;
   showModalDetall.value = true;
 }
 
 function handleEdit(id) {
-  if (mostrarCentres.value) {
+  if (mostrarCentres.value === true) {
     centreIdEditar.value = id;
     showFormEditarCentre.value = true;
   } else {
@@ -450,35 +633,59 @@ function handleEdit(id) {
 }
 
 async function handleDelete(id) {
-  const isCentre = mostrarCentres.value;
-  const txt = isCentre ? "Estàs segur que vols eliminar aquest centre?" : "Estàs segur que vols eliminar aquest usuari?";
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: txt, icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
+  const ésCentre = mostrarCentres.value;
+  let textPregunta = "Estàs segur que vols eliminar aquest usuari?";
+  if (ésCentre === true) {
+    textPregunta = "Estàs segur que vols eliminar aquest centre?";
+  }
 
-  const tok = tokenRef.value;
+  const swalAsk = useSwal();
+  const resConfirm = await swalAsk.fire({ 
+    title: 'Confirmar', 
+    text: textPregunta, 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  if (resConfirm.isConfirmed === false) {
+    return;
+  }
 
   try {
-    if (isCentre) {
+    const headersDel = {};
+    if (tokenRef) {
+      headersDel.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    if (ésCentre === true) {
       await $fetch('/api/admin/centres/' + id, {
         method: 'DELETE',
-        headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+        headers: headersDel
       });
-      useSwal().fire({ title: 'Fet', text: 'Centre eliminat.', icon: 'success' }).then(() => { respostaCentres.refresh(); });
+      swalAsk.fire({ title: 'Fet', text: 'Centre eliminat correctament.', icon: 'success' });
+      resultatCentres.refresh();
     } else {
       await $fetch('/api/admin/usuaris/' + id, {
         method: 'DELETE',
-        headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+        headers: headersDel
       });
-      useSwal().fire({ title: 'Fet', text: 'Usuari eliminat.', icon: 'success' }).then(() => { respostaUsuaris.refresh(); });
+      swalAsk.fire({ title: 'Fet', text: 'Usuari eliminat correctament.', icon: 'success' });
+      resultatUsuaris.refresh();
     }
-  } catch (e) {
-    const msg = (e?.data?.message) || (e?.message) || 'Error en eliminar.';
-    useSwal().fire({ title: 'Error', text: msg, icon: 'error' });
+  } catch (errDel) {
+    let msgErrorDel = 'Error en l\'eliminació.';
+    if (errDel.data) {
+      if (errDel.data.message) {
+        msgErrorDel = errDel.data.message;
+      }
+    }
+    swalAsk.fire({ title: 'Error', text: msgErrorDel, icon: 'error' });
   }
 }
 
 function handleAddNew() {
-  if (mostrarCentres.value) {
+  if (mostrarCentres.value === true) {
     showFormCrearCentre.value = true;
   } else {
     showFormCrearUsuari.value = true;
@@ -487,109 +694,34 @@ function handleAddNew() {
 
 function onCentreCreated() {
   showFormCrearCentre.value = false;
-  respostaCentres.refresh();
-  respostaUsuaris.refresh();
+  resultatCentres.refresh();
+  resultatUsuaris.refresh();
 }
 
 function onCentreUpdated() {
   showFormEditarCentre.value = false;
   centreIdEditar.value = null;
-  respostaCentres.refresh();
-  respostaUsuaris.refresh();
+  resultatCentres.refresh();
+  resultatUsuaris.refresh();
 }
 
 function onUsuariCreated() {
   showFormCrearUsuari.value = false;
-  respostaUsuaris.refresh();
+  resultatUsuaris.refresh();
 }
 
 function onUsuariUpdated() {
   showFormEditarUsuari.value = false;
   usuariIdEditar.value = null;
-  respostaUsuaris.refresh();
+  resultatUsuaris.refresh();
 }
 
-function codiCentre(centre) {
-  if (centre.codi_centre) {
-    return centre.codi_centre;
-  } else {
-    return 'SENSE CODI';
-  }
-}
-
-function teTallers(centre) {
-  if (centre.tallers && centre.tallers.length > 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function comptarTallers(centre) {
-  if (centre.tallers) {
-    return centre.tallers.length;
-  } else {
-    return 0;
-  }
-}
-
-function municipiCentre(centre) {
-  if (centre.municipi) {
-    return centre.municipi;
-  } else {
-    return '—';
-  }
-}
-
-function emailCentre(centre) {
-  if (centre.email_oficial) {
-    return centre.email_oficial;
-  } else {
-    return '—';
-  }
-}
-
-function nomCentreUsuari(user) {
-  if (user.nom_centre) {
-    return user.nom_centre;
-  } else {
-    return '—';
-  }
-}
-
-function ultimAcces(user) {
-  if (user.ultim_acces) {
-    return user.ultim_acces;
-  } else {
-    return 'Mai';
-  }
-}
-
-function formatDate(dateString) {
-  if (!dateString) return 'Mai';
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return 'Mai';
-    return d.toLocaleDateString('ca-ES');
-  } catch {
-    return 'Mai';
-  }
-}
-
-function getRoleStyles(role) {
-  switch (role) {
-    case 'ADMIN': return 'bg-[#fb6107]/10 backdrop-blur-xl text-[#fb6107] border-[#fb6107]/20 shadow-sm';
-    case 'CENTRE': return 'bg-[#7cb518]/10 backdrop-blur-xl text-[#7cb518] border-[#7cb518]/20 shadow-sm';
-    case 'PROFESSOR': return 'bg-[#fbb02d]/15 backdrop-blur-xl text-[#fbb02d] border-[#fbb02d]/30 shadow-sm';
-    default: return 'bg-white/40 backdrop-blur-md text-[#022B3A] border-white/60 shadow-sm';
-  }
-}
-
-function clauUsuari(user, idx) {
-  if (user && user.id) {
-    return user.id;
-  } else {
-    return 'user-' + String(idx);
+function goToPage(p) {
+  const maxP = totalPages.value;
+  if (p >= 1) {
+    if (p <= maxP) {
+      currentPage.value = p;
+    }
   }
 }
 </script>

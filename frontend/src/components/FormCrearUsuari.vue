@@ -182,6 +182,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   User,
   Mail,
@@ -194,14 +197,23 @@ import {
   X
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Propietats que rep el component
 const props = defineProps({
-  centres: { type: Array, default: () => [] }
+  centres: { type: Array, default: function () { return []; } }
 });
 
+// 2. Definim els esdeveniments que emet el component
 const emit = defineEmits(['close', 'created']);
 
-const tokenRef = useCookie('authToken');
+// 3. Obtenim la cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
 
+// 4. Estat reactiu del formulari
 const form = ref({
   email: '',
   password: '',
@@ -211,47 +223,128 @@ const form = ref({
   cognoms: ''
 });
 
+// 5. Estats de control de la interfície i errors
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
 const fieldErrors = ref({});
 
-const centres = computed(() => Array.isArray(props.centres) ? props.centres : []);
+// 6. Propietat computada per assegurar que centres sigui sempre una llista
+const centres = computed(function () {
+  let llistaCentres = props.centres;
+  if (Array.isArray(llistaCentres) === false) {
+    llistaCentres = [];
+  }
+  return llistaCentres;
+});
 
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Validació de format de correu electrònic ---
 function validEmail(s) {
-  const v = (s || '').trim();
-  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+  let text = '';
+  if (s) {
+    text = s.trim();
+  }
+  
+  let esValid = false;
+  if (text.length > 0) {
+    if (text.includes('@')) {
+      if (text.includes('.')) {
+        const indexArrova = text.indexOf('@');
+        const indexPunt = text.indexOf('.');
+        if (indexPunt > indexArrova + 1) {
+          esValid = true;
+        }
+      }
+    }
+  }
+  return esValid;
 }
 
+// B) --- Validació d'un camp específic ---
 function validateField(key) {
-  const v = form.value;
+  const dadesForm = form.value;
+  const errors = fieldErrors.value;
+
+  // 1. Validació de l'email
   if (key === 'email') {
-    const e = (v.email || '').trim();
-    if (!e) { fieldErrors.value['email'] = "L'email és obligatori."; return; }
-    if (!validEmail(e)) { fieldErrors.value['email'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
-    delete fieldErrors.value['email'];
-  } else if (key === 'password') {
-    const p = v.password || '';
-    if (!p) { fieldErrors.value['password'] = "La contrasenya és obligatòria."; return; }
-    if (p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
-    delete fieldErrors.value['password'];
-  } else if (key === 'rol') {
-    if (v.rol !== 'ADMIN' && v.rol !== 'PROFESSOR') { fieldErrors.value['rol'] = "Heu de seleccionar un rol (Administrador o Professor)."; return; }
-    delete fieldErrors.value['rol'];
-  } else if (key === 'centre_id') {
-    if (v.rol === 'PROFESSOR' && !v.centre_id) { fieldErrors.value['centre_id'] = "Cal seleccionar un centre per a un professor."; return; }
-    delete fieldErrors.value['centre_id'];
+    let emailStr = dadesForm.email;
+    if (!emailStr) {
+      errors.email = "L'email és obligatori.";
+    } else {
+      let net = emailStr.trim();
+      if (!net) {
+        errors.email = "L'email és obligatori.";
+      } else {
+        const esCorrecte = validEmail(net);
+        if (esCorrecte === false) {
+          errors.email = "Introduïu un email vàlid (ha de contenir @ i un punt).";
+        } else {
+          delete errors.email;
+        }
+      }
+    }
+  } 
+  
+  // 2. Validació de la contrasenya
+  else if (key === 'password') {
+    let pwd = dadesForm.password;
+    if (!pwd) {
+      errors.password = "La contrasenya és obligatòria.";
+    } else if (pwd.length < 6) {
+      errors.password = "La contrasenya ha de tenir almenys 6 caràcters.";
+    } else {
+      delete errors.password;
+    }
+  } 
+  
+  // 3. Validació del rol
+  else if (key === 'rol') {
+    const r = dadesForm.rol;
+    if (r !== 'ADMIN') {
+      if (r !== 'PROFESSOR') {
+        errors.rol = "Heu de seleccionar un rol (Administrador o Professor).";
+      } else {
+        delete errors.rol;
+      }
+    } else {
+      delete errors.rol;
+    }
+  } 
+  
+  // 4. Validació del centre (només per a professors)
+  else if (key === 'centre_id') {
+    if (dadesForm.rol === 'PROFESSOR') {
+      if (!dadesForm.centre_id) {
+        errors.centre_id = "Cal seleccionar un centre per a un professor.";
+      } else {
+        delete errors.centre_id;
+      }
+    } else {
+      delete errors.centre_id;
+    }
   }
 }
 
+// C) --- Validació de tot el formulari ---
 function validateAll() {
   validateField('email');
   validateField('password');
   validateField('rol');
   validateField('centre_id');
-  return Object.keys(fieldErrors.value).length === 0;
+  
+  const llistaErrors = Object.keys(fieldErrors.value);
+  let esValid = false;
+  if (llistaErrors.length === 0) {
+    esValid = true;
+  }
+  return esValid;
 }
 
+// D) --- Reinicialització del formulari ---
 function resetForm() {
   form.value.email = '';
   form.value.password = '';
@@ -264,40 +357,83 @@ function resetForm() {
   fieldErrors.value = {};
 }
 
+// E) --- Enviament de les dades del nou usuari a l'API ---
 async function submitForm() {
+  // 1. Netegem estats previs
   error.value = '';
   message.value = '';
-  if (!validateAll()) return;
+  
+  // 2. Validem el formulari
+  const esFormuValid = validateAll();
+  if (esFormuValid === false) {
+    return;
+  }
 
-  const email = (form.value.email || '').trim().toLowerCase();
-  const pwd = form.value.password || '';
-
+  const dades = form.value;
   loading.value = true;
+  
   try {
+    // 3. Preparem l'objecte per a la petició
+    let emailFinal = '';
+    if (dades.email) {
+      emailFinal = dades.email.trim().toLowerCase();
+    }
+    
     const payload = {
-      email,
-      password: pwd,
-      rol: form.value.rol,
-      nom: (form.value.nom || '').trim() || null,
-      cognoms: (form.value.cognoms || '').trim() || null
+      email: emailFinal,
+      password: dades.password,
+      rol: dades.rol,
+      nom: null,
+      cognoms: null
     };
-    if (form.value.rol === 'PROFESSOR') {
-      payload.centre_id = Number(form.value.centre_id) || null;
+    
+    if (dades.nom) { payload.nom = dades.nom.trim(); }
+    if (dades.cognoms) { payload.cognoms = dades.cognoms.trim(); }
+    
+    if (dades.rol === 'PROFESSOR') {
+      if (dades.centre_id) {
+        payload.centre_id = Number(dades.centre_id);
+      }
     }
 
-    const tok = tokenRef.value;
+    // 4. Executem la crida POST
+    const tok = tokenRef;
+    const headers = {};
+    if (tok) {
+      headers.Authorization = 'Bearer ' + tok;
+    }
+
     await $fetch('/api/admin/usuaris', {
       method: 'POST',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {},
+      headers: headers,
       body: payload
     });
 
-    useSwal().fire({ title: 'Fet', text: 'Usuari creat correctament.', icon: 'success' }).then(() => { resetForm(); emit('created'); });
-  } catch (err) {
-    console.error('Error creant usuari:', err);
-    const msg = err?.data?.message || err?.message || "Error en crear l'usuari.";
-    error.value = msg;
+    // 5. Notificació d'èxit
+    const swal = useSwal();
+    swal.fire({ 
+      title: 'Fet', 
+      text: 'Usuari creat correctament.', 
+      icon: 'success' 
+    }).then(function () { 
+      resetForm(); 
+      emit('created'); 
+    });
+    
+  } catch (errPeticio) {
+    // 6. Gestió de l'error del servidor
+    console.error('Error creant usuari:', errPeticio);
+    let msgError = "Error en crear l'usuari.";
+    if (errPeticio.data) {
+      if (errPeticio.data.message) {
+        msgError = errPeticio.data.message;
+      }
+    } else if (errPeticio.message) {
+      msgError = errPeticio.message;
+    }
+    error.value = msgError;
   } finally {
+    // 7. Finalitzem càrrega
     loading.value = false;
   }
 }

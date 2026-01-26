@@ -247,6 +247,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   Building2,
   MapPin,
@@ -261,10 +264,18 @@ import {
   X
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Definim els esdeveniments que emet el component
 const emit = defineEmits(['close', 'created']);
 
-const tokenRef = useCookie('authToken');
+// 2. Obtenim la cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
 
+// 3. Estat reactiu del formulari
 const form = ref({
   codi_centre: '',
   nom_centre: '',
@@ -278,52 +289,158 @@ const form = ref({
   password: ''
 });
 
+// 4. Estats de control de la interfície
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
 const fieldErrors = ref({});
 
-const mostrarNomManual = computed(() => form.value.nom_centre === 'Altres');
+// 5. Propietat computada per mostrar el camp de nom manual
+const mostrarNomManual = computed(function () {
+  const nom = form.value.nom_centre;
+  let esAltres = false;
+  if (nom === 'Altres') {
+    esAltres = true;
+  }
+  return esAltres;
+});
 
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Validació de format de correu electrònic ---
 function validEmail(s) {
-  const v = (s || '').trim();
-  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+  // 1. Verifiquem que el text existeixi
+  let text = '';
+  if (s) {
+    text = s.trim();
+  }
+  
+  // 2. Validem regles bàsiques de format
+  let esValid = false;
+  if (text.length > 0) {
+    if (text.includes('@')) {
+      if (text.includes('.')) {
+        const indexArrova = text.indexOf('@');
+        const indexPunt = text.indexOf('.');
+        if (indexPunt > indexArrova + 1) {
+          esValid = true;
+        }
+      }
+    }
+  }
+  return esValid;
 }
 
+// B) --- Validació d'un camp específic ---
 function validateField(key) {
-  const v = form.value;
+  const dades = form.value;
+  const errors = fieldErrors.value;
+
+  // 1. Validació del codi de centre
   if (key === 'codi_centre') {
-    if (!(v.codi_centre || '').trim()) { fieldErrors.value['codi_centre'] = "El codi del centre és obligatori."; return; }
-    delete fieldErrors.value['codi_centre'];
-  } else if (key === 'nom_centre') {
-    if (!(v.nom_centre || '').trim()) { fieldErrors.value['nom_centre'] = "Seleccioneu un nom de centre."; return; }
-    delete fieldErrors.value['nom_centre'];
-  } else if (key === 'nom_centre_manual') {
-    if (v.nom_centre === 'Altres' && !(v.nom_centre_manual || '').trim()) { fieldErrors.value['nom_centre_manual'] = "Introduïu el nom del centre (manual)."; return; }
-    delete fieldErrors.value['nom_centre_manual'];
-  } else if (key === 'email_coordinador') {
-    const e = (v.email_coordinador || '').trim();
-    if (!e) { fieldErrors.value['email_coordinador'] = "L'email del coordinador és obligatori."; return; }
-    if (!validEmail(e)) { fieldErrors.value['email_coordinador'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
-    delete fieldErrors.value['email_coordinador'];
-  } else if (key === 'password') {
-    const p = v.password || '';
-    if (!p) { fieldErrors.value['password'] = "La contrasenya és obligatòria."; return; }
-    if (p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
-    delete fieldErrors.value['password'];
+    let codi = dades.codi_centre;
+    if (!codi) {
+      errors.codi_centre = "El codi del centre és obligatori.";
+    } else {
+      let net = codi.trim();
+      if (!net) {
+        errors.codi_centre = "El codi del centre és obligatori.";
+      } else {
+        delete errors.codi_centre;
+      }
+    }
+  } 
+  
+  // 2. Validació del nom de centre seleccionat
+  else if (key === 'nom_centre') {
+    let nom = dades.nom_centre;
+    if (!nom) {
+      errors.nom_centre = "Seleccioneu un nom de centre.";
+    } else {
+      let net = nom.trim();
+      if (!net) {
+        errors.nom_centre = "Seleccioneu un nom de centre.";
+      } else {
+        delete errors.nom_centre;
+      }
+    }
+  } 
+  
+  // 3. Validació del nom manual (si s'ha triat 'Altres')
+  else if (key === 'nom_centre_manual') {
+    if (dades.nom_centre === 'Altres') {
+      let manual = dades.nom_centre_manual;
+      if (!manual) {
+        errors.nom_centre_manual = "Introduïu el nom del centre (manual).";
+      } else {
+        let net = manual.trim();
+        if (!net) {
+          errors.nom_centre_manual = "Introduïu el nom del centre (manual).";
+        } else {
+          delete errors.nom_centre_manual;
+        }
+      }
+    } else {
+      delete errors.nom_centre_manual;
+    }
+  } 
+  
+  // 4. Validació de l'email del coordinador
+  else if (key === 'email_coordinador') {
+    let email = dades.email_coordinador;
+    if (!email) {
+      errors.email_coordinador = "L'email del coordinador és obligatori.";
+    } else {
+      let net = email.trim();
+      if (!net) {
+        errors.email_coordinador = "L'email del coordinador és obligatori.";
+      } else {
+        const esCorrecte = validEmail(net);
+        if (esCorrecte === false) {
+           errors.email_coordinador = "Introduïu un email vàlid (ha de contenir @ i un punt).";
+        } else {
+          delete errors.email_coordinador;
+        }
+      }
+    }
+  } 
+  
+  // 5. Validació de la contrasenya
+  else if (key === 'password') {
+    let contrasenya = dades.password;
+    if (!contrasenya) {
+      errors.password = "La contrasenya és obligatòria.";
+    } else if (contrasenya.length < 6) {
+      errors.password = "La contrasenya ha de tenir almenys 6 caràcters.";
+    } else {
+      delete errors.password;
+    }
   }
 }
 
+// C) --- Validació de tot el formulari ---
 function validateAll() {
+  // 1. Cridem a validar cada camp
   validateField('codi_centre');
   validateField('nom_centre');
   validateField('nom_centre_manual');
   validateField('email_coordinador');
   validateField('password');
-  return Object.keys(fieldErrors.value).length === 0;
+  
+  // 2. Comprovem si hi ha cap clau d'error
+  const llistaErrors = Object.keys(fieldErrors.value);
+  let esValid = false;
+  if (llistaErrors.length === 0) {
+    esValid = true;
+  }
+  return esValid;
 }
 
+// D) --- Reinicialització del formulari ---
 function resetForm() {
+  // 1. Netegem els camps del model
   form.value.codi_centre = '';
   form.value.nom_centre = '';
   form.value.nom_centre_manual = '';
@@ -334,48 +451,100 @@ function resetForm() {
   form.value.nom_coordinador = '';
   form.value.email_coordinador = '';
   form.value.password = '';
+  
+  // 2. Netegem estats de missatges
   message.value = '';
   error.value = '';
   fieldErrors.value = {};
 }
 
+// E) --- Enviament de les dades al servidor ---
 async function submitForm() {
+  // 1. Netegem alertes prèvies
   error.value = '';
   message.value = '';
 
-  const nomFinal = form.value.nom_centre === 'Altres' 
-    ? (form.value.nom_centre_manual || '').trim() 
-    : (form.value.nom_centre || '').trim();
+  // 2. Determinem el nom final del centre
+  let nomFinal = '';
+  const dadesForm = form.value;
+  if (dadesForm.nom_centre === 'Altres') {
+    if (dadesForm.nom_centre_manual) {
+      nomFinal = dadesForm.nom_centre_manual.trim();
+    }
+  } else {
+    if (dadesForm.nom_centre) {
+      nomFinal = dadesForm.nom_centre.trim();
+    }
+  }
 
-  if (!validateAll()) return;
+  // 3. Validem tot el formulari abans d'enviar
+  const esValid = validateAll();
+  if (esValid === false) {
+    return;
+  }
 
+  // 4. Iniciem procés de càrrega
   loading.value = true;
+  
   try {
+    // 5. Preparem el paquet de dades
     const payload = {
-      codi_centre: form.value.codi_centre.trim(),
+      codi_centre: dadesForm.codi_centre.trim(),
       nom_centre: nomFinal,
-      email_oficial: form.value.email_oficial?.trim() || null,
-      adreca: form.value.adreca?.trim() || null,
-      municipi: form.value.municipi?.trim() || null,
-      telefon: form.value.telefon?.trim() || null,
-      nom_coordinador: form.value.nom_coordinador?.trim() || null,
-      email_coordinador: (form.value.email_coordinador || '').trim(),
-      password: form.value.password || ''
+      email_oficial: null,
+      adreca: null,
+      municipi: null,
+      telefon: null,
+      nom_coordinador: null,
+      email_coordinador: dadesForm.email_coordinador.trim(),
+      password: dadesForm.password
     };
+    
+    // Omplim dades opcionals si n'hi ha
+    if (dadesForm.email_oficial) { payload.email_oficial = dadesForm.email_oficial.trim(); }
+    if (dadesForm.adreca) { payload.adreca = dadesForm.adreca.trim(); }
+    if (dadesForm.municipi) { payload.municipi = dadesForm.municipi.trim(); }
+    if (dadesForm.telefon) { payload.telefon = dadesForm.telefon.trim(); }
+    if (dadesForm.nom_coordinador) { payload.nom_coordinador = dadesForm.nom_coordinador.trim(); }
 
-    const tok = tokenRef.value;
+    // 6. Fem la petició a l'API
+    const tok = tokenRef;
+    const opcionsCapçalera = {};
+    if (tok) {
+      opcionsCapçalera.Authorization = 'Bearer ' + tok;
+    }
+
     await $fetch('/api/admin/centres', {
       method: 'POST',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {},
+      headers: opcionsCapçalera,
       body: payload
     });
 
-    useSwal().fire({ title: 'Fet', text: 'Centre creat correctament.', icon: 'success' }).then(() => { resetForm(); emit('created'); });
-  } catch (err) {
-    console.error('Error creant centre:', err);
-    const msg = err?.data?.message || err?.message || 'Error en crear el centre.';
-    error.value = msg;
+    // 7. Mostrem missatge d'èxit i tanquem
+    const swal = useSwal();
+    swal.fire({ 
+      title: 'Fet', 
+      text: 'Centre creat correctament.', 
+      icon: 'success' 
+    }).then(function () { 
+      resetForm(); 
+      emit('created'); 
+    });
+    
+  } catch (errPeticio) {
+    // 8. Gestionem l'error del servidor
+    console.error('Error creant centre:', errPeticio);
+    let missatgeError = 'Error en crear el centre.';
+    if (errPeticio.data) {
+      if (errPeticio.data.message) {
+        missatgeError = errPeticio.data.message;
+      }
+    } else if (errPeticio.message) {
+      missatgeError = errPeticio.message;
+    }
+    error.value = missatgeError;
   } finally {
+    // 9. Finalitzem l'estat de càrrega
     loading.value = false;
   }
 }

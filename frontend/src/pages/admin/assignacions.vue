@@ -1,7 +1,9 @@
 <template>
+  <!-- 1. Contenidor principal de la pàgina -->
   <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
     
-    <!-- 1. Header Section -->
+    <!-- 2. Secció de la capçalera -->
+    <!-- 1. Títol i descripció de la secció de validació -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
@@ -13,41 +15,47 @@
       </div>
     </div>
 
-    <!-- 2. KPI Cards -->
+    <!-- 3. Targetes d'indicadors clau (KPI) -->
+    <!-- 1. Graella de targetes amb les mètriques -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <!-- Targeta de sol·licituds pendents -->
        <div class="bg-white p-6 rounded-2xl border border-[#BFDBF7] shadow-sm flex items-center gap-5">
           <div class="w-12 h-12 rounded-xl bg-[#fb6107]/10 text-[#fb6107] flex items-center justify-center">
              <Clock :size="24" />
           </div>
           <div>
-             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ solicitudes.filter(s => (s.estat || '').toLowerCase() === 'pendent').length }}</p>
+             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ totalPendents }}</p>
              <p class="text-[10px] font-bold text-[#022B3A]/40 uppercase tracking-widest mt-1">Pendents de validar</p>
           </div>
        </div>
        
+       <!-- Targeta de sol·licituds acceptades -->
        <div class="bg-white p-6 rounded-2xl border border-[#BFDBF7] shadow-sm flex items-center gap-5">
           <div class="w-12 h-12 rounded-xl bg-[#1F7A8C]/10 text-[#1F7A8C] flex items-center justify-center">
              <Check :size="24" :strokeWidth="3" />
           </div>
           <div>
-             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ solicitudes.filter(s => (s.estat || '').toLowerCase() === 'acceptada').length }}</p>
+             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ totalAcceptats }}</p>
              <p class="text-[10px] font-bold text-[#022B3A]/40 uppercase tracking-widest mt-1">Acceptats Total</p>
           </div>
        </div>
 
+       <!-- Targeta del total de sol·licituds -->
        <div class="bg-white p-6 rounded-2xl border border-[#BFDBF7] shadow-sm flex items-center gap-5">
           <div class="w-12 h-12 rounded-xl bg-[#022B3A]/5 text-[#022B3A]/40 flex items-center justify-center">
              <FileText :size="24" />
           </div>
           <div>
-             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ solicitudes.length }}</p>
+             <p class="text-3xl font-black text-[#022B3A] leading-none">{{ totalPeticions }}</p>
              <p class="text-[10px] font-bold text-[#022B3A]/40 uppercase tracking-widest mt-1">Total Sol·licituds</p>
           </div>
        </div>
     </div>
 
-    <!-- 3. Control Bar -->
+    <!-- 4. Barra de controls (Cerca i modes de vista) -->
+    <!-- 1. Contenidor blanc que agrupa els controls -->
     <div class="bg-white p-2 rounded-xl border border-[#BFDBF7]/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <!-- Quadre de cerca -->
       <div class="relative flex-1 max-w-lg group w-full ml-1">
         <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
         <input 
@@ -58,23 +66,28 @@
         />
       </div>
 
+      <!-- Botons de canvi de vista -->
       <div class="flex items-center gap-2 bg-[#E1E5F2]/30 p-1 rounded-lg border border-[#BFDBF7]/20 w-full sm:w-auto justify-center sm:justify-end">
         <div class="flex items-center gap-1 pr-2 border-r border-[#BFDBF7]/30">
+          <!-- Botó Vista de Graella -->
           <button 
             @click="viewMode = 'grid'"
-            :class="[
-              'p-2 rounded-md shadow-sm border transition-all',
-              viewMode === 'grid' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]'
-            ]"
+            class="p-2 rounded-md shadow-sm border transition-all"
+            :class="{
+              'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm': viewMode === 'grid',
+              'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]': viewMode !== 'grid'
+            }"
           >
             <LayoutGrid :size="14" />
           </button>
+          <!-- Botó Vista de Llista -->
           <button 
             @click="viewMode = 'list'"
-            :class="[
-              'p-2 rounded-md shadow-sm border transition-all',
-              viewMode === 'list' ? 'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm' : 'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]'
-            ]"
+            class="p-2 rounded-md shadow-sm border transition-all"
+            :class="{
+              'text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm': viewMode === 'list',
+              'text-[#022B3A]/20 border-transparent hover:text-[#022B3A]': viewMode !== 'list'
+            }"
           >
             <List :size="14" />
           </button>
@@ -82,18 +95,27 @@
       </div>
     </div>
 
-    <!-- 4. Requests Content -->
-    <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
+    <!-- 5. Contingut de les sol·licituds -->
+    <!-- 1. Contenidor amb disposició dinàmica segons el mode de vista -->
+    <div 
+      :class="{
+        'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6': viewMode === 'grid',
+        'flex flex-col gap-3': viewMode !== 'grid'
+      }"
+    >
+      <!-- Bucle per a cada sol·licitud paginada -->
       <template v-for="req in paginatedRequests" :key="req.id">
         
-        <!-- GRID VIEW -->
+        <!-- VISTA DE GRAELLA -->
+        <!-- 1. Targeta individual en mode graella -->
         <div 
           v-if="viewMode === 'grid'"
           class="bg-white rounded-2xl border border-[#E1E5F2] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-400 group flex flex-col h-full overflow-hidden relative"
         >
-          <!-- Status Line -->
+          <!-- Línia decorativa d'estat superior -->
           <div class="absolute top-0 left-0 right-0 h-1 bg-[#fb6107]"></div>
 
+          <!-- Capçalera de la targeta (Codi i Data) -->
           <div class="p-6 pb-4 flex justify-between items-start">
             <span class="px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.1em] border bg-[#F4F7FB] text-[#022B3A]/60 border-[#E1E5F2]">
               {{ req.code }}
@@ -104,16 +126,19 @@
             </div>
           </div>
 
+          <!-- Informació central del centre -->
           <div class="px-6 pb-6 flex-1">
             <h3 class="text-xl font-black text-[#022B3A] mb-2 leading-tight group-hover:text-[#1F7A8C] transition-colors">
               {{ req.centerName }}
             </h3>
             
+            <!-- Etiqueta de Nou Registre si escau -->
             <div v-if="req.isFirstTime" class="inline-flex items-center gap-2 bg-[#fb6107]/10 px-3 py-1.5 rounded-lg border border-[#fb6107]/20 mb-6">
                  <Building2 :size="12" class="text-[#fb6107]" />
                  <span class="text-[9px] font-black text-[#fb6107] uppercase tracking-widest">Nou Registre</span>
             </div>
 
+            <!-- Detalls de contacte i coordinador -->
             <div class="space-y-4">
               <div class="flex items-center justify-between border-b border-[#F1F4F9] pb-2">
                 <div class="flex items-center gap-2 text-[#B8C0CC]">
@@ -139,6 +164,7 @@
             </div>
           </div>
 
+          <!-- Accions de la targeta (Validar/Rebutjar) -->
           <div class="px-6 py-4 bg-[#F9FAFC] border-t border-[#F1F4F9] flex items-center gap-3 mt-auto">
             <button 
               @click="handleAccept(req.id)"
@@ -156,13 +182,16 @@
           </div>
         </div>
 
-        <!-- LIST VIEW -->
+        <!-- VISTA DE LLISTA -->
+        <!-- 1. Fila individual en mode llista -->
         <div 
           v-else
           class="bg-white rounded-xl border border-[#E1E5F2] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8 hover:shadow-lg transition-all hover:border-[#BFDBF7] group relative overflow-hidden"
         >
+          <!-- Línia lateral decorativa -->
           <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#fb6107]"></div>
           
+          <!-- Informació principal i de contacte -->
           <div class="flex items-center gap-4 flex-1 min-w-0 pl-4">
             <div class="w-10 h-10 rounded-lg bg-[#fb6107]/10 text-[#fb6107] flex items-center justify-center font-black text-[10px] uppercase border border-[#fb6107]/20 shrink-0">
                 <Building2 :size="16" />
@@ -177,6 +206,7 @@
             </div>
           </div>
 
+          <!-- Detalls secundaris (Codi i Data) -->
           <div class="hidden lg:flex items-center gap-8 flex-shrink-0">
             <div class="flex flex-col items-end min-w-[80px]">
               <span class="text-[9px] font-black text-[#B8C0CC] uppercase tracking-widest">Codi</span>
@@ -188,6 +218,7 @@
             </div>
           </div>
 
+          <!-- Botons d'acció en llista -->
           <div class="flex items-center justify-end gap-3 md:border-l md:border-[#F1F4F9] md:pl-6">
             <button 
               @click="handleAccept(req.id)"
@@ -206,7 +237,8 @@
 
       </template>
 
-      <!-- Empty State -->
+      <!-- Estat buit -->
+      <!-- 1. Missatge que es mostra quan no hi ha sol·licituds pendents -->
       <div v-if="filteredRequests.length === 0" class="col-span-full p-16 text-center border-2 border-dashed border-[#BFDBF7] rounded-3xl bg-[#E1E5F2]/10 flex flex-col items-center justify-center">
          <div class="w-16 h-16 bg-[#BFDBF7]/30 rounded-full flex items-center justify-center mb-4 text-[#022B3A]/30">
             <ShieldAlert :size="32" />
@@ -216,6 +248,8 @@
       </div>
     </div>
 
+    <!-- 6. Paginació -->
+    <!-- 1. Control de navegació per pàgines -->
     <div class="mt-8 flex justify-center">
       <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
     </div>
@@ -224,17 +258,18 @@
 
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+// ======================================
+// Importem les dependències
+// ======================================
+import { ref, computed, onMounted, watch } from 'vue';
 import { 
   ShieldAlert, 
-  Calendar, 
   Clock, 
   Check, 
   FileText, 
   Search, 
   LayoutGrid, 
   List, 
-  Filter, 
   Building2, 
   User, 
   Mail, 
@@ -243,133 +278,398 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Definició de l'Esquema
 // ======================================
-const token = useCookie('authToken').value;
+
+// 1. Estat reactiu de la llista de sol·licituds
+const solicitudes = ref([]);
+
+// 2. Estat del carregador
+const loading = ref(true);
+
+// 3. Cadena de text per a la cerca
+const searchQuery = ref('');
+
+// 4. Mode de visualització (graella o llista)
+const viewMode = ref('grid');
+
+// 5. Pàgina actual pel paginador
+const currentPage = ref(1);
+
+// 6. Elements per pàgina
+const itemsPerPage = 10;
+
+// 7. Obtenim la cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const token = tokenCookie.value;
+
+// 8. Instància del router
 const router = useRouter();
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Declaracions de funcions
 // ======================================
-const solicitudes = ref([]);
-const loading = ref(true);
-const searchQuery = ref('');
-const viewMode = ref('grid');
-const currentPage = ref(1);
-const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredRequests.value.length / itemsPerPage)));
-const paginatedRequests = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return filteredRequests.value.slice(start, start + itemsPerPage);
-});
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
-
-const currentDate = computed(() => {
-  return new Date().toLocaleDateString('ca-ES', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+// A) --- Vigilant de la cerca per resetejar la pàgina ---
+watch(searchQuery, function () {
+  // 1. Si la cerca canvia, tornem a la primera pàgina
+  currentPage.value = 1;
 });
 
-// Mapping API -> High Fidelity UI
-const filteredRequests = computed(() => {
-  const query = searchQuery.value.toLowerCase().trim();
+// B) --- Càlcul de les sol·licituds filtrades ---
+const filteredRequests = computed(function () {
+  // 1. Obtenim la cadena de cerca i la normalitzem
+  const cadenaCerca = searchQuery.value;
+  const cadenaBaixa = cadenaCerca.toLowerCase();
+  const query = cadenaBaixa.trim();
   
-  // Filter for only 'pendent' status initially, or handle as needed
-  // Based on old logic, we only show pending requests here.
-  const pending = solicitudes.value.filter(s => (s.estat || '').toLowerCase() === 'pendent');
+  // 2. Filtrem primer les que estan en estat pendent
+  const llistaTotes = solicitudes.value;
+  const llistaPendents = [];
+  for (let i = 0; i < llistaTotes.length; i++) {
+    const s = llistaTotes[i];
+    const estat = s.estat;
+    let estatBaix = '';
+    if (estat) {
+      estatBaix = estat.toLowerCase();
+    }
+    if (estatBaix === 'pendent') {
+      llistaPendents.push(s);
+    }
+  }
 
-  return pending
-    .filter(s => {
-      const name = (s.nom_centre_manual || s.nom_centre || '').toLowerCase();
-      const code = (s.codi_centre || '').toLowerCase();
-      const coordinator = (s.nom_coordinador || '').toLowerCase();
-      const email = (s.email_coordinador || '').toLowerCase();
-      return name.includes(query) || code.includes(query) || coordinator.includes(query) || email.includes(query);
-    })
-    .map(s => ({
-      id: s.id,
-      code: s.codi_centre || 'SENSE CODI',
-      date: formatDate(s.data_creacio),
-      centerName: s.nom_centre_manual || s.nom_centre || 'Centre Sense Nom',
-      isFirstTime: !!s.es_primera_vegada,
-      coordinator: s.nom_coordinador || 'No assignat',
-      email: s.email_coordinador || 'N/A',
-      phone: s.telefon || 'N/A'
-    }));
+  // 3. Apliquem el filtre de cerca sobre les pendents
+  const resultatsFiltrats = [];
+  for (let j = 0; j < llistaPendents.length; j++) {
+    const solicitud = llistaPendents[j];
+    
+    // Obtenim les propietats per comparar
+    const nomCentreManual = solicitud.nom_centre_manual;
+    const nomCentreReal = solicitud.nom_centre;
+    let nomOriginal = '';
+    if (nomCentreManual) {
+      nomOriginal = nomCentreManual;
+    } else {
+      nomOriginal = nomCentreReal;
+    }
+    if (nomOriginal === null || nomOriginal === undefined) {
+      nomOriginal = '';
+    }
+    const nom = nomOriginal.toLowerCase();
+    
+    let codiOriginal = solicitud.codi_centre;
+    if (codiOriginal === null || codiOriginal === undefined) {
+      codiOriginal = '';
+    }
+    const codi = codiOriginal.toLowerCase();
+    
+    let coordinadorOriginal = solicitud.nom_coordinador;
+    if (coordinadorOriginal === null || coordinadorOriginal === undefined) {
+      coordinadorOriginal = '';
+    }
+    const coordinador = coordinadorOriginal.toLowerCase();
+    
+    let emailOriginal = solicitud.email_coordinador;
+    if (emailOriginal === null || emailOriginal === undefined) {
+      emailOriginal = '';
+    }
+    const email = emailOriginal.toLowerCase();
+
+    // Comprovem si coincideix amb la cerca
+    let coincideix = false;
+    if (nom.includes(query)) {
+      coincideix = true;
+    } else if (codi.includes(query)) {
+      coincideix = true;
+    } else if (coordinador.includes(query)) {
+      coincideix = true;
+    } else if (email.includes(query)) {
+      coincideix = true;
+    }
+
+    if (coincideix === true) {
+      // 4. Mapegem l'objecte al format de la interfície
+      let primeraVegada = false;
+      if (solicitud.es_primera_vegada) {
+        primeraVegada = true;
+      }
+      
+      const itemInterficie = {
+        id: solicitud.id,
+        code: solicitud.codi_centre,
+        date: formatDate(solicitud.data_creacio),
+        centerName: nomOriginal,
+        isFirstTime: primeraVegada,
+        coordinator: solicitud.nom_coordinador,
+        email: solicitud.email_coordinador,
+        phone: solicitud.telefon
+      };
+      
+      // Corregim valors nuls per defecte
+      if (!itemInterficie.code) {
+        itemInterficie.code = 'SENSE CODI';
+      }
+      if (!itemInterficie.centerName) {
+        itemInterficie.centerName = 'Centre Sense Nom';
+      }
+      if (!itemInterficie.coordinator) {
+        itemInterficie.coordinator = 'No assignat';
+      }
+      if (!itemInterficie.email) {
+        itemInterficie.email = 'N/A';
+      }
+      if (!itemInterficie.phone) {
+        itemInterficie.phone = 'N/A';
+      }
+      
+      resultatsFiltrats.push(itemInterficie);
+    }
+  }
+
+  return resultatsFiltrats;
 });
 
-// ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
-// ======================================
+// C) --- Càlcul de les sol·licituds paginades ---
+const paginatedRequests = computed(function () {
+  // 1. Obtenim la llista filtrada
+  const llistaFiltrada = filteredRequests.value;
+  
+  // 2. Calculem l'índex d'inici i final
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const final = inici + itemsPerPage;
+  
+  // 3. Creem la subllista mitjançant un bucle
+  const resultatPaginat = [];
+  for (let k = inici; k < final; k++) {
+    if (k < llistaFiltrada.length) {
+      const item = llistaFiltrada[k];
+      resultatPaginat.push(item);
+    }
+  }
+  
+  return resultatPaginat;
+});
 
+// D) --- Càlcul del total de pàgines ---
+const totalPages = computed(function () {
+  // 1. Obtenim la longitud de la llista filtrada
+  const totalElements = filteredRequests.value.length;
+  
+  // 2. Calculem les pàgines necessàries
+  const pagines = Math.ceil(totalElements / itemsPerPage);
+  
+  // 3. Retornem com a mínim 1 pàgina
+  if (pagines < 1) {
+    return 1;
+  } else {
+    return pagines;
+  }
+});
+
+// E) --- Navegació a una pàgina específica ---
+function goToPage(p) {
+  // 1. Verifiquem que la pàgina estigui dins del rang
+  const maxim = totalPages.value;
+  if (p >= 1) {
+    if (p <= maxim) {
+      // 2. Establim la nova pàgina
+      currentPage.value = p;
+    }
+  }
+}
+
+// F) --- Funció per obtenir les dades de l'API ---
 async function fetchSolicitudes() {
+  // 1. Activem l'estat de càrrega
   loading.value = true;
+  
   try {
+    // 2. Verifiquem si tenim token d'accés
     if (!token) {
-      navigateTo('/login');
+      router.push('/login');
       return;
     }
     
-    // API Call
-    const res = await $fetch('/api/solicituds-registre', {
+    // 3. Realitzem la crida a l'API
+    const resposta = await $fetch('/api/solicituds-registre', {
       headers: { Authorization: 'Bearer ' + token }
     });
 
-    if (Array.isArray(res)) {
-      solicitudes.value = res;
-    } else if (res && res.data) {
-      solicitudes.value = res.data;
+    // 4. Assignem els resultats a la variable reactiva
+    if (Array.isArray(resposta)) {
+      solicitudes.value = resposta;
+    } else {
+      if (resposta) {
+        if (resposta.data) {
+          solicitudes.value = resposta.data;
+        }
+      }
     }
-  } catch (err) {
-    console.error('Error fetching registration requests:', err);
+  } catch (errorPeticio) {
+    // 5. Gestionem l'error si n'hi ha
+    console.error('Error carregant sol·licituds de registre:', errorPeticio);
   } finally {
+    // 6. Desactivem l'estat de càrrega
     loading.value = false;
   }
 }
 
+// G) --- Manejador per acceptar una sol·licitud ---
 async function handleAccept(id) {
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Vols validar aquest registre? Se li enviarà una notificació al centre.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
-  await updateEstado(id, 'acceptada');
+  // 1. Demanem confirmació a l'usuari
+  const confirmacio = await useSwal().fire({ 
+    title: 'Confirmar', 
+    text: 'Vols validar aquest registre? Se li enviarà una notificació al centre.', 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  // 2. Si l'usuari confirma, actualitzem l'estat
+  if (confirmacio.isConfirmed === true) {
+    await updateEstado(id, 'acceptada');
+  }
 }
 
+// H) --- Manejador per rebutjar una sol·licitud ---
 async function handleReject(id) {
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Segur que vols rebutjar aquesta sol·licitud?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
-  await updateEstado(id, 'rebutjada');
+  // 1. Demanem confirmació a l'usuari
+  const confirmacio = await useSwal().fire({ 
+    title: 'Confirmar', 
+    text: 'Segur que vols rebutjar aquesta sol·licitud?', 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  // 2. Si l'usuari confirma, actualitzem l'estat
+  if (confirmacio.isConfirmed === true) {
+    await updateEstado(id, 'rebutjada');
+  }
 }
 
+// I) --- Càlcul del total de peticions ---
+const totalPeticions = computed(function () {
+  // 1. Obtenim la longitud de la llista original
+  const longitud = solicitudes.value.length;
+  return longitud;
+});
+
+// J) --- Càlcul del total de pendents ---
+const totalPendents = computed(function () {
+  // 1. Definim el comptador
+  let comptador = 0;
+  const llistaRes = solicitudes.value;
+  
+  // 2. Iterem la llista
+  for (let m = 0; m < llistaRes.length; m++) {
+    const s = llistaRes[m];
+    const estat = s.estat;
+    let estatBaix = '';
+    if (estat) {
+      estatBaix = estat.toLowerCase();
+    }
+    if (estatBaix === 'pendent') {
+      comptador = comptador + 1;
+    }
+  }
+  
+  return comptador;
+});
+
+// K) --- Càlcul del total d'acceptats ---
+const totalAcceptats = computed(function () {
+  // 1. Definim el comptador
+  let comptadorAcceptat = 0;
+  const llistaRes = solicitudes.value;
+  
+  // 2. Iterem la llista
+  for (let n = 0; n < llistaRes.length; n++) {
+    const s = llistaRes[n];
+    const estat = s.estat;
+    let estatBaix = '';
+    if (estat) {
+      estatBaix = estat.toLowerCase();
+    }
+    if (estatBaix === 'acceptada') {
+      comptadorAcceptat = comptadorAcceptat + 1;
+    }
+  }
+  
+  return comptadorAcceptat;
+});
+
+// L) --- Funció interna per actualitzar l'estat en base de dades ---
 async function updateEstado(id, estado) {
   try {
+    // 1. Enviem la petició PUT al servidor
     await $fetch('/api/solicituds-registre/' + id, {
       method: 'PUT',
       headers: { Authorization: 'Bearer ' + token },
       body: { estat: estado }
     });
+    
+    // 2. Refresquem la llista local
     await fetchSolicitudes();
-    useSwal().fire({ title: 'Fet', text: estado === 'acceptada' ? 'Sol·licitud acceptada correctament.' : 'Sol·licitud rebutjada.', icon: 'success' });
-  } catch (err) {
-    console.error('Error updating status:', err);
-    useSwal().fire({ title: 'Error', text: 'Error al processar la sol·licitud.', icon: 'error' });
+    
+    // 3. Mostrem missatge d'èxit
+    let textMissatge = '';
+    if (estado === 'acceptada') {
+      textMissatge = 'Sol·licitud acceptada correctament.';
+    } else {
+      textMissatge = 'Sol·licitud rebutjada.';
+    }
+    
+    useSwal().fire({ 
+      title: 'Fet', 
+      text: textMissatge, 
+      icon: 'success' 
+    });
+  } catch (errorUpdate) {
+    // 4. Gestionem l'error de la petició
+    console.error('Error actualitzant estat:', errorUpdate);
+    useSwal().fire({ 
+      title: 'Error', 
+      text: 'Error al processar la sol·licitud.', 
+      icon: 'error' 
+    });
   }
 }
 
+// J) --- Funció per formatar dates ---
 function formatDate(dateString) {
-  if (!dateString) return 'Avui';
+  // 1. Gestionem el valor buit
+  if (!dateString) {
+    return 'Avui';
+  }
+  
+  // 2. Creem l'objecte Date
   const d = new Date(dateString);
-  if (isNaN(d.getTime())) return dateString;
-  return d.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  
+  // 3. Validem que la data sigui correcta
+  const temps = d.getTime();
+  if (isNaN(temps)) {
+    return dateString;
+  }
+  
+  // 4. Retornem la data en format català
+  const dataFormatada = d.toLocaleDateString('ca-ES', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric' 
+  });
+  return dataFormatada;
 }
 
-onMounted(() => {
+// K) --- Ganxo per quan es monta el component ---
+onMounted(function () {
+  // 1. Obtenim la store de la capçalera
   const header = useHeaderStore();
+  
+  // 2. Establim la capçalera d'administrador
   header.setHeaderAdmin();
+  
+  // 3. Carreguem les dades inicials
   fetchSolicitudes();
 });
 </script>

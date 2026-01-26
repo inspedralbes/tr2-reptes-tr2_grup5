@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-white font-sans flex flex-col scroll-smooth">
     
-    <!-- 1. NAVBAR -->
+    <!-- 1. BARRA DE NAVEGACIÓ (NAVBAR) -->
     <nav class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 py-5 px-6 md:px-12">
       <div class="max-w-[1400px] mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -24,7 +24,7 @@
       </div>
     </nav>
 
-    <!-- 2. HERO SECTION -->
+    <!-- 2. SECCIÓ HERO (PORTADA) -->
     <section class="pt-24 pb-0 px-4 md:px-6 flex justify-center bg-white">
       <div class="w-full max-w-[1400px] min-h-[85vh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#E1E5F2] via-[#F0F9FF] to-white rounded-t-[60px] relative overflow-hidden flex flex-col items-center justify-center py-20 px-6 text-center">
          
@@ -55,7 +55,7 @@
       </div>
     </section>
 
-    <!-- 3. MISSION & VALUES -->
+    <!-- 3. MISSIÓ I VALORS -->
     <section class="py-24 bg-white">
       <div class="max-w-[1400px] mx-auto px-6 md:px-12">
         
@@ -68,6 +68,7 @@
 
         <div class="grid md:grid-cols-3 gap-6">
            
+          <!-- Targeta d'Orientació -->
           <div class="bg-[#E1E5F2]/30 border border-[#BFDBF7]/20 p-10 rounded-[40px] h-[500px] flex flex-col items-start relative group hover:-translate-y-2 transition-transform duration-300">
             <div class="w-14 h-14 rounded-full bg-[#022B3A] flex items-center justify-center text-white mb-auto shadow-lg shadow-[#022B3A]/20">
               <CheckCircle2 :size="24" :strokeWidth="2.5" />
@@ -82,6 +83,7 @@
             </div>
           </div>
 
+          <!-- Targeta d'Aprenentatge -->
           <div class="bg-[#E1E5F2]/30 border border-[#BFDBF7]/20 p-10 rounded-[40px] h-[500px] flex flex-col items-start relative group hover:-translate-y-2 transition-transform duration-300">
             <div class="w-14 h-14 rounded-full bg-[#022B3A] flex items-center justify-center text-white mb-auto shadow-lg shadow-[#022B3A]/20">
               <Wrench :size="24" :strokeWidth="2.5" />
@@ -96,6 +98,7 @@
             </div>
           </div>
 
+          <!-- Targeta de Col·laboració -->
           <div class="bg-[#E1E5F2]/30 border border-[#BFDBF7]/20 p-10 rounded-[40px] h-[500px] flex flex-col items-start relative group hover:-translate-y-2 transition-transform duration-300">
             <div class="w-14 h-14 rounded-full bg-[#022B3A] flex items-center justify-center text-white mb-auto shadow-lg shadow-[#022B3A]/20">
               <Users :size="24" :strokeWidth="2.5" />
@@ -115,7 +118,7 @@
       </div>
     </section>
 
-    <!-- 4. SECTORS STRATEGIC (MARQUEE) -->
+    <!-- 4. SECTORS ESTRATÈGICS (EFECTE MARQUEE) -->
     <section id="sectors" class="py-24 bg-[#022B3A] overflow-hidden relative">
       <div class="max-w-[1400px] mx-auto px-6 md:px-12 mb-16 text-center relative z-10">
         <h2 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-2">Sectors Estratègics</h2>
@@ -127,7 +130,7 @@
       <div class="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
         <div class="flex items-center justify-center md:justify-start animate-scroll gap-6 pl-6">
           <div 
-            v-for="(sector, idx) in [...sectors, ...sectors]" 
+            v-for="(sector, idx) in marqueeSectors" 
             :key="idx" 
             class="w-[350px] flex-shrink-0 bg-white p-8 rounded-[30px] border border-transparent hover:border-[#1F7A8C] hover:shadow-2xl transition-all duration-300 group flex flex-col h-[280px] mx-4"
           >
@@ -147,7 +150,7 @@
       </div>
     </section>
 
-    <!-- 5. HOW IT WORKS -->
+    <!-- 5. COM FUNCIONA L'ENGINY -->
     <section class="py-24 bg-[#F8FAFC] border-y border-[#BFDBF7]/20">
       <div class="max-w-5xl mx-auto px-6 md:px-12">
         
@@ -159,9 +162,9 @@
         <div class="flex flex-col gap-16 relative">
            
           <div 
-            v-for="(step, idx) in steps" 
+            v-for="(step, idx) in hSteps" 
             :key="idx" 
-            :class="['relative z-10 w-full md:w-[45%] group', idx % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto']"
+            :class="['relative z-10 w-full md:w-[45%] group', { 'md:mr-auto': idx % 2 === 0, 'md:ml-auto': idx % 2 !== 0 }]"
           >
              
             <div class="flex flex-col md:flex-row items-center gap-6 bg-white p-6 rounded-2xl border border-[#BFDBF7]/60 shadow-sm hover:shadow-xl hover:border-[#BFDBF7] hover:-translate-y-1 transition-all duration-300 relative z-10">
@@ -180,9 +183,10 @@
               </div>
             </div>
 
+            <!-- SVG Connectors -->
             <div 
-              v-if="idx < steps.length - 1"
-              :class="['hidden md:block absolute top-1/2 w-[200px] h-[150px] z-0 pointer-events-none opacity-60', idx % 2 === 0 ? '-right-[55%] translate-y-4' : '-left-[55%] translate-y-4']"
+              v-if="idx < hSteps.length - 1"
+              :class="['hidden md:block absolute top-1/2 w-[200px] h-[150px] z-0 pointer-events-none opacity-60', { '-right-[55%] translate-y-4': idx % 2 === 0, '-left-[55%] translate-y-4': idx % 2 !== 0 }]"
             >
               <svg v-if="idx % 2 === 0" viewBox="0 0 200 150" fill="none" class="w-full h-full text-[#022B3A]">
                 <path d="M 10,10 C 100,10 100,140 190,140" stroke="currentColor" stroke-width="2" stroke-dasharray="8 6" stroke-linecap="round" fill="none" />
@@ -200,7 +204,7 @@
       </div>
     </section>
 
-    <!-- 6. FAQ -->
+    <!-- 6. PREGUNTES FREQÜENTS (FAQ) -->
     <section class="py-24 px-6 md:px-12 bg-white relative overflow-hidden">
       <div class="max-w-3xl mx-auto relative z-10">
          
@@ -212,23 +216,23 @@
 
           <div class="space-y-4">
             <div 
-              v-for="(item, idx) in faqs" 
+              v-for="(item, idx) in faqsLlista" 
               :key="idx" 
               class="bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300"
             >
               <button 
-                @click="toggleFaq(idx)"
+                @click="handleToggleFaq(idx)"
                 class="w-full px-6 py-6 text-left flex items-start gap-5 focus:outline-none hover:bg-gray-50/50 rounded-2xl transition-colors group"
               >
-                <div :class="['mt-0.5 w-6 h-6 flex items-center justify-center rounded-full border transition-colors', openFaq === idx ? 'bg-[#022B3A] text-white border-[#022B3A]' : 'bg-white text-[#022B3A]/40 border-gray-200 group-hover:border-[#1F7A8C] group-hover:text-[#1F7A8C]']">
-                  <Minus v-if="openFaq === idx" :size="14" :strokeWidth="3" />
+                <div :class="['mt-0.5 w-6 h-6 flex items-center justify-center rounded-full border transition-colors', { 'bg-[#022B3A] text-white border-[#022B3A]': openFaqIndex === idx, 'bg-white text-[#022B3A]/40 border-gray-200 group-hover:border-[#1F7A8C] group-hover:text-[#1F7A8C]': openFaqIndex !== idx }]">
+                  <Minus v-if="openFaqIndex === idx" :size="14" :strokeWidth="3" />
                   <Plus v-else :size="14" :strokeWidth="3" />
                 </div>
                 <div class="flex-1">
-                  <span :class="['font-bold text-lg transition-colors', openFaq === idx ? 'text-[#022B3A]' : 'text-[#022B3A]/70']">
+                  <span :class="['font-bold text-lg transition-colors', { 'text-[#022B3A]': openFaqIndex === idx, 'text-[#022B3A]/70': openFaqIndex !== idx }]">
                     {{ item.q }}
                   </span>
-                  <div :class="['grid transition-all duration-300 ease-in-out', openFaq === idx ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0']">
+                  <div :class="['grid transition-all duration-300 ease-in-out', { 'grid-rows-[1fr] opacity-100 pt-4': openFaqIndex === idx, 'grid-rows-[0fr] opacity-0': openFaqIndex !== idx }]">
                     <div class="overflow-hidden">
                       <p class="text-[#022B3A]/60 text-sm leading-relaxed">{{ item.a }}</p>
                     </div>
@@ -242,7 +246,7 @@
       </div>
     </section>
 
-    <!-- 7. FOOTER -->
+    <!-- 7. PEU DE PÀGINA (FOOTER) -->
     <footer class="bg-white border-t border-gray-200 py-16 px-6 mt-auto">
       <div class="max-w-[1400px] mx-auto">
         <div class="grid md:grid-cols-4 gap-12 mb-12">
@@ -293,6 +297,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { 
   CheckCircle2, 
   Zap, 
@@ -317,13 +324,24 @@ import {
   Briefcase
 } from 'lucide-vue-next';
 
+// ======================================
+// Configuració del Component
+// ======================================
+
+// 1. Desactivem el layout per defecte per a la landing page
 definePageMeta({
   layout: false
 });
 
-const openFaq = ref(null);
+// ======================================
+// Estat Reactiu i Dades (Esquema)
+// ======================================
 
-const sectors = [
+// 1. Control de la secció de preguntes freqüents
+const openFaqIndex = ref(null);
+
+// 2. Definició de sectors estratègics
+const sectorsDadaBase = [
   { name: 'Agroalimentari', desc: 'Innovació en la producció i transformació d\'aliments sostenibles.', icon: Leaf },
   { name: 'Manufacturer', desc: 'Tecnologia aplicada a la producció industrial i processos de fabricació.', icon: Factory },
   { name: 'Energia i Aigua', desc: 'Gestió eficient de recursos naturals i energies renovables.', icon: Zap },
@@ -337,7 +355,8 @@ const sectors = [
   { name: 'Professional', desc: 'Consultoria tècnica, serveis jurídics i assessorament expert.', icon: Briefcase },
 ];
 
-const steps = [
+// 3. Definició dels passos del procés
+const hSteps = [
   { title: 'Registre', desc: 'Crea el compte de centre i professorat per accedir al panell.', icon: Building2, color: 'text-[#022B3A] bg-[#022B3A]/10 border-[#022B3A]/20' },
   { title: 'Exploració', desc: 'Navega pel catàleg filtrant per sectors i modalitats.', icon: Search, color: 'text-[#1F7A8C] bg-[#1F7A8C]/10 border-[#1F7A8C]/20' },
   { title: 'Sol·licitud', desc: 'Selecciona fins a 4 alumnes per taller.', icon: UserPlus, color: 'text-[#fb6107] bg-[#fb6107]/10 border-[#fb6107]/20' },
@@ -346,7 +365,8 @@ const steps = [
   { title: 'Seguiment', desc: 'Gestiona l\'assistència i les avaluacions en temps real.', icon: Layout, color: 'text-[#022B3A] bg-[#022B3A]/10 border-[#022B3A]/20' }
 ];
 
-const faqs = [
+// 4. Preguntes freqüents
+const faqsLlista = [
   { q: "Quants alumnes puc inscriure per taller?", a: "Per garantir la qualitat de l'experiència pràctica i l'atenció personalitzada, el límit està establert en 4 alumnes per centre i taller." },
   { q: "Com funciona la selecció de professors referents?", a: "Cada centre ha de designar almenys un professor referent que acompanyarà els alumnes. En la Modalitat C, es requereix la coordinació de dos referents." },
   { q: "Què passa si no obtenim plaça en la primera opció?", a: "El sistema d'assignació intel·ligent té en compte les segones i terceres opcions per assegurar que el màxim nombre de centres participi en el programa." },
@@ -354,13 +374,46 @@ const faqs = [
   { q: "Com es gestiona el transport dels alumnes?", a: "El transport és responsabilitat de cada centre educatiu. No obstant, intentem agrupar els tallers per zones geogràfiques per facilitar la logística." }
 ];
 
-function toggleFaq(index) {
-  openFaq.value = openFaq.value === index ? null : index;
+// ======================================
+// Propietats Computades
+// ======================================
+
+// 1. Doblem la llista de sectors per a l'efecte de scroll infinit (Bucle for)
+const marqueeSectors = computed(function () {
+  const llistaDoblada = [];
+  // Primera passada
+  for (let i = 0; i < sectorsDadaBase.length; i++) {
+    llistaDoblada.push(sectorsDadaBase[i]);
+  }
+  // Segona passada per garantir continuïtat
+  for (let j = 0; j < sectorsDadaBase.length; j++) {
+    llistaDoblada.push(sectorsDadaBase[j]);
+  }
+  return llistaDoblada;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Navegació ---
+
+function handleNavigate(seccioId) {
+  if (seccioId === 'login') {
+    navigateTo('/login');
+  } else if (seccioId === 'register') {
+    navigateTo('/register');
+  }
 }
 
-function handleNavigate(tab) {
-  if (tab === 'login') navigateTo('/login');
-  else if (tab === 'register') navigateTo('/register');
+// B) --- Interacció UI ---
+
+function handleToggleFaq(posicio) {
+  if (openFaqIndex.value === posicio) {
+    openFaqIndex.value = null;
+  } else {
+    openFaqIndex.value = posicio;
+  }
 }
 </script>
 

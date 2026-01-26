@@ -34,7 +34,7 @@
          </div>
 
          <!-- Single Action Button: Period Subscription -->
-         <button @click="showConfig.value = true" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1F7A8C] text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-[#022B3A] transition-all shadow-lg shadow-[#1F7A8C]/20 whitespace-nowrap w-full sm:w-auto">
+         <button @click="showConfig = true" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1F7A8C] text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-[#022B3A] transition-all shadow-lg shadow-[#1F7A8C]/20 whitespace-nowrap w-full sm:w-auto">
             <Settings :size="14" /> Període Inscripció
          </button>
       </div>
@@ -69,7 +69,7 @@
           </div>
 
           <div class="flex gap-3 mt-10">
-             <button @click="showConfig.value = false; fieldErrors.value = {}" class="flex-1 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#E1E5F2]/40 text-[#022B3A]/60 hover:bg-[#E1E5F2] transition-colors">
+             <button @click="showConfig = false; fieldErrors = {}" class="flex-1 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#E1E5F2]/40 text-[#022B3A]/60 hover:bg-[#E1E5F2] transition-colors">
                 Cancel·lar
              </button>
              <button @click="saveEnrollmentDates" class="flex-[2] px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-[#1F7A8C] text-white shadow-lg shadow-[#1F7A8C]/20 hover:bg-[#022B3A] transition-all">

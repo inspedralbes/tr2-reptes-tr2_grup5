@@ -1,4 +1,7 @@
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { ref, computed, watch, onMounted } from 'vue';
 import { 
   ArrowLeft,
@@ -10,157 +13,319 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  ExternalLink
+  ExternalLink,
+  ChevronRight
 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables
+// Configuració i Serveis
 // ======================================
-const route = useRoute();
-const router = useRouter();
-const header = useHeaderStore();
-header.setHeaderProfessors();
-const token = useCookie('authToken').value;
-const detallId = route.params.id;
 
-// --- STATE ---
-const loading = ref(true);
-const error = ref(null);
+// 1. Serveis de rutes i capçalera
+const routeInstancia = useRoute();
+const routerInstancia = useRouter();
+const headerStore = useHeaderStore();
+headerStore.setHeaderProfessors();
+
+// 2. Cookie d'autenticació i ID de la URL
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+const detallIdUrl = routeInstancia.params.id;
+
+// ======================================
+// Estat Reactiu del Component
+// ======================================
+
+const isCarregant = ref(true);
+const textErrorC = ref(null);
 const assistenciaList = ref([]);
-const tallerInfo = ref(null);
+const infoTaller = ref(null);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
+// ======================================
+// Propietats Computades (Anàlisi de dades)
+// ======================================
 
-// --- COMPUTED ---
-const filteredStudents = computed(() => {
-  const query = (searchQuery.value || '').toLowerCase();
-  const list = assistenciaList.value || [];
-  return list.filter(s => {
-    const nom = (s.nom || '').toLowerCase();
-    const cognoms = (s.cognoms || '').toLowerCase();
-    const email = (s.email || '').toLowerCase();
-    return nom.includes(query) || cognoms.includes(query) || email.includes(query);
-  });
-});
-
-const stats = computed(() => {
-  const list = assistenciaList.value || [];
-  const present = list.filter(s => s.ha_assistit).length;
-  const total = list.length;
-  const percent = total > 0 ? Math.round((present / total) * 100) : 0;
-  return { present, total, percent };
-});
-
-const totalPages = computed(() => Math.max(1, Math.ceil((filteredStudents.value || []).length / itemsPerPage)));
-const paginatedStudents = computed(() => {
-  const list = filteredStudents.value || [];
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return list.slice(start, start + itemsPerPage);
-});
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
-
-const getProjectStyles = (project) => {
-  if (!project) return 'bg-white/40 text-[#022B3A] border-white/60';
-  const p = project.toUpperCase();
-  if (p.includes('A') || p.includes('MANUF')) return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20';
-  if (p.includes('B') || p.includes('ENER')) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20';
-  if (p.includes('C') || p.includes('AGRO')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
-  return 'bg-white/40 text-[#022B3A] border-white/60';
-};
-
-// --- METHODS ---
-const goBack = () => router.push('/professors/assistencia');
-
-const loadData = async () => {
-  loading.value = true;
-  error.value = null;
-  try {
-    // 1. Carregar llista d'assistència
-    const data = await $fetch(`/api/professor/assistencia/${detallId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    });
-    assistenciaList.value = Array.isArray(data) ? data : [];
-
-    // 2. Carregar info del taller
-    const tallers = await $fetch('/api/professor/tallers', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    });
+// 1. Filtre d'alumnes per cerca (Bucle for clàssic)
+const alumnesFiltrats = computed(function () {
+  const queryRaw = searchQuery.value;
+  let textBusca = '';
+  if (queryRaw) {
+    textBusca = queryRaw.toLowerCase().trim();
+  }
+  
+  const llistaOriginal = assistenciaList.value;
+  const resultatFiltrat = [];
+  
+  for (let i = 0; i < llistaOriginal.length; i++) {
+    const s = llistaOriginal[i];
+    let coincideix = false;
     
-    if (Array.isArray(tallers)) {
-      tallerInfo.value = tallers.find(t => t.detall_id == detallId) || null;
+    if (textBusca === '') {
+      coincideix = true;
+    } else {
+      let sNom = '';
+      if (s.nom) { sNom = s.nom.toLowerCase(); }
+      
+      let sCognoms = '';
+      if (s.cognoms) { sCognoms = s.cognoms.toLowerCase(); }
+      
+      let sEmail = '';
+      if (s.email) { sEmail = s.email.toLowerCase(); }
+      
+      if (sNom.indexOf(textBusca) !== -1) {
+        coincideix = true;
+      } else if (sCognoms.indexOf(textBusca) !== -1) {
+        coincideix = true;
+      } else if (sEmail.indexOf(textBusca) !== -1) {
+        coincideix = true;
+      }
     }
-  } catch (err) {
-    console.error('Error carregant dades:', err);
-    error.value = "No s'han pogut carregar els alumnes d'aquest taller.";
-  } finally {
-    loading.value = false;
-  }
-};
-
-const toggleAssistencia = async (student) => {
-  const oldState = student.ha_assistit;
-  try {
-    // Optimistic update
-    student.ha_assistit = !oldState;
     
-    await $fetch(`/api/professor/assistencia/${student.id}`, {
-      method: 'PUT',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: { ha_assistit: student.ha_assistit }
-    });
-  } catch (err) {
-    console.error('Error actualitzant assistència:', err);
-    student.ha_assistit = oldState; // rollback
-    useSwal().fire({ title: 'Error', text: "Error al desar l'assistència.", icon: 'error' });
+    if (coincideix === true) {
+      resultatFiltrat.push(s);
+    }
   }
-};
+  return resultatFiltrat;
+});
 
-onMounted(() => {
-  if (detallId) loadData();
-  else error.value = "Taller no identificat.";
+// 2. Estadístiques d'assistència (Bucle for clàssic)
+const estadistiques = computed(function () {
+  const llistaTotal = assistenciaList.value;
+  let nPresents = 0;
+  for (let j = 0; j < llistaTotal.length; j++) {
+    if (llistaTotal[j].ha_assistit === true) {
+      nPresents = nPresents + 1;
+    }
+  }
+  
+  let percent = 0;
+  if (llistaTotal.length > 0) {
+    percent = Math.round((nPresents / llistaTotal.length) * 100);
+  }
+  
+  return {
+    present: nPresents,
+    total: llistaTotal.length,
+    percent: percent
+  };
+});
+
+// 3. Càlcul de pàgines i paginació manual (Bucle for)
+const totalPages = computed(function () {
+  const nTotal = alumnesFiltrats.value.length;
+  let nPag = 1;
+  if (nTotal > 0) {
+    nPag = Math.ceil(nTotal / itemsPerPage);
+  }
+  return nPag;
+});
+
+const alumnesPaginats = computed(function () {
+  const llistaTota = alumnesFiltrats.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const resultatPag = [];
+  for (let k = 0; k < llistaTota.length; k++) {
+    if (k >= inici) {
+      if (k < fi) {
+        resultatPag.push(llistaTota[k]);
+      }
+    }
+  }
+  return resultatPag;
+});
+
+// ======================================
+// Vigilants (Watchers)
+// ======================================
+
+// 1. Si canvia la cerca, tornem directament a la pàgina 1
+watch(searchQuery, function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió d'estils visuals ---
+
+function getProjectStyles(sectorNom) {
+  if (!sectorNom) { return 'bg-white/40 text-[#022B3A] border-white/60'; }
+  const sUpper = String(sectorNom).toUpperCase();
+  
+  if (sUpper.indexOf('A') !== -1 || sUpper.indexOf('MANUF') !== -1) { return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20'; }
+  if (sUpper.indexOf('B') !== -1 || sUpper.indexOf('ENER') !== -1) { return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20'; }
+  if (sUpper.indexOf('C') !== -1 || sUpper.indexOf('AGRO') !== -1) { return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20'; }
+  
+  return 'bg-white/40 text-[#022B3A] border-white/60';
+}
+
+function getAttendenceStyles(assistit) {
+  if (assistit === true) {
+    return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20 hover:scale-105 active:scale-95';
+  }
+  return 'bg-white text-[#E1E5F2] border-[#E1E5F2] hover:text-[#022B3A]/40 hover:border-[#BFDBF7]';
+}
+
+function getStudentIconStyles(assistit) {
+  if (assistit === true) {
+    return 'bg-[#1F7A8C] text-white border-[#1F7A8C]';
+  }
+  return 'bg-[#E1E5F2]/30 text-[#022B3A]/40 border-transparent';
+}
+
+// B) --- Càrrega i accions de l'API ---
+
+async function carregarDadesApi() {
+  isCarregant.value = true;
+  textErrorC.value = null;
+  
+  try {
+    const headersAPI = {};
+    if (tokenRef) {
+      headersAPI.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    // 1. Carreguem la llista d'assistència del detall especificat
+    const dadesAssistencia = await $fetch('/api/professor/assistencia/' + detallIdUrl, {
+      headers: headersAPI
+    });
+    assistenciaList.value = dadesAssistencia || [];
+
+    // 2. Carreguem informació del taller per al header
+    const dadesTallersGeneral = await $fetch('/api/professor/tallers', {
+      headers: headersAPI
+    });
+    
+    if (Array.isArray(dadesTallersGeneral)) {
+      let trobat = null;
+      for (let m = 0; m < dadesTallersGeneral.length; m++) {
+        const tall = dadesTallersGeneral[m];
+        if (String(tall.detall_id) === String(detallIdUrl)) {
+          trobat = tall;
+          break;
+        }
+      }
+      infoTaller.value = trobat;
+    }
+    
+  } catch (errApi) {
+    console.error('Error carregant dades d\'assistència:', errApi);
+    textErrorC.value = "No s'han pogut carregar els alumnes d'aquest taller.";
+  } finally {
+    isCarregant.value = false;
+  }
+}
+
+async function handleToggleAssistencia(alumneObj) {
+  const estatAntic = alumneObj.ha_assistit;
+  try {
+    const headersPut = {};
+    if (tokenRef) {
+      headersPut.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    // Actualització optimista
+    alumneObj.ha_assistit = !estatAntic;
+    
+    await $fetch('/api/professor/assistencia/' + alumneObj.id, {
+      method: 'PUT',
+      headers: headersPut,
+      body: { ha_assistit: alumneObj.ha_assistit }
+    });
+    
+  } catch (errPut) {
+    console.error('Error actualitzant assistència:', errPut);
+    // Rollback en cas d'error
+    alumneObj.ha_assistit = estatAntic; 
+    const swalE = useSwal();
+    swalE.fire({ title: 'Error', text: "Error al desar l'assistència.", icon: 'error' });
+  }
+}
+
+// C) --- Navegació i Utilitats ---
+
+function handleGoBack() {
+  routerInstancia.push('/professors/assistencia');
+}
+
+function handleGoToPage(numP) {
+  const maxP = totalPages.value;
+  if (numP >= 1) {
+    if (numP <= maxP) {
+      currentPage.value = numP;
+    }
+  }
+}
+
+function inicialsAlumneUI(nomU, cognomsU) {
+  let ini = '?';
+  if (nomU) {
+    if (cognomsU) {
+      ini = nomU.charAt(0) + cognomsU.charAt(0);
+    } else {
+      ini = nomU.charAt(0);
+    }
+  }
+  return ini.toUpperCase();
+}
+
+// ======================================
+// Cicle de vida
+// ======================================
+
+onMounted(function () {
+  if (detallIdUrl) {
+    carregarDadesApi();
+  } else {
+    textErrorC.value = "Taller no identificat.";
+    isCarregant.value = false;
+  }
 });
 </script>
 
 <template>
   <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 p-8 space-y-8">
     
-    <!-- 1. HEADER NAVIGATION -->
+    <!-- 1. NAVEGACIÓ I CAPÇALERA -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div class="space-y-4">
         <button 
-          @click="goBack"
+          @click="handleGoBack"
           class="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#022B3A]/40 hover:text-[#1F7A8C] transition-colors"
         >
           <ArrowLeft :size="14" class="group-hover:-translate-x-1 transition-transform" />
           Tornar a la llista
         </button>
         
-        <div v-if="tallerInfo">
+        <div v-if="infoTaller">
           <h1 class="text-4xl md:text-5xl font-black text-[#022B3A] tracking-tighter leading-none mb-3">
             Passar <span class="text-[#1F7A8C]">Llista</span>
           </h1>
           <div class="flex items-center gap-3">
-            <span :class="['px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border', getProjectStyles(tallerInfo.sector)]">
-               {{ tallerInfo.sector || 'PROJECTE' }}
+            <span :class="['px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border', getProjectStyles(infoTaller.sector)]">
+               {{ infoTaller.sector || 'PROJECTE' }}
             </span>
             <span class="text-sm font-bold text-[#022B3A]/60 flex items-center gap-1.5">
                <ChevronRight :size="14" class="text-[#BFDBF7]" />
-               {{ tallerInfo.titol }}
+               {{ infoTaller.titol }}
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Stats Capsule -->
-      <div v-if="!loading && !error" class="bg-white border border-[#BFDBF7]/60 rounded-2xl p-4 flex items-center gap-6 shadow-sm">
+      <!-- Càpsula d'estadístiques -->
+      <div v-if="isCarregant === false && !textErrorC" class="bg-white border border-[#BFDBF7]/60 rounded-2xl p-4 flex items-center gap-6 shadow-sm">
          <div class="flex flex-col">
             <span class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Alumnes Presents</span>
             <div class="flex items-end gap-1">
-               <span class="text-2xl font-black text-[#1F7A8C] leading-none">{{ stats.present }}</span>
-               <span class="text-xs font-bold text-[#022B3A]/20">/ {{ stats.total }}</span>
+               <span class="text-2xl font-black text-[#1F7A8C] leading-none">{{ estadistiques.present }}</span>
+               <span class="text-xs font-bold text-[#022B3A]/20">/ {{ estadistiques.total }}</span>
             </div>
          </div>
          <div class="w-12 h-12 rounded-full border-4 border-[#E1E5F2] flex items-center justify-center relative">
@@ -171,26 +336,27 @@ onMounted(() => {
                  class="stroke-[#1F7A8C]" 
                  stroke-width="4" 
                  stroke-dasharray="100" 
-                 :stroke-dashoffset="100 - stats.percent"
+                 :stroke-dashoffset="100 - estadistiques.percent"
                />
             </svg>
-            <span class="text-[10px] font-black text-[#1F7A8C]">{{ stats.percent }}%</span>
+            <span class="text-[10px] font-black text-[#1F7A8C]">{{ estadistiques.percent }}%</span>
          </div>
       </div>
     </div>
 
-    <!-- 2. DATA AREA -->
-    <div v-if="loading" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
+    <!-- 2. GESTIÓ D'ESTATS (CÀRREGA/ERROR) -->
+    
+    <div v-if="isCarregant === true" class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs">
        Carregant llistat d'alumnes...
     </div>
 
-    <div v-else-if="error" class="bg-red-50 border border-red-100 p-8 rounded-2xl text-red-600 text-center italic">
-       {{ error }}
+    <div v-else-if="textErrorC" class="bg-red-50 border border-red-100 p-8 rounded-2xl text-red-600 text-center italic">
+       {{ textErrorC }}
     </div>
 
     <div v-else class="space-y-6">
       
-      <!-- Search & Utils Bar -->
+      <!-- Barra de cerca i utilitats -->
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="relative flex-1 max-w-md group w-full">
           <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-[#022B3A]/20 group-focus-within:text-[#1F7A8C] transition-colors" />
@@ -209,7 +375,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Students Table -->
+      <!-- Taula d'Alumnes -->
       <div class="bg-white rounded-3xl border border-[#BFDBF7]/60 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -222,23 +388,23 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-[#BFDBF7]/10">
-              <template v-if="paginatedStudents.length > 0">
-                <tr v-for="student in paginatedStudents" :key="student.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
+              <template v-if="alumnesPaginats.length > 0">
+                <tr v-for="student in alumnesPaginats" :key="student.id" class="group hover:bg-[#E1E5F2]/5 transition-colors">
                   
-                  <!-- Student Identity -->
+                  <!-- Identitat de l'alumne -->
                   <td class="p-6 pl-10">
                     <div class="flex items-center gap-4">
-                       <div :class="['w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-colors border', student.ha_assistit ? 'bg-[#1F7A8C] text-white border-[#1F7A8C]' : 'bg-[#E1E5F2]/30 text-[#022B3A]/40 border-transparent']">
-                          {{ (student.nom || '?')[0] }}{{ (student.cognoms || '?')[0] }}
+                       <div :class="['w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-colors border', getStudentIconStyles(student.ha_assistit)]">
+                          {{ inicialsAlumneUI(student.nom, student.cognoms) }}
                        </div>
                        <div>
                           <p class="text-sm font-black text-[#022B3A] group-hover:text-[#1F7A8C] transition-colors">{{ student.nom }} {{ student.cognoms }}</p>
-                          <p class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">ID-ST-{{ student.id.toString().padStart(3,'0') }}</p>
+                          <p class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">ID-ST-{{ String(student.id).padStart(3,'0') }}</p>
                        </div>
                     </div>
                   </td>
 
-                  <!-- Contact -->
+                  <!-- Contacte -->
                   <td class="p-6">
                     <div class="flex items-center gap-2 text-[#022B3A]/60 bg-[#E1E5F2]/20 border border-[#BFDBF7]/20 px-3 py-1.5 rounded-lg w-fit">
                       <Mail :size="12" />
@@ -246,23 +412,20 @@ onMounted(() => {
                     </div>
                   </td>
 
-                  <!-- Toggle -->
+                  <!-- Toggle d'Assistència -->
                   <td class="p-6 text-center">
                     <button 
-                      @click="toggleAssistencia(student)"
-                      :class="['inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm', 
-                        student.ha_assistit 
-                          ? 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/20 hover:scale-105 active:scale-95' 
-                          : 'bg-white text-[#E1E5F2] border-[#E1E5F2] hover:text-[#022B3A]/40 hover:border-[#BFDBF7]'
-                      ]"
+                      @click="handleToggleAssistencia(student)"
+                      :class="['inline-flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm', getAttendenceStyles(student.ha_assistit)]"
                     >
-                      <CheckCircle2 v-if="student.ha_assistit" :size="14" />
+                      <CheckCircle2 v-if="student.ha_assistit === true" :size="14" />
                       <XCircle v-else :size="14" class="opacity-20" />
-                      {{ student.ha_assistit ? 'Assistit' : 'Falta' }}
+                      <span v-if="student.ha_assistit === true">Assistit</span>
+                      <span v-else>Falta</span>
                     </button>
                   </td>
 
-                  <!-- Actions -->
+                  <!-- Accions adicionals -->
                   <td class="p-6 pr-10 text-right">
                     <button class="p-2.5 rounded-xl bg-[#E1E5F2]/20 text-[#022B3A]/20 hover:bg-[#1F7A8C]/10 hover:text-[#1F7A8C] transition-all">
                        <ExternalLink :size="16" />
@@ -280,37 +443,37 @@ onMounted(() => {
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="filteredStudents.length > 0" class="px-8 py-4 border-t border-[#BFDBF7]/20 flex justify-between items-center">
-          <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ paginatedStudents.length }} de {{ filteredStudents.length }} alumnes</span>
-          <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+        <!-- Paginació -->
+        <div v-if="alumnesFiltrats.length > 0" class="px-8 py-4 border-t border-[#BFDBF7]/20 flex justify-between items-center">
+          <span class="text-[10px] font-bold text-[#022B3A]/30 uppercase tracking-widest">Mostrant {{ alumnesPaginats.length }} de {{ alumnesFiltrats.length }} alumnes</span>
+          <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="handleGoToPage" />
         </div>
 
-        <!-- Footer Card Summary -->
+        <!-- Resum del Taller (Peu de taula) -->
         <div class="p-8 bg-[#E1E5F2]/10 border-t border-[#BFDBF7]/20 flex flex-col md:flex-row items-center justify-between gap-6">
            <div class="flex items-center gap-10">
-              <div v-if="tallerInfo" class="flex items-center gap-3">
+              <div v-if="infoTaller" class="flex items-center gap-3">
                  <div class="w-10 h-10 rounded-full bg-white border border-[#BFDBF7]/60 flex items-center justify-center text-[#1F7A8C]">
                     <MapPin :size="18" />
                  </div>
                  <div>
                     <p class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Ubicació Sessió</p>
-                    <p class="text-xs font-black text-[#022B3A]">{{ tallerInfo.ubicacio || tallerInfo.municipi }}</p>
+                    <p class="text-xs font-black text-[#022B3A]">{{ infoTaller.ubicacio || infoTaller.municipi }}</p>
                  </div>
               </div>
-              <div v-if="tallerInfo" class="flex items-center gap-3">
+              <div v-if="infoTaller" class="flex items-center gap-3">
                  <div class="w-10 h-10 rounded-full bg-white border border-[#BFDBF7]/60 flex items-center justify-center text-[#1F7A8C]">
                     <Clock :size="18" />
                  </div>
                  <div>
                     <p class="text-[9px] font-black text-[#022B3A]/30 uppercase tracking-widest">Horari Previst</p>
-                    <p class="text-xs font-black text-[#022B3A]">{{ tallerInfo.modalitat || 'Horari de taller' }}</p>
+                    <p class="text-xs font-black text-[#022B3A]">{{ infoTaller.modalitat || 'Horari de taller' }}</p>
                  </div>
               </div>
            </div>
 
            <button 
-             @click="goBack"
+             @click="handleGoBack"
              class="flex items-center gap-2 px-8 py-3.5 bg-[#022B3A] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1F7A8C] transition-all shadow-xl shadow-[#022B3A]/20"
            >
               <ClipboardCheck :size="16" />
@@ -323,5 +486,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Tailwind handles the design */
+/* Estils gestionats globalment amb Tailwind */
 </style>

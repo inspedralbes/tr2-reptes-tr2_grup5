@@ -169,6 +169,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   User,
   Mail,
@@ -181,15 +184,24 @@ import {
   X
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Propietats que rep el component
 const props = defineProps({
   userId: { type: [Number, String], required: true },
-  centres: { type: Array, default: () => [] }
+  centres: { type: Array, default: function () { return []; } }
 });
 
+// 2. Esdeveniments que emet el component
 const emit = defineEmits(['close', 'updated']);
 
-const tokenRef = useCookie('authToken');
+// 3. Cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
 
+// 4. Estat reactiu del formulari
 const form = ref({
   email: '',
   password: '',
@@ -199,6 +211,7 @@ const form = ref({
   cognoms: ''
 });
 
+// 5. Estats de control de la interfície i errors
 const loading = ref(false);
 const loadingInitial = ref(true);
 const message = ref('');
@@ -206,117 +219,297 @@ const error = ref('');
 const fieldErrors = ref({});
 const dadesOriginals = ref(null);
 
-const centres = computed(() => Array.isArray(props.centres) ? props.centres : []);
+// 6. Propietat computada per a la llista de centres
+const centres = computed(function () {
+  let llista = props.centres;
+  if (Array.isArray(llista) === false) {
+    llista = [];
+  }
+  return llista;
+});
 
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Validació de format de correu electrònic ---
 function validEmail(s) {
-  const v = (s || '').trim();
-  return v.length > 0 && v.includes('@') && v.includes('.') && v.indexOf('.') > v.indexOf('@') + 1;
+  let text = '';
+  if (s) {
+    text = s.trim();
+  }
+  
+  let esValid = false;
+  if (text.length > 0) {
+    if (text.includes('@')) {
+      if (text.includes('.')) {
+        const indexArrova = text.indexOf('@');
+        const indexPunt = text.indexOf('.');
+        if (indexPunt > indexArrova + 1) {
+          esValid = true;
+        }
+      }
+    }
+  }
+  return esValid;
 }
 
+// B) --- Validació d'un camp específic ---
 function validateField(key) {
-  const v = form.value;
+  const dadesForm = form.value;
+  const errors = fieldErrors.value;
+
+  // 1. Validació de l'email
   if (key === 'email') {
-    const e = (v.email || '').trim();
-    if (!e) { fieldErrors.value['email'] = "L'email és obligatori."; return; }
-    if (!validEmail(e)) { fieldErrors.value['email'] = "Introduïu un email vàlid (ha de contenir @ i un punt)."; return; }
-    delete fieldErrors.value['email'];
-  } else if (key === 'password') {
-    const p = (v.password || '').trim();
-    if (p && p.length < 6) { fieldErrors.value['password'] = "La contrasenya ha de tenir almenys 6 caràcters."; return; }
-    delete fieldErrors.value['password'];
-  } else if (key === 'centre_id') {
-    if ((v.rol || '').toUpperCase() === 'PROFESSOR' && !v.centre_id) { fieldErrors.value['centre_id'] = "Cal seleccionar un centre per a un professor."; return; }
-    delete fieldErrors.value['centre_id'];
+    let emailStr = dadesForm.email;
+    if (!emailStr) {
+      errors.email = "L'email és obligatori.";
+    } else {
+      let net = emailStr.trim();
+      if (!net) {
+        errors.email = "L'email és obligatori.";
+      } else {
+        const esCorrecte = validEmail(net);
+        if (esCorrecte === false) {
+          errors.email = "Introduïu un email vàlid (ha de contenir @ i un punt).";
+        } else {
+          delete errors.email;
+        }
+      }
+    }
+  } 
+  
+  // 2. Validació de la contrasenya (opcional en edició)
+  else if (key === 'password') {
+    let pwd = dadesForm.password;
+    if (pwd) {
+      let net = pwd.trim();
+      if (net.length > 0) {
+        if (net.length < 6) {
+          errors.password = "La contrasenya ha de tenir almenys 6 caràcters.";
+        } else {
+          delete errors.password;
+        }
+      } else {
+        delete errors.password;
+      }
+    } else {
+      delete errors.password;
+    }
+  } 
+  
+  // 3. Validació del centre (només per a professors)
+  else if (key === 'centre_id') {
+    let rolActual = dadesForm.rol;
+    if (rolActual) {
+      if (rolActual.toUpperCase() === 'PROFESSOR') {
+        if (!dadesForm.centre_id) {
+          errors.centre_id = "Cal seleccionar un centre per a un professor.";
+        } else {
+          delete errors.centre_id;
+        }
+      } else {
+        delete errors.centre_id;
+      }
+    } else {
+      delete errors.centre_id;
+    }
   }
 }
 
+// C) --- Validació de tot el formulari ---
 function validateAll() {
   validateField('email');
   validateField('password');
   validateField('centre_id');
-  return Object.keys(fieldErrors.value).length === 0;
+  
+  const llistaClausErrors = Object.keys(fieldErrors.value);
+  let esValid = false;
+  if (llistaClausErrors.length === 0) {
+    esValid = true;
+  }
+  return esValid;
 }
 
-function etiquetaRol(r) {
-  const v = (r || '').toUpperCase();
-  if (v === 'ADMIN') return 'Administrador';
-  if (v === 'PROFESSOR') return 'Professor';
-  if (v === 'CENTRE') return 'Centre';
-  return r || '—';
+// D) --- Obtenir l'etiqueta descriptiva del rol ---
+function etiquetaRol(rolInput) {
+  if (!rolInput) { return '—'; }
+  const r = rolInput.toUpperCase();
+  if (r === 'ADMIN') { return 'Administrador'; }
+  if (r === 'PROFESSOR') { return 'Professor'; }
+  if (r === 'CENTRE') { return 'Centre'; }
+  return rolInput;
 }
 
+// E) --- Omplir el model amb les dades de l'API ---
 function omplirForm(d) {
-  form.value.email = d.email || '';
-  form.value.password = '';
-  form.value.rol = (d.rol || '').toUpperCase();
-  form.value.centre_id = d.centre_id != null ? String(d.centre_id) : '';
-  form.value.nom = d.nom || '';
-  form.value.cognoms = d.cognoms || '';
+  if (!d) { return; }
+  
+  // 1. Assignem cada camp
+  form.value.email = d.email;
+  form.value.password = ''; // Sempre buida al carregar per seguretat
+  
+  let rolFormat = '';
+  if (d.rol) { rolFormat = d.rol.toUpperCase(); }
+  form.value.rol = rolFormat;
+  
+  let centreFormat = '';
+  if (d.centre_id !== null) {
+    if (d.centre_id !== undefined) {
+      centreFormat = String(d.centre_id);
+    }
+  }
+  form.value.centre_id = centreFormat;
+  
+  form.value.nom = d.nom;
+  form.value.cognoms = d.cognoms;
+  
+  // Corregim nuls
+  if (form.value.email === null) { form.value.email = ''; }
+  if (form.value.nom === null) { form.value.nom = ''; }
+  if (form.value.cognoms === null) { form.value.cognoms = ''; }
 }
 
+// F) --- Reinicialització del formulari ---
 function resetForm() {
-  if (dadesOriginals.value) omplirForm(dadesOriginals.value);
+  const originals = dadesOriginals.value;
+  if (originals) {
+    omplirForm(originals);
+  }
   form.value.password = '';
   message.value = '';
   error.value = '';
   fieldErrors.value = {};
 }
 
+// G) --- Càrrega de l'usuari des de l'API ---
 async function carregarUsuari() {
-  if (!props.userId) return;
+  const idUsuari = props.userId;
+  if (!idUsuari) {
+    return;
+  }
+  
   loadingInitial.value = true;
   error.value = '';
+  
   try {
-    const tok = tokenRef.value;
-    const d = await $fetch('/api/admin/usuaris/' + props.userId, {
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {}
+    const tok = tokenRef;
+    const opcionsCapçalera = {};
+    if (tok) {
+      opcionsCapçalera.Authorization = 'Bearer ' + tok;
+    }
+
+    const dadesAPI = await $fetch('/api/admin/usuaris/' + idUsuari, {
+      headers: opcionsCapçalera
     });
-    dadesOriginals.value = d;
-    omplirForm(d);
-  } catch (err) {
-    error.value = err?.data?.message || err?.message || "Error en carregar l'usuari.";
+    
+    dadesOriginals.value = dadesAPI;
+    omplirForm(dadesAPI);
+    
+  } catch (errCarrega) {
+    console.error('Error carregant usuari:', errCarrega);
+    let msgError = "Error en carregar l'usuari.";
+    if (errCarrega.data) {
+      if (errCarrega.data.message) {
+        msgError = errCarrega.data.message;
+      }
+    }
+    error.value = msgError;
   } finally {
     loadingInitial.value = false;
   }
 }
 
-watch(() => props.userId, (id) => {
-  if (id) carregarUsuari();
-}, { immediate: true });
-
+// H) --- Enviament de les modificacions a l'API ---
 async function submitForm() {
   error.value = '';
   message.value = '';
-  if (!validateAll()) return;
 
-  const email = (form.value.email || '').trim().toLowerCase();
-  const pwd = (form.value.password || '').trim();
+  // 1. Validem el formulari
+  const esValid = validateAll();
+  if (esValid === false) {
+    return;
+  }
 
   loading.value = true;
   try {
+    const dadesForm = form.value;
+    
+    // 2. Preparem el payload
+    let emailFinal = '';
+    if (dadesForm.email) {
+      emailFinal = dadesForm.email.trim().toLowerCase();
+    }
+    
     const payload = {
-      email,
-      nom: (form.value.nom || '').trim() || null,
-      cognoms: (form.value.cognoms || '').trim() || null
+      email: emailFinal,
+      nom: null,
+      cognoms: null
     };
-    if (pwd) payload.password = pwd;
-    if ((form.value.rol || '').toUpperCase() === 'PROFESSOR') {
-      payload.centre_id = Number(form.value.centre_id) || null;
+    
+    if (dadesForm.nom) { payload.nom = dadesForm.nom.trim(); }
+    if (dadesForm.cognoms) { payload.cognoms = dadesForm.cognoms.trim(); }
+    
+    // Contrasenya només si s'ha omplert
+    if (dadesForm.password) {
+      let pwdNeta = dadesForm.password.trim();
+      if (pwdNeta.length > 0) {
+         payload.password = pwdNeta;
+      }
+    }
+    
+    // Centre si és professor
+    const rActual = dadesForm.rol;
+    if (rActual) {
+      if (rActual.toUpperCase() === 'PROFESSOR') {
+        if (dadesForm.centre_id) {
+          payload.centre_id = Number(dadesForm.centre_id);
+        }
+      }
     }
 
-    const tok = tokenRef.value;
-    await $fetch('/api/admin/usuaris/' + props.userId, {
+    const idAct = props.userId;
+    const tok = tokenRef;
+    const headers = {};
+    if (tok) {
+      headers.Authorization = 'Bearer ' + tok;
+    }
+
+    // 3. Petició PUT
+    await $fetch('/api/admin/usuaris/' + idAct, {
       method: 'PUT',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {},
+      headers: headers,
       body: payload
     });
 
-    useSwal().fire({ title: 'Fet', text: 'Usuari actualitzat correctament.', icon: 'success' }).then(() => { emit('updated'); });
-  } catch (err) {
-    console.error('Error actualitzant usuari:', err);
-    error.value = err?.data?.message || err?.message || "Error en desar els canvis.";
+    // 4. Notificació d'èxit
+    const swal = useSwal();
+    swal.fire({ 
+      title: 'Fet', 
+      text: 'Usuari actualitzat correctament.', 
+      icon: 'success' 
+    }).then(function () { 
+      emit('updated'); 
+    });
+    
+  } catch (errPeticio) {
+    console.error('Error actualitzant usuari:', errPeticio);
+    let msgErr = "Error en desar els canvis.";
+    if (errPeticio.data) {
+      if (errPeticio.data.message) {
+        msgErr = errPeticio.data.message;
+      }
+    }
+    error.value = msgErr;
   } finally {
     loading.value = false;
   }
 }
+
+// I) --- Vigilant de canvis en la ID de l'usuari ---
+watch(function () { return props.userId; }, function (nouId) {
+  if (nouId) {
+    carregarUsuari();
+  }
+}, { immediate: true });
 </script>

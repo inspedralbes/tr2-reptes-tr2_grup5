@@ -151,6 +151,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { 
   Building2, 
   Users, 
@@ -166,103 +169,223 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Configuració del Component i Serveis
 // ======================================
-const token = useCookie('authToken');
 
-// ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
-// ======================================
-const itemsPerPage = 10;
-const currentPageRanking = ref(1);
-const currentPageTopWorkshops = ref(1);
-const header = ref({
-  userName: 'Administrador' 
-});
-const { data: rawStats, pending: pendent } = await useFetch('/api/admin/stats/dashboard', {
-  headers: { Authorization: 'Bearer ' + token.value },
+// 1. Serveis de cookies i capçalera
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+const header = useHeaderStore();
+header.setHeaderAdmin();
+
+// 2. Petició de dades del panell a l'API
+const respostaFetch = await useFetch('/api/admin/stats/dashboard', {
+  headers: { Authorization: 'Bearer ' + tokenRef },
   key: 'admin-stats-dashboard'
 });
 
-const statsData = computed(() => {
-  const d = rawStats.value?.data;
-  return {
-    totalCenters: d?.centres?.solicitants || 0,
-    totalStudents: d?.centres?.totalAlumnes || 0,
-    avgStudentsPerWorkshop: d?.centres?.mediaAlumnes || 0,
-    pendingRequests: d?.tallers?.abandonats || 0,
-    leadingSector: formatText(d?.tallers?.sectorTop),
-    topModality: formatModalitat(d?.tallers?.modalitatTop),
-    activeQuarter: d?.tallers?.trimestreTop || 'N/A',
-    goalCompletion: '82.4%' // Placeholder static value if not in API
+// ======================================
+// Estat Reactiu i Constants
+// ======================================
+
+const itemsPerPage = 10;
+const currentPageRanking = ref(1);
+const currentPageTopWorkshops = ref(1);
+
+// ======================================
+// Propietats Computades (Tractament de dades)
+// ======================================
+
+// 1. Resum d'estadístiques base (KPIs)
+const statsData = computed(function () {
+  let d = null;
+  if (respostaFetch.data) {
+    if (respostaFetch.data.value) {
+      d = respostaFetch.data.value.data;
+    }
+  }
+
+  const objFinal = {
+    totalCenters: 0,
+    totalStudents: 0,
+    avgStudentsPerWorkshop: 0,
+    pendingRequests: 0,
+    leadingSector: 'N/A',
+    topModality: 'N/A',
+    activeQuarter: 'N/A',
+    goalCompletion: '82.4%'
   };
+
+  if (d) {
+    if (d.centres) {
+      if (d.centres.solicitants) { objFinal.totalCenters = d.centres.solicitants; }
+      if (d.centres.totalAlumnes) { objFinal.totalStudents = d.centres.totalAlumnes; }
+      if (d.centres.mediaAlumnes) { objFinal.avgStudentsPerWorkshop = d.centres.mediaAlumnes; }
+    }
+    if (d.tallers) {
+      if (d.tallers.abandonats) { objFinal.pendingRequests = d.tallers.abandonats; }
+      if (d.tallers.sectorTop) { objFinal.leadingSector = formatText(d.tallers.sectorTop); }
+      if (d.tallers.modalitatTop) { objFinal.topModality = formatModalitat(d.tallers.modalitatTop); }
+      if (d.tallers.trimestreTop) { objFinal.activeQuarter = d.tallers.trimestreTop; }
+    }
+  }
+
+  return objFinal;
 });
 
-const kpiData = computed(() => [
-  { label: 'Centres Participats', value: statsData.value.totalCenters, icon: Building2, tag: '+4 aquest mes' },
-  { label: 'Alumnes Impactats', value: statsData.value.totalStudents, icon: Users, tag: '84% Actius' },
-  { label: 'Alumnes per taller', value: statsData.value.avgStudentsPerWorkshop, icon: UserCheck },
-  { label: 'Peticions Pendents', value: statsData.value.pendingRequests, icon: ClipboardList, alert: true }
-]);
-
-const detailGridData = computed(() => [
-  { label: 'Sector Líder', value: statsData.value.leadingSector, icon: Briefcase, colorClass: 'bg-[#022B3A]/5 text-[#022B3A]', valueSize: 'text-lg' },
-  { label: 'Modalitat Top', value: statsData.value.topModality, icon: Layers, colorClass: 'bg-[#1F7A8C]/5 text-[#1F7A8C]' },
-  { label: 'Pico d\'Activitat', value: statsData.value.activeQuarter, icon: Calendar, colorClass: 'bg-brandAmber/10 text-brandAmber' },
-  { label: 'Compliment', value: statsData.value.goalCompletion, icon: PieChart, colorClass: 'bg-[#7cb518]/10 text-[#7cb518]', isChart: true }
-]);
-
-const centerRanking = computed(() => {
-  const ranking = rawStats.value?.data?.centres?.ranking || [];
-  return ranking.map(c => ({
-    name: c.nom_centre,
-    workshops: c.total_tallers,
-    attendance: c.percentatge_asistencia,
-    planned: c.total_alumnes_planificats,
-    real: c.alumnes_reals
-  }));
+// 2. Dades per a les targetes KPI superiors
+const kpiData = computed(function () {
+  const d = statsData.value;
+  return [
+    { label: 'Centres Participats', value: d.totalCenters, icon: Building2, tag: '+4 aquest mes' },
+    { label: 'Alumnes Impactats', value: d.totalStudents, icon: Users, tag: '84% Actius' },
+    { label: 'Alumnes per taller', value: d.avgStudentsPerWorkshop, icon: UserCheck },
+    { label: 'Peticions Pendents', value: d.pendingRequests, icon: ClipboardList, alert: true }
+  ];
 });
 
-const topWorkshops = computed(() => {
-  const workshops = rawStats.value?.data?.tallers?.mesSolicitats || [];
-  return workshops.map(w => ({
-    title: w.titol,
-    requests: w.total_peticions,
-    growth: '+' + (Math.floor(Math.random() * 10) + 1) + '%',
-    sector: w.sector
-  }));
+// 3. Dades per a la graella de detalls inferiors
+const detailGridData = computed(function () {
+  const d = statsData.value;
+  return [
+    { label: 'Sector Líder', value: d.leadingSector, icon: Briefcase, colorClass: 'bg-[#022B3A]/5 text-[#022B3A]', valueSize: 'text-lg' },
+    { label: 'Modalitat Top', value: d.topModality, icon: Layers, colorClass: 'bg-[#1F7A8C]/5 text-[#1F7A8C]' },
+    { label: 'Pico d\'Activitat', value: d.activeQuarter, icon: Calendar, colorClass: 'bg-brandAmber/10 text-brandAmber' },
+    { label: 'Compliment', value: d.goalCompletion, icon: PieChart, colorClass: 'bg-[#7cb518]/10 text-[#7cb518]', isChart: true }
+  ];
 });
 
-const totalPagesRanking = computed(() => Math.max(1, Math.ceil((centerRanking.value || []).length / itemsPerPage)));
-const paginatedCenterRanking = computed(() => {
-  const list = centerRanking.value || [];
-  const start = (currentPageRanking.value - 1) * itemsPerPage;
-  return list.slice(start, start + itemsPerPage);
-});
-function goToPageRanking(p) { if (p >= 1 && p <= totalPagesRanking.value) currentPageRanking.value = p; }
+// 4. Rànquing de centres (Bucle clàssic per processar dades de l'API)
+const centerRanking = computed(function () {
+  const resultats = [];
+  let dAPI = null;
+  
+  if (respostaFetch.data && respostaFetch.data.value) {
+    dAPI = respostaFetch.data.value.data;
+  }
 
-const totalPagesTopWorkshops = computed(() => Math.max(1, Math.ceil((topWorkshops.value || []).length / itemsPerPage)));
-const paginatedTopWorkshops = computed(() => {
-  const list = topWorkshops.value || [];
-  const start = (currentPageTopWorkshops.value - 1) * itemsPerPage;
-  return list.slice(start, start + itemsPerPage);
+  if (dAPI && dAPI.centres && dAPI.centres.ranking) {
+    const llistaRanking = dAPI.centres.ranking;
+    for (let i = 0; i < llistaRanking.length; i++) {
+        const c = llistaRanking[i];
+        resultats.push({
+            name: c.nom_centre,
+            workshops: c.total_tallers,
+            attendance: c.percentatge_asistencia,
+            planned: c.total_alumnes_planificats,
+            real: c.alumnes_reals
+        });
+    }
+  }
+  return resultats;
 });
-function goToPageTopWorkshops(p) { if (p >= 1 && p <= totalPagesTopWorkshops.value) currentPageTopWorkshops.value = p; }
+
+// 5. Tallers amb més demanda (Bucle clàssic)
+const topWorkshops = computed(function () {
+  const resultatsTallers = [];
+  let dAPI = null;
+  
+  if (respostaFetch.data && respostaFetch.data.value) {
+    dAPI = respostaFetch.data.value.data;
+  }
+
+  if (dAPI && dAPI.tallers && dAPI.tallers.mesSolicitats) {
+    const llistaT = dAPI.tallers.mesSolicitats;
+    for (let j = 0; j < llistaT.length; j++) {
+        const w = llistaT[j];
+        resultatsTallers.push({
+            title: w.titol,
+            requests: w.total_peticions,
+            growth: '+' + (Math.floor(Math.random() * 10) + 1) + '%',
+            sector: w.sector
+        });
+    }
+  }
+  return resultatsTallers;
+});
+
+// 6. Paginació del rànquing de centres
+const totalPagesRanking = computed(function () {
+  const n = centerRanking.value.length;
+  if (n === 0) { return 1; }
+  return Math.ceil(n / itemsPerPage);
+});
+
+const paginatedCenterRanking = computed(function () {
+  const llistaTota = centerRanking.value;
+  const inici = (currentPageRanking.value - 1) * itemsPerPage;
+  const finalReal = inici + itemsPerPage;
+  
+  const resultatPag = [];
+  for (let k = 0; k < llistaTota.length; k++) {
+    if (k >= inici) {
+      if (k < finalReal) {
+        resultatPag.push(llistaTota[k]);
+      }
+    }
+  }
+  return resultatPag;
+});
+
+// 7. Paginació dels tallers top
+const totalPagesTopWorkshops = computed(function () {
+  const n = topWorkshops.value.length;
+  if (n === 0) { return 1; }
+  return Math.ceil(n / itemsPerPage);
+});
+
+const paginatedTopWorkshops = computed(function () {
+  const llistaTotaT = topWorkshops.value;
+  const iniciT = (currentPageTopWorkshops.value - 1) * itemsPerPage;
+  const finalRealT = iniciT + itemsPerPage;
+  
+  const resultatPagT = [];
+  for (let m = 0; m < llistaTotaT.length; m++) {
+    if (m >= iniciT) {
+      if (m < finalRealT) {
+        resultatPagT.push(llistaTotaT[m]);
+      }
+    }
+  }
+  return resultatPagT;
+});
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Declaracions de funcions (Handlers i Utilitats)
 // ======================================
+
+// A) --- Gestió de la interfície ---
+
+function goToPageRanking(p) {
+  if (p >= 1) {
+    if (p <= totalPagesRanking.value) {
+      currentPageRanking.value = p;
+    }
+  }
+}
+
+function goToPageTopWorkshops(p) {
+  if (p >= 1) {
+    if (p <= totalPagesTopWorkshops.value) {
+      currentPageTopWorkshops.value = p;
+    }
+  }
+}
 
 function getRankBadgeStyle(idx) {
-  if (idx === 0) return 'bg-brandAmber text-white ring-4 ring-brandAmber/10';
-  if (idx === 1) return 'bg-slate-400 text-white ring-4 ring-slate-400/10';
-  if (idx === 2) return 'bg-orange-700 text-white ring-4 ring-orange-700/10';
+  if (idx === 0) { return 'bg-brandAmber text-white ring-4 ring-brandAmber/10'; }
+  if (idx === 1) { return 'bg-slate-400 text-white ring-4 ring-slate-400/10'; }
+  if (idx === 2) { return 'bg-orange-700 text-white ring-4 ring-orange-700/10'; }
   return 'bg-[#E1E5F2] text-[#022B3A]/40';
 }
 
+// B) --- Format de dades ---
+
 function formatText(text) {
-  if (!text) return 'N/A';
+  if (!text) { return 'N/A'; }
   let t = String(text);
+  // Correcció manual de caràcters especials si és necessari
   t = t.replace(/Ã¨/g, 'è');
   t = t.replace(/Ã/g, 'à');
   t = t.replace(/Â²/g, '²');
@@ -270,10 +393,14 @@ function formatText(text) {
 }
 
 function formatModalitat(mod) {
-  if (mod === 'B') return 'Híbrida';
-  if (mod === 'P') return 'Presencial';
-  if (mod === 'V') return 'Virtual';
-  if (mod && mod !== 'N/A') return mod;
+  if (mod === 'B') { return 'Híbrida'; }
+  if (mod === 'P') { return 'Presencial'; }
+  if (mod === 'V') { return 'Virtual'; }
+  if (mod) {
+    if (mod !== 'N/A') {
+      return mod;
+    }
+  }
   return 'N/A';
 }
 </script>
