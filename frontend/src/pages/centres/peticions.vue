@@ -314,29 +314,19 @@
                 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-[#BFDBF7]/10 pt-6">
                    <div class="md:col-span-12 space-y-2">
                      <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Docent Responsable *</label>
-                     <div class="flex items-center gap-3">
-                        <div class="relative flex-1">
-                           <select 
-                             v-model="formModel.docent_nom" 
-                             class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none"
-                             @change="validateField(workshop.id, 'docent_nom'); showAddTeacherInline[workshop.id] = false"
-                           >
-                              <option value="" disabled>Selecciona un docent</option>
-                              <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
-                           </select>
-                           <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40">
-                              <ArrowRight :size="12" class="rotate-90" />
-                           </div>
-                        </div>
-
-                        <button 
-                          type="button"
-                          @click="toggleQuickTeacherForm(workshop.id)"
-                          class="w-14 h-14 bg-white border border-[#BFDBF7] rounded-xl flex items-center justify-center text-[#1F7A8C] hover:bg-[#1F7A8C] hover:text-white transition-all shadow-sm group/btn"
-                          title="Crear nou docent"
+                     <div class="relative">
+                        <select 
+                          v-model="formModel.docent_nom" 
+                          class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none"
+                          @change="handleDocentChange(workshop.id)"
                         >
-                          <Plus :size="20" :class="{'rotate-45 text-red-500 hover:text-white': showAddTeacherInline[workshop.id]}" class="transition-transform" />
-                        </button>
+                           <option value="" disabled>Selecciona un docent</option>
+                           <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
+                           <option value="NEW_TEACHER" class="text-[#1F7A8C] font-black">+ Crear nou docent...</option>
+                        </select>
+                        <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40">
+                           <ArrowRight :size="12" class="rotate-90" />
+                        </div>
                      </div>
                      <p v-if="fieldErrors[workshop.id]?.docent_nom" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].docent_nom }}</p>
 
@@ -474,14 +464,29 @@ const showAddTeacherInline = ref({}); // { workshopId: bool }
 const newTeacher = ref({ nom: '', cognoms: '', email: '' });
 const creatingTeacher = ref(false);
 
+function handleDocentChange(workshopId) {
+  const workshopForm = form.value.tallers.find(t => t.taller_id === workshopId);
+  if (!workshopForm) return;
+
+  if (workshopForm.docent_nom === 'NEW_TEACHER') {
+    // Tancar altres si n'hi ha
+    Object.keys(showAddTeacherInline.value).forEach(k => {
+      if (k !== workshopId.toString()) showAddTeacherInline.value[k] = false;
+    });
+    
+    showAddTeacherInline.value[workshopId] = true;
+    newTeacher.value = { nom: '', cognoms: '', email: '' }; // Reset form
+  } else {
+    showAddTeacherInline.value[workshopId] = false;
+    validateField(workshopId, 'docent_nom');
+  }
+}
+
 function toggleQuickTeacherForm(workshopId) {
-  // Tancar altres formularis si n'hi ha
   Object.keys(showAddTeacherInline.value).forEach(k => {
     if (k !== workshopId.toString()) showAddTeacherInline.value[k] = false;
   });
-  
   showAddTeacherInline.value[workshopId] = !showAddTeacherInline.value[workshopId];
-  newTeacher.value = { nom: '', cognoms: '', email: '' }; // Reset fields
 }
 
 async function handleCreateTeacherQuick(workshopId) {
