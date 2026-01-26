@@ -35,6 +35,10 @@ const token = useCookie('authToken').value;
 const searchQuery = ref('');
 const viewMode = ref('grid'); // 'grid' | 'list'
 const selectedWorkshopId = ref(null);
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+watch(searchQuery, () => { currentPage.value = 1; });
 const showAddModal = ref(false);
 const newStudents = ref([]);
 const studentsList = ref([]); 
@@ -88,6 +92,13 @@ const filteredWorkshops = computed(() => {
 const selectedWorkshop = computed(() => {
   return filteredWorkshops.value.find(w => w.id === selectedWorkshopId.value);
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredWorkshops.value || []).length / itemsPerPage)));
+const paginatedWorkshops = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredWorkshops.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 // --- METHODS ---
 const getProjectStyles = (project) => {
@@ -401,7 +412,7 @@ const handleDeleteStudent = async (studentId) => {
           </div>
 
           <div v-if="filteredWorkshops && filteredWorkshops.length > 0" :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
-            <template v-for="workshop in filteredWorkshops" :key="workshop.id">
+            <template v-for="workshop in paginatedWorkshops" :key="workshop.id">
               <!-- LIST VIEW CARD -->
               <div v-if="viewMode === 'list'" class="bg-white rounded-xl border border-[#E1E5F2] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8 hover:shadow-lg transition-all hover:border-[#BFDBF7] group">
                  <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -435,6 +446,9 @@ const handleDeleteStudent = async (studentId) => {
                 <div class="px-6 py-4 bg-[#F9FAFC] border-t border-[#F1F4F9] flex items-center justify-between mt-auto"><span class="text-[10px] font-black text-[#B8C0CC] tracking-widest uppercase">{{ workshop.ref }}</span><button @click="handleSelectWorkshop(workshop.id)" class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all shadow-lg bg-[#1F7A8C] text-white shadow-[#1F7A8C]/20 hover:bg-[#166070] hover:scale-105"><ClipboardList :size="14" :strokeWidth="2" />LLISTAT</button></div>
               </div>
             </template>
+            <div class="mt-8 flex justify-center col-span-full">
+              <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+            </div>
           </div>
           <div v-else class="p-20 text-center text-[#022B3A]/40 font-bold uppercase tracking-widest text-xs italic border-2 border-dashed border-[#E1E5F2] rounded-3xl">No s'han trobat tallers assignats.</div>
         </div>

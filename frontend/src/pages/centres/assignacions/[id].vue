@@ -62,17 +62,19 @@
           <div class="card sessions-card">
             <h3>📅 Sessions Programades</h3>
             
-            <div v-if="assignacio.sessions && assignacio.sessions.length > 0" class="sessions-list">
-              <div v-for="(sesio, index) in assignacio.sessions" :key="sesio.id" class="sesio-item">
-                <div class="sesio-number">{{ index + 1 }}</div>
+            <div v-if="sessionsList.length > 0" class="sessions-list">
+              <div v-for="(sesio, index) in paginatedSessions" :key="sesio.id" class="sesio-item">
+                <div class="sesio-number">{{ (currentPageSessions - 1) * itemsPerPage + index + 1 }}</div>
                 <div class="sesio-data">
                   <span class="date">{{ formatDate(sesio.data) }}</span>
                   <span class="time">🕒 {{ sesio.hora_inici }} - {{ sesio.hora_fi }}</span>
                 </div>
               </div>
             </div>
-            
-            <div v-else class="no-sessions">
+            <div v-if="sessionsList.length > 0 && totalPagesSessions > 1" class="mt-4 flex justify-center">
+              <Pagination :current-page="currentPageSessions" :total-pages="totalPagesSessions" @go-to-page="goToPageSessions" />
+            </div>
+            <div v-else-if="sessionsList.length === 0" class="no-sessions">
               <p>No hi ha sessions programades encara per a aquesta assignació.</p>
             </div>
           </div>
@@ -84,6 +86,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 // ======================================
 // Importacions i Composables (Rutes, Cookies, Stores)
 // ======================================
@@ -108,6 +111,18 @@ const assignacio = computed(function () {
 
 const pending = resFetch.pending;
 const error = resFetch.error;
+
+const itemsPerPage = 10;
+const currentPageSessions = ref(1);
+watch(() => route.params.id, () => { currentPageSessions.value = 1; });
+const sessionsList = computed(() => assignacio.value?.sessions || []);
+const totalPagesSessions = computed(() => Math.max(1, Math.ceil(sessionsList.value.length / itemsPerPage)));
+const paginatedSessions = computed(() => {
+  const list = sessionsList.value;
+  const start = (currentPageSessions.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+function goToPageSessions(p) { if (p >= 1 && p <= totalPagesSessions.value) currentPageSessions.value = p; }
 
 // ======================================
 // Lògica i Funcions (Handlers i Lifecycle)

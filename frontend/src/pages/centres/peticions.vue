@@ -74,7 +74,7 @@
 
       <!-- 3. Workshops Container -->
       <div :class="viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-3'">
-        <template v-for="workshop in filteredWorkshops" :key="workshop.id">
+        <template v-for="workshop in paginatedWorkshops" :key="workshop.id">
           
           <!-- LIST VIEW -->
           <div 
@@ -215,6 +215,9 @@
           </div>
 
         </template>
+        <div class="mt-8 flex justify-center col-span-full">
+          <Pagination :current-page="currentPage" :total-pages="totalPages" @go-to-page="goToPage" />
+        </div>
       </div>
 
       <!-- Fixed Bottom Bar -->
@@ -478,6 +481,16 @@ const filteredWorkshops = computed(() => {
     raw: t // Keep original data
   }));
 });
+
+const currentPage = ref(1);
+const itemsPerPage = 10;
+watch(searchQuery, () => { currentPage.value = 1; });
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredWorkshops.value || []).length / itemsPerPage)));
+const paginatedWorkshops = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return (filteredWorkshops.value || []).slice(start, start + itemsPerPage);
+});
+function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
 
 const addedWorkshops = computed(() => {
   return selectedTallers.value.map(t => t.id);
