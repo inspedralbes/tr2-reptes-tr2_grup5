@@ -116,7 +116,13 @@ const authController = {
       } else if (rol === "CENTRE") {
         const centre = await Centre.findByUserId(id);
         if (centre) {
-          name = centre.nom_coordinador || centre.nom_centre;
+          // Si el nom_coordinador és buid, o és el genèric "Coordinador/a", usem el nom del centre
+          const n = centre.nom_coordinador || '';
+          if (!n || n.trim() === '' || n.toLowerCase().includes('coordinador')) {
+            name = centre.nom_centre;
+          } else {
+            name = n;
+          }
         }
       } else if (rol === "PROFESSOR") {
         const prof = await Professor.getByUserId(id);
@@ -125,6 +131,7 @@ const authController = {
         }
       }
 
+      console.log(`[AUTH DEBUG] getMe ID:${id} Rol:${rol} Name:${name}`);
       res.json({ id, rol, name });
     } catch (error) {
       console.error("Error a getMe:", error);

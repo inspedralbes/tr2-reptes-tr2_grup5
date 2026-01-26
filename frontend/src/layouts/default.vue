@@ -34,7 +34,7 @@ onMounted(function () {
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #ffffff;
 }
 
 .main-content {
@@ -43,7 +43,7 @@ onMounted(function () {
 }
 
 .page-container {
-  padding: 2.5rem;
+  padding: 1.5rem 2.5rem;
   max-width: 1300px;
   margin: 0 auto;
 }

@@ -119,11 +119,13 @@ const roleLabel = computed(function () {
 const userInitials = computed(function () {
   const name = userName.value;
   if (name === 'Usuari' || !name) return '—';
-  const parts = name.split(' ');
+  // Eliminem "IES ", "INS ", "Escola " per a mantenir les inicials rellevants si calgués, 
+  // però per ara simplifiquem a les primeres lletres de cada paraula
+  const parts = name.split(' ').filter(p => p.length > 1);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  return name[0].toUpperCase();
+  return name.substring(0, 2).toUpperCase();
 });
 
 const userName = computed(function () {
@@ -140,7 +142,10 @@ const userRoleDisplay = computed(function () {
 });
 
 onMounted(() => {
-  header.fetchUserProfile();
+  console.log('[HEADER DEBUG] Initial userName:', header.userName);
+  header.fetchUserProfile().then(() => {
+    console.log('[HEADER DEBUG] Profile fetched. userName:', header.userName);
+  });
 });
 
 function obtenirClauBoto(btn, i) {
