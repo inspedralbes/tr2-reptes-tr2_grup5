@@ -40,7 +40,7 @@ const AssignacioTaller = {
     // 1. Obtenim les dades del taller
     const resultTaller = await db.query("SELECT id, places_maximes FROM tallers WHERE id = ?", [taller_id]);
     const taller = resultTaller[0];
-    
+
     // 2. Comprovem si el taller existeix
     if (!taller || taller.length === 0) {
       const resposta = {};
@@ -51,11 +51,11 @@ const AssignacioTaller = {
 
     // 3. Obtenim l'ocupació actual
     const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
-    
+
     // 4. Calculem les places lliures
     const places_maximes = taller[0].places_maximes;
     const lliures = places_maximes - ocupat;
-    
+
     // 5. Comprovem si hi ha capacitat suficient
     const valid = num_nous_participants <= lliures;
 
@@ -75,7 +75,7 @@ const AssignacioTaller = {
     // 1. Obtenim les dades del taller
     const resultTaller = await db.query("SELECT places_maximes FROM tallers WHERE id = ?", [taller_id]);
     const taller = resultTaller[0];
-    
+
     // 2. Comprovem si el taller existeix
     if (!taller || taller.length === 0) {
       return 0;
@@ -83,11 +83,11 @@ const AssignacioTaller = {
 
     // 3. Obtenim l'ocupació actual
     const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
-    
+
     // 4. Calculem les places lliures
     const places_maximes = taller[0].places_maximes;
     const lliures = places_maximes - ocupat;
-    
+
     // 5. Retornem les places lliures
     return lliures;
   },
@@ -100,10 +100,10 @@ const AssignacioTaller = {
       [peticio_detall_id]
     );
     const resultat = result[0];
-    
+
     // 2. Obtenim el compte
     const count = resultat[0].count;
-    
+
     // 3. Retornem el compte
     return count;
   },
@@ -128,6 +128,7 @@ const AssignacioTaller = {
 
   // B) --- Obtenir el detall d'una assignació per ID ---
   getById: async (id) => {
+    // 1. Busquem les dades de l'assignació
     const result = await db.query(`
       SELECT pd.id, pd.num_participants, pd.docent_nom, pd.docent_email, pd.estat,
              pd.trimestre, pd.descripcio, p.data_creacio, t.titol, t.modalitat, t.ubicacio, t.data_execucio,
@@ -138,8 +139,20 @@ const AssignacioTaller = {
       WHERE pd.id = ?
     `, [id]);
     const rows = result[0];
+
     if (rows && rows.length > 0) {
-      return rows[0];
+      const assignacio = rows[0];
+
+      // 2. Busquem les sessions programades per a aquesta assignació
+      const [sessions] = await db.query(`
+        SELECT id, ordre, data
+        FROM sessions
+        WHERE peticio_detall_id = ?
+        ORDER BY ordre ASC
+      `, [id]);
+
+      assignacio.sessions = sessions || [];
+      return assignacio;
     }
     return null;
   },

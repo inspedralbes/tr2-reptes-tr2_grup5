@@ -110,6 +110,13 @@
 
     </div>
 
+
+    <!-- Modal Detall Assignació (Pop-up de dades del taller assignat) -->
+    <ModalDetallAssignacio
+      v-if="showModalDetall && idDetallForModal"
+      :assignacio-id="idDetallForModal"
+      @close="showModalDetall = false; idDetallForModal = null"
+    />
   </div>
 </template>
 
@@ -131,6 +138,9 @@ function getProjectStyles(letter) {
   if (l.includes('C')) return 'bg-[#FFF7E6] text-[#FBB02D] border-[#FBB02D]/20';
   return 'bg-white/40 text-[#022B3A] border-white/60';
 }
+
+const showModalDetall = ref(false);
+const idDetallForModal = ref(null);
 
 // ======================================
 // Estat Reactiu i Data Fetching
@@ -175,7 +185,8 @@ const assignments = computed(() => {
 // Navigation Actions
 // ======================================
 function navigateToDetails(id) {
-  router.push(`/centres/assignacions/${id}`);
+  idDetallForModal.value = id;
+  showModalDetall.value = true;
 }
 
 function navigateToRequests() {
