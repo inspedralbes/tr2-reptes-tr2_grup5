@@ -58,7 +58,8 @@ const User = {
     );
     
     // 3. Obtenim l'ID del registre inserit
-    const insertId = result[0].insertId;
+    const rows = result[0];
+    const insertId = rows.insertId;
     
     // 4. Retornem l'ID del nou usuari
     return insertId;
@@ -66,86 +67,205 @@ const User = {
 
   // A) --- Eliminar un usuari ---
   delete: async (id) => {
+    // 1. Executem l'eliminació
     const result = await db.query("DELETE FROM usuaris WHERE id = ?", [id]);
-    const affectedRows = result[0].affectedRows;
-    return affectedRows > 0;
+    const rows = result[0];
+    const affectedRows = rows.affectedRows;
+    
+    // 2. Retornem cert si s'ha eliminat
+    if (affectedRows > 0) {
+      return true;
+    } else {
+      return false;
+    }
   },
 
   // A) --- Actualitzar email i/o password d'un usuari (només els camps proporcionats) ---
   update: async (id, data) => {
+    // 1. Preparem els camps a actualitzar
     const parts = [];
     const vals = [];
-    if (data.email != null) {
+    
+    if (data.email !== null && data.email !== undefined) {
       parts.push("email = ?");
       vals.push(data.email);
     }
-    if (data.password != null) {
+    if (data.password !== null && data.password !== undefined) {
       parts.push("password = ?");
       vals.push(data.password);
     }
-    if (parts.length === 0) return false;
+    
+    // 2. Si no hi ha camps, sortim
+    if (parts.length === 0) {
+      return false;
+    }
+    
+    // 3. Afegim l'ID al final dels valors
     vals.push(id);
-    const sql = "UPDATE usuaris SET " + parts.join(", ") + " WHERE id = ?";
+    
+    // 4. Construïm la consulta manualment amb un bucle
+    let sqlSet = "";
+    for (let i = 0; i < parts.length; i++) {
+        if (i > 0) {
+            sqlSet = sqlSet + ", ";
+        }
+        sqlSet = sqlSet + parts[i];
+    }
+
+    const sql = "UPDATE usuaris SET " + sqlSet + " WHERE id = ?";
+    
+    // 5. Executem la consulta
     const result = await db.query(sql, vals);
-    return result[0].affectedRows > 0;
+    const rows = result[0];
+    return rows.affectedRows > 0;
   },
 
-  // B) --- deleteCentre: elimina el centre, l'usuari del centre, els professors i els seus usuaris, i totes les relacions (peticions, peticio_detalls, etc.). Registra el log. ---
+  // B) --- Elimina el centre, l'usuari, professors i relacions ---
   deleteCentre: async (centreId, usuariIdLog) => {
-    const [rowsCentre] = await db.query("SELECT * FROM centres WHERE id = ?", [centreId]);
+    // 1. Busquem el centre
+    const resultCentre = await db.query("SELECT * FROM centres WHERE id = ?", [centreId]);
+    const rowsCentre = resultCentre[0];
+    
     if (!rowsCentre || rowsCentre.length === 0) {
-      return { success: false, message: "No s'ha trobat el centre per eliminar" };
+      const resp = {};
+      resp.success = false;
+      resp.message = "No s'ha trobat el centre per eliminar";
+      return resp;
     }
     const centre = rowsCentre[0];
 
-    const [rowsProfs] = await db.query("SELECT user_id FROM professors WHERE centre_id = ?", [centreId]);
-    const professorUserIds = (rowsProfs || []).map(function (r) { return r.user_id; }).filter(Boolean);
+    // 2. Busquem els professors del centre
+    const resultProfs = await db.query("SELECT user_id FROM professors WHERE centre_id = ?", [centreId]);
+    const rowsProfs = resultProfs[0];
+    
+    // 3. Obtenim els IDs d'usuari dels professors manualment
+    const professorUserIds = [];
+    if (rowsProfs) {
+        for (let i = 0; i < rowsProfs.length; i++) {
+            const r = rowsProfs[i];
+            if (r.user_id) {
+                professorUserIds.push(r.user_id);
+            }
+        }
+    }
 
-    const userIdsToDelete = [centre.user_id].concat(professorUserIds).filter(Boolean);
-    const uniqueIds = [...new Set(userIdsToDelete)];
+    // 4. Construïm la llista d'IDs d'usuari a eliminar (centre + professors)
+    const userIdsToDelete = [];
+    if (centre.user_id) {
+        userIdsToDelete.push(centre.user_id);
+    }
+    for (let i = 0; i < professorUserIds.length; i++) {
+        userIdsToDelete.push(professorUserIds[i]);
+    }
 
+    // 5. Filtrem duplicats manualment
+    const uniqueIds = [];
+    for (let i = 0; i < userIdsToDelete.length; i++) {
+        const idActual = userIdsToDelete[i];
+        let jaExisteix = false;
+        for (let j = 0; j < uniqueIds.length; j++) {
+            if (uniqueIds[j] === idActual) {
+                jaExisteix = true;
+                break;
+            }
+        }
+        if (!jaExisteix) {
+            uniqueIds.push(idActual);
+        }
+    }
+
+    // 6. Eliminem el centre
     await db.query("DELETE FROM centres WHERE id = ?", [centreId]);
 
+    // 7. Eliminem els usuaris un per un
     for (let i = 0; i < uniqueIds.length; i++) {
       await db.query("DELETE FROM usuaris WHERE id = ?", [uniqueIds[i]]);
     }
 
-    const txtAnterior = "Centre id " + centre.id + ", nom '" + (centre.nom_centre || "") + "', codi " + (centre.codi_centre || "") + ", i l'usuari/user_id " + (centre.user_id || "—") + ", abans d'eliminar.";
-    const txtNou = "Eliminat el centre '" + (centre.nom_centre || "") + "' (codi: " + (centre.codi_centre || "") + ", id: " + centre.id + "), l'usuari associat i els professors del centre.";
-    await Log.create({
-      usuari_id: usuariIdLog || null,
-      accio: "DELETE",
-      taula_afectada: "centres",
-      valor_anterior: txtAnterior,
-      valor_nou: txtNou
-    });
+    // 8. Registrem el log
+    let txtAnterior = "Centre id " + centre.id + ", nom '";
+    if (centre.nom_centre) txtAnterior = txtAnterior + centre.nom_centre;
+    txtAnterior = txtAnterior + "', codi ";
+    if (centre.codi_centre) txtAnterior = txtAnterior + centre.codi_centre;
+    txtAnterior = txtAnterior + ", i l'usuari/user_id ";
+    if (centre.user_id) txtAnterior = txtAnterior + centre.user_id;
+    else txtAnterior = txtAnterior + "—";
+    txtAnterior = txtAnterior + ", abans d'eliminar.";
 
-    return { success: true };
+    let txtNou = "Eliminat el centre '";
+    if (centre.nom_centre) txtNou = txtNou + centre.nom_centre;
+    txtNou = txtNou + "' (codi: ";
+    if (centre.codi_centre) txtNou = txtNou + centre.codi_centre;
+    txtNou = txtNou + ", id: " + centre.id + "), l'usuari associat i els professors del centre.";
+
+    const logData = {};
+    if (usuariIdLog) logData.usuari_id = usuariIdLog;
+    else logData.usuari_id = null;
+    
+    logData.accio = "DELETE";
+    logData.taula_afectada = "centres";
+    logData.valor_anterior = txtAnterior;
+    logData.valor_nou = txtNou;
+
+    await Log.create(logData);
+
+    // 9. Retornem èxit
+    const finalResp = {};
+    finalResp.success = true;
+    return finalResp;
   },
 
-  // C) --- deleteProfessor: elimina el professor, l'usuari associat i les seves relacions (referents_assignats, etc.). Registra el log. ---
+  // C) --- Elimina el professor i l'usuari associat ---
   deleteProfessor: async (professorId, usuariIdLog) => {
-    const [rowsProf] = await db.query("SELECT * FROM professors WHERE id = ?", [professorId]);
+    // 1. Busquem el professor
+    const resultProf = await db.query("SELECT * FROM professors WHERE id = ?", [professorId]);
+    const rowsProf = resultProf[0];
+    
     if (!rowsProf || rowsProf.length === 0) {
-      return { success: false, message: "No s'ha trobat el professor per eliminar" };
+      const resp = {};
+      resp.success = false;
+      resp.message = "No s'ha trobat el professor per eliminar";
+      return resp;
     }
+    
     const professor = rowsProf[0];
     const userId = professor.user_id;
 
+    // 2. Eliminem
     await db.query("DELETE FROM professors WHERE id = ?", [professorId]);
     await db.query("DELETE FROM usuaris WHERE id = ?", [userId]);
 
-    const txtAnterior = "Professor id " + professor.id + ", user_id " + (professor.user_id || "—") + ", nom " + (professor.nom || "") + " " + (professor.cognoms || "") + ", abans d'eliminar.";
-    const txtNou = "Eliminat el professor '" + (professor.nom || "") + " " + (professor.cognoms || "") + "' (id: " + professor.id + ") i l'usuari associat.";
-    await Log.create({
-      usuari_id: usuariIdLog || null,
-      accio: "DELETE",
-      taula_afectada: "professors",
-      valor_anterior: txtAnterior,
-      valor_nou: txtNou
-    });
+    // 3. Registrem el log
+    let txtAnterior = "Professor id " + professor.id + ", user_id ";
+    if (professor.user_id) txtAnterior = txtAnterior + professor.user_id;
+    else txtAnterior = txtAnterior + "—";
+    txtAnterior = txtAnterior + ", nom ";
+    if (professor.nom) txtAnterior = txtAnterior + professor.nom;
+    txtAnterior = txtAnterior + " ";
+    if (professor.cognoms) txtAnterior = txtAnterior + professor.cognoms;
+    txtAnterior = txtAnterior + ", abans d'eliminar.";
 
-    return { success: true };
+    let txtNou = "Eliminat el professor '";
+    if (professor.nom) txtNou = txtNou + professor.nom;
+    txtNou = txtNou + " ";
+    if (professor.cognoms) txtNou = txtNou + professor.cognoms;
+    txtNou = txtNou + "' (id: " + professor.id + ") i l'usuari associat.";
+
+    const logData = {};
+    if (usuariIdLog) logData.usuari_id = usuariIdLog;
+    else logData.usuari_id = null;
+
+    logData.accio = "DELETE";
+    logData.taula_afectada = "professors";
+    logData.valor_anterior = txtAnterior;
+    logData.valor_nou = txtNou;
+
+    await Log.create(logData);
+
+    // 4. Retornem èxit
+    const finalResp = {};
+    finalResp.success = true;
+    return finalResp;
   },
 
   // A) --- Obtenir tots els usuaris amb dades del centre associat ---

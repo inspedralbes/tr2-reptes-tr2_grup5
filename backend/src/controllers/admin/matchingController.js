@@ -24,19 +24,19 @@ const matchingController = {
                 return res.status(403).json({ message: "No tens permisos per executar assignacions automàtiques." });
             }
 
-            // Obtenir la cola de peticions pendents
+            // 1. Obtenir la cola de peticions pendents
             const queue = await Matching.getGlobalQueue();
 
             let successCount = 0;
             let rejectedCount = 0;
             const errors = [];
 
-            // Recórrer cada petició de la cola
+            // 2. Recórrer cada petició de la cola
             for (let i = 0; i < queue.length; i++) {
                 const detall = queue[i];
                 
                 try {
-                    // 1. Validar places disponibles
+                    // 3. Validar places disponibles
                     const ocupat = await Matching.getOccupiedSpots(detall.taller_id, detall.trimestre);
                     const places_disponibles = detall.places_maximes - ocupat;
 
@@ -62,7 +62,7 @@ const matchingController = {
                         continue;
                     }
 
-                    // 2. Validar límit modalitat C (màxim 12 alumnes per centre per trimestre)
+                    // 4. Validar límit modalitat C (màxim 12 alumnes per centre per trimestre)
                     if (detall.modalitat === 'C') {
                         const totalModC = await Matching.getCentreCountModC(detall.centre_id, detall.trimestre);
                         if (totalModC + detall.num_participants > 12) {
@@ -88,7 +88,7 @@ const matchingController = {
                         }
                     }
 
-                    // 3. Realitzar l'assignació (transacció)
+                    // 5. Realitzar l'assignació (transacció)
                     const connection = await db.getConnection();
                     try {
                         await connection.beginTransaction();
@@ -105,7 +105,7 @@ const matchingController = {
                             [detall.num_participants, detall.taller_id]
                         );
 
-                        // 4. Assignar referent si és preferència referent (dins de la transacció)
+                        // 6. Assignar referent si és preferència referent (dins de la transacció)
                         if (detall.es_preferencia_referent == 1 && detall.docent_email) {
                             try {
                                 // Comptar referents ja assignats per aquest taller en aquest trimestre
@@ -182,28 +182,30 @@ const matchingController = {
                 } catch (error) {
                     // Si una assignació falla, continuem amb la següent
                     console.error(`Error processant detall ${detall.detall_id}:`, error);
-                    errors.push({
-                        detall_id: detall.detall_id,
-                        error: error.message
-                    });
+                    const errorObj = {};
+                    errorObj.detall_id = detall.detall_id;
+                    errorObj.error = error.message;
+                    errors.push(errorObj);
                 }
             }
 
-            // Retornar resum del procés
+            // 7. Retornar resum del procés
             let errorsProp;
             if (errors.length > 0) {
               errorsProp = errors;
             } else {
               errorsProp = undefined;
             }
+            
+            const summary = {};
+            summary.success = successCount;
+            summary.rejected = rejectedCount;
+            summary.errors = errors.length;
+            summary.total_processed = queue.length;
+
             res.json({
               message: "Assignació automàtica completada",
-              summary: {
-                success: successCount,
-                rejected: rejectedCount,
-                errors: errors.length,
-                total_processed: queue.length
-              },
+              summary: summary,
               errors: errorsProp
             });
 

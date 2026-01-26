@@ -25,23 +25,27 @@ const getAllUsers = async (req, res) => {
     // 1. Obtenim tots els usuaris des del model
     const users = await User.getAll();
 
-    // 2. Preparem la llista: si no és un array, comencem amb array buit
+    // 2. Preparem la llista
     let llista = [];
     if (Array.isArray(users)) {
       llista = users;
     }
 
-    // 3. Construïm el resultat normalitzat (només els camps que el frontend espera) amb un bucle for
+    // 3. Construïm el resultat normalitzat amb un bucle for
     const normalized = [];
     for (let i = 0; i < llista.length; i++) {
       const u = llista[i];
-      normalized.push({
-        id: u.id,
-        email: u.email,
-        rol: u.rol,
-        ultim_acces: u.ultim_acces,
-        nom_centre: u.nom_centre || null
-      });
+      const userObj = {};
+      userObj.id = u.id;
+      userObj.email = u.email;
+      userObj.rol = u.rol;
+      userObj.ultim_acces = u.ultim_acces;
+      if (u.nom_centre) {
+        userObj.nom_centre = u.nom_centre;
+      } else {
+        userObj.nom_centre = null;
+      }
+      normalized.push(userObj);
     }
 
     // 4. Retornem el resultat
@@ -54,13 +58,32 @@ const getAllUsers = async (req, res) => {
 
 // B) --- Crear un nou usuari (ADMIN o PROFESSOR) ---
 const createUser = async (req, res) => {
-  const email = (typeof req.body.email === "string" ? req.body.email : "").trim().toLowerCase();
+  // 1. Obtenim els paràmetres de la petició
+  let emailRaw = req.body.email;
+  if (typeof emailRaw !== "string") emailRaw = "";
+  const email = emailRaw.trim().toLowerCase();
+  
   const password = req.body.password;
-  const rol = (req.body.rol || "").toUpperCase();
-  const centre_id = req.body.centre_id != null ? Number(req.body.centre_id) : null;
-  const nom = (typeof req.body.nom === "string" ? req.body.nom : "").trim() || null;
-  const cognoms = (typeof req.body.cognoms === "string" ? req.body.cognoms : "").trim() || null;
-  const usuariIdLog = req.user ? req.user.id : null;
+  
+  let rolRaw = req.body.rol;
+  if (!rolRaw) rolRaw = "";
+  const rol = rolRaw.toUpperCase();
+  
+  let centre_id = null;
+  if (req.body.centre_id != null) {
+    centre_id = Number(req.body.centre_id);
+  }
+  
+  let nomRaw = req.body.nom;
+  if (typeof nomRaw !== "string") nomRaw = "";
+  const nom = nomRaw.trim() || null;
+  
+  let cognomsRaw = req.body.cognoms;
+  if (typeof cognomsRaw !== "string") cognomsRaw = "";
+  const cognoms = cognomsRaw.trim() || null;
+  
+  let usuariIdLog = null;
+  if (req.user) usuariIdLog = req.user.id;
 
   if (!email) {
     return res.status(400).json({ message: "L'email és obligatori." });
@@ -90,9 +113,10 @@ const createUser = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 2. Creació ADMIN
     if (rol === "ADMIN") {
       const newId = await User.create({
-        email,
+        email: email,
         password: hashedPassword,
         rol: "ADMIN"
       });
@@ -116,9 +140,9 @@ const createUser = async (req, res) => {
       return res.status(201).json({ id: newId, message: "Usuari administrador creat correctament" });
     }
 
-    // PROFESSOR: crear usuari i després el registre a professors
+    // 3. Creació PROFESSOR
     const newUserId = await User.create({
-      email,
+      email: email,
       password: hashedPassword,
       rol: "PROFESSOR"
     });
@@ -146,7 +170,7 @@ const createUser = async (req, res) => {
   }
 };
 
-// C) --- Obtenir un usuari per ID (per al formulari d'edició) ---
+// C) --- Obtenir un usuari per ID ---
 const getUserById = async (req, res) => {
   const id = req.params.id;
   try {
@@ -154,19 +178,40 @@ const getUserById = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "No s'ha trobat l'usuari" });
     }
-    const rol = (user.rol || "").toUpperCase();
-    const resData = { id: user.id, email: user.email, rol };
+    let rol = "";
+    if (user.rol) rol = user.rol.toUpperCase();
+    
+    // 1. Construir objecte de resposta bàsic
+    const resData = { 
+        id: user.id, 
+        email: user.email, 
+        rol: rol 
+    };
 
+    // 2. Afegir detalls segons rol
     if (rol === "ADMIN") {
-      const [rows] = await db.query("SELECT nom, cognoms FROM administradors WHERE user_id = ?", [id]);
-      resData.nom = (rows[0] && rows[0].nom) || null;
-      resData.cognoms = (rows[0] && rows[0].cognoms) || null;
+      const result = await db.query("SELECT nom, cognoms FROM administradors WHERE user_id = ?", [id]);
+      const rows = result[0];
+      if (rows && rows[0]) {
+          resData.nom = rows[0].nom;
+          resData.cognoms = rows[0].cognoms;
+      } else {
+          resData.nom = null;
+          resData.cognoms = null;
+      }
       resData.centre_id = null;
     } else if (rol === "PROFESSOR") {
-      const [rows] = await db.query("SELECT nom, cognoms, centre_id FROM professors WHERE user_id = ?", [id]);
-      resData.nom = (rows[0] && rows[0].nom) || null;
-      resData.cognoms = (rows[0] && rows[0].cognoms) || null;
-      resData.centre_id = (rows[0] && rows[0].centre_id) || null;
+      const result = await db.query("SELECT nom, cognoms, centre_id FROM professors WHERE user_id = ?", [id]);
+      const rows = result[0];
+      if (rows && rows[0]) {
+          resData.nom = rows[0].nom;
+          resData.cognoms = rows[0].cognoms;
+          resData.centre_id = rows[0].centre_id;
+      } else {
+          resData.nom = null;
+          resData.cognoms = null;
+          resData.centre_id = null;
+      }
     } else {
       resData.nom = null;
       resData.cognoms = null;
@@ -178,38 +223,58 @@ const getUserById = async (req, res) => {
   }
 };
 
-// D) --- Actualitzar un usuari (email, password opcional, nom, cognoms; si PROFESSOR: centre_id) ---
+// D) --- Actualitzar un usuari ---
 const updateUser = async (req, res) => {
   const id = req.params.id;
   const b = req.body;
-  const usuariIdLog = req.user ? req.user.id : null;
+  let usuariIdLog = null;
+  if (req.user) usuariIdLog = req.user.id;
 
   try {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ message: "No s'ha trobat l'usuari" });
     }
-    const rol = (user.rol || "").toUpperCase();
+    
+    let rol = "";
+    if (user.rol) rol = user.rol.toUpperCase();
 
-    const email = (typeof b.email === "string" ? b.email : "").trim().toLowerCase();
+    // 1. Validar email
+    let email = "";
+    if (typeof b.email === "string") email = b.email.trim().toLowerCase();
+    
+    let oldEmail = "";
+    if (user.email) oldEmail = user.email.toLowerCase();
+
     if (!email) {
       return res.status(400).json({ message: "L'email és obligatori." });
     }
-    if (email !== (user.email || "").toLowerCase()) {
+    if (email !== oldEmail) {
       const existent = await User.findByEmail(email);
       if (existent) {
         return res.status(409).json({ message: "Ja existeix un usuari amb aquest email." });
       }
     }
 
-    const pwd = typeof b.password === "string" ? b.password.trim() : "";
+    // 2. Validar password
+    let pwd = "";
+    if (typeof b.password === "string") pwd = b.password.trim();
     if (pwd && pwd.length < 6) {
       return res.status(400).json({ message: "La contrasenya ha de tenir almenys 6 caràcters." });
     }
 
-    const nom = (typeof b.nom === "string" ? b.nom : "").trim() || null;
-    const cognoms = (typeof b.cognoms === "string" ? b.cognoms : "").trim() || null;
-    const centre_id = b.centre_id != null ? Number(b.centre_id) : null;
+    // 3. Obtenir nom i cognoms
+    let nom = null;
+    if (typeof b.nom === "string") nom = b.nom.trim();
+    if (nom === "") nom = null;
+    
+    let cognoms = null;
+    if (typeof b.cognoms === "string") cognoms = b.cognoms.trim();
+    if (cognoms === "") cognoms = null;
+    
+    // 4. Validar centre_id per a professor
+    let centre_id = null;
+    if (b.centre_id != null) centre_id = Number(b.centre_id);
 
     if (rol === "PROFESSOR" && centre_id == null) {
       return res.status(400).json({ message: "Cal seleccionar un centre per a un professor." });
@@ -221,18 +286,28 @@ const updateUser = async (req, res) => {
       }
     }
 
+    // 5. Actualitzar User
     const updateData = {};
-    if (email !== (user.email || "").toLowerCase()) updateData.email = email;
+    if (email !== oldEmail) updateData.email = email;
     if (pwd && pwd.length >= 6) {
       const hashed = await bcrypt.hash(pwd, 10);
       updateData.password = hashed;
     }
-    if (Object.keys(updateData).length > 0) {
+    
+    // Comprovar si objecte updateData té claus
+    let hasKeys = false;
+    for (let k in updateData) {
+        hasKeys = true;
+        break;
+    }
+    if (hasKeys) {
       await User.update(id, updateData);
     }
 
+    // 6. Actualitzar taules relacionades
     if (rol === "ADMIN") {
-      const [rows] = await db.query("SELECT id FROM administradors WHERE user_id = ?", [id]);
+      const result = await db.query("SELECT id FROM administradors WHERE user_id = ?", [id]);
+      const rows = result[0];
       if (rows && rows.length > 0) {
         await db.query("UPDATE administradors SET nom = ?, cognoms = ? WHERE user_id = ?", [nom, cognoms, id]);
       } else if (nom || cognoms) {
@@ -242,6 +317,7 @@ const updateUser = async (req, res) => {
       await db.query("UPDATE professors SET nom = ?, cognoms = ?, centre_id = ? WHERE user_id = ?", [nom, cognoms, centre_id, id]);
     }
 
+    // 7. Log
     try {
       await Log.create({
         usuari_id: usuariIdLog,
@@ -265,7 +341,8 @@ const updateUser = async (req, res) => {
 // E) --- Eliminar un usuari ---
 const deleteUser = async (req, res) => {
   const id = req.params.id;
-  const usuariIdLog = req.user ? req.user.id : null;
+  let usuariIdLog = null;
+  if (req.user) usuariIdLog = req.user.id;
 
   try {
     const user = await User.findById(id);
@@ -273,13 +350,16 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "No s'ha trobat l'usuari per eliminar" });
     }
 
-    // L'administrador no pot eliminar administradors
-    if ((user.rol || "").toUpperCase() === "ADMIN") {
+    let rol = "";
+    if (user.rol) rol = user.rol.toUpperCase();
+
+    // 1. L'administrador no pot eliminar administradors
+    if (rol === "ADMIN") {
       return res.status(403).json({ message: "No es pot eliminar un administrador." });
     }
 
-    // Si és PROFESSOR, s'usa User.deleteProfessor (elimina professor, usuari i registra log)
-    if ((user.rol || "").toUpperCase() === "PROFESSOR") {
+    // 2. Si és PROFESSOR, s'usa User.deleteProfessor
+    if (rol === "PROFESSOR") {
       const professor = await Professor.getByUserId(id);
       if (professor) {
         const result = await User.deleteProfessor(professor.id, usuariIdLog);
@@ -290,12 +370,18 @@ const deleteUser = async (req, res) => {
       }
     }
 
-    // Resta d'usuaris: User.delete + log
+    // 3. Resta d'usuaris: User.delete + log
     const deleted = await User.delete(id);
     if (deleted) {
       try {
-        const txtAnterior = "Usuari id " + user.id + ", email '" + (user.email || "") + "', rol " + (user.rol || "") + ", abans d'eliminar.";
-        const txtNou = "Eliminat l'usuari '" + (user.email || "") + "' (id: " + user.id + ").";
+        let userEmail = "";
+        if (user.email) userEmail = user.email;
+        
+        let userRol = "";
+        if (user.rol) userRol = user.rol;
+
+        const txtAnterior = "Usuari id " + user.id + ", email '" + userEmail + "', rol " + userRol + ", abans d'eliminar.";
+        const txtNou = "Eliminat l'usuari '" + userEmail + "' (id: " + user.id + ").";
         await Log.create({
           usuari_id: usuariIdLog,
           accio: "DELETE",

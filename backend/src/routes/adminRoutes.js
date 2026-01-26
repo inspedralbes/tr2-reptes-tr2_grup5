@@ -13,6 +13,7 @@ const usuarisController = require("../controllers/admin/usuarisController");
 const matchingController = require("../controllers/admin/matchingController");
 const statsController = require("../controllers/admin/statsController");
 const logsController = require("../controllers/admin/logsController");
+const configController = require("../controllers/admin/configController");
 
 // ======================================
 // Definició de l'Esquema
@@ -74,8 +75,7 @@ router.post("/matching/auto", matchingController.executeAutoAssignment);
 // A) --- Rutes per a estadístiques ---
 router.get("/stats/dashboard", statsController.getDashboardStats);
 
-// --- RUTES PER A CONFIGURACIÓ GLOBAL ---
-const configController = require("../controllers/admin/configController");
+// A) --- Rutes per a configuració global ---
 router.get("/config/enrollment", configController.getEnrollmentStatus);
 router.post("/config/enrollment/dates", configController.updateEnrollmentDates);
 

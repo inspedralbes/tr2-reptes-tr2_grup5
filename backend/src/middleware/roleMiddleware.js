@@ -14,8 +14,10 @@
 // Declaracions de funcions
 // ======================================
 
+const roleMiddleware = {};
+
 // A) --- Verificar que l'usuari té un dels rols permesos ---
-const verifyRole = (allowedRoles) => {
+roleMiddleware.verifyRole = (allowedRoles) => {
     return (req, res, next) => {
         // 1. Comprovem si existeix l'usuari a la petició (prové del middleware verifyToken)
         if (!req.user) {
@@ -27,7 +29,7 @@ const verifyRole = (allowedRoles) => {
         // 3. Obtenim el rol de l'usuari
         const userRol = req.user.rol;
 
-        // 4. Comprovem si el rol de l'usuari està dins dels rols permesos
+        // 4. Comprovem si el rol de l'usuari està dins dels rols permesos utilitzant un bucle
         let rolPermes = false;
         for (let i = 0; i < allowedRoles.length; i++) {
             if (allowedRoles[i] === userRol) {
@@ -47,4 +49,4 @@ const verifyRole = (allowedRoles) => {
     };
 };
 
-module.exports = verifyRole;
+module.exports = roleMiddleware.verifyRole;

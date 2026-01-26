@@ -60,15 +60,15 @@ const peticionsController = {
       const id = req.params.id;
 
       const peticio = await Peticio.findById(id);
-            if (!peticio) {
-                return res.status(404).json({ message: "Sol·licitud no trobada." });
-            }
-            res.json(peticio);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Error al obtenir la sol·licitud." });
-        }
-    },
+      if (!peticio) {
+          return res.status(404).json({ message: "Sol·licitud no trobada." });
+      }
+      res.json(peticio);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al obtenir la sol·licitud." });
+    }
+  },
 
   // C) --- Actualitzar l'estat d'un taller concret dins d'una petició ---
   updateTallerEstat: async (req, res) => {
@@ -82,36 +82,42 @@ const peticionsController = {
       const taller_id = req.params.taller_id;
       const estat = req.body.estat;
 
-      if (!["PENDENT", "ASSIGNADA", "REBUTJADA"].includes(estat)) {
+      // 2. Validar estat manualment
+      let estatValid = false;
+      if (estat === "PENDENT") estatValid = true;
+      if (estat === "ASSIGNADA") estatValid = true;
+      if (estat === "REBUTJADA") estatValid = true;
+
+      if (!estatValid) {
         return res.status(400).json({ message: "Estat no vàlid." });
       }
 
-      // 2. Obtenir l'estat actual i participants abans de fer el canvi
+      // 3. Obtenir l'estat actual i participants abans de fer el canvi
       const resOld = await db.query(
         "SELECT estat, num_participants FROM peticio_detalls WHERE peticio_id = ? AND taller_id = ?",
         [id, taller_id]
       );
-      const oldData = resOld[0];
+      const rowsOld = resOld[0];
 
-      if (!oldData[0]) {
+      if (!rowsOld[0]) {
         return res.status(404).json({ message: "Detall no trobat." });
       }
 
-      const estatAnterior = oldData[0].estat;
-      const participants = oldData[0].num_participants;
+      const estatAnterior = rowsOld[0].estat;
+      const participants = rowsOld[0].num_participants;
 
-      // 3. Realitzar l'actualització de l'estat
+      // 4. Realitzar l'actualització de l'estat
       const success = await Peticio.updateEstat(id, taller_id, estat);
 
       if (success) {
-        // 4. Sincronitzar places al model Taller
+        // 5. Sincronitzar places al model Taller
         if (estat === "ASSIGNADA" && estatAnterior !== "ASSIGNADA") {
           await Taller.restarPlaces(taller_id, participants);
         } else if (estatAnterior === "ASSIGNADA" && estat !== "ASSIGNADA") {
           await Taller.sumarPlaces(taller_id, participants);
         }
 
-        // 5. Registrem el log d'auditoria
+        // 6. Registrem el log d'auditoria
         try {
           const txtAnterior = "Detall petició id " + id + ", taller id " + taller_id + ", estat anterior: '" + estatAnterior + "'.";
           const txtNou = "Estat actualitzat a '" + estat + "' per la petició id " + id + ", taller id " + taller_id + ".";
@@ -260,33 +266,33 @@ const peticionsController = {
       }
       const id = req.params.id;
 
-            const peticio = await Peticio.findById(id);
-            if (!peticio) return res.status(404).json({ message: "No trobada." });
+      const peticio = await Peticio.findById(id);
+      if (!peticio) return res.status(404).json({ message: "No trobada." });
 
-            const success = await Peticio.delete(id);
-            if (success) {
-                try {
-                    const txtAnterior = "Petició id " + peticio.id + ", centre_id " + (peticio.centre_id || '') + ", abans d'eliminar.";
-                    const txtNou = "Eliminada la petició id " + peticio.id + ".";
-                    await Log.create({
-                        usuari_id: req.user.id,
-                        accio: 'DELETE_PETICIO',
-                        taula_afectada: 'peticions',
-                        valor_anterior: txtAnterior,
-                        valor_nou: txtNou
-                    });
-                } catch (logErr) {
-                    console.error("Error creant log d'auditoria:", logErr.message);
-                }
-                res.json({ message: "Sol·licitud eliminada." });
-            } else {
-                res.status(404).json({ message: "No trobada." });
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Error al eliminar." });
-        }
+      const success = await Peticio.delete(id);
+      if (success) {
+          try {
+              const txtAnterior = "Petició id " + peticio.id + ", centre_id " + (peticio.centre_id || '') + ", abans d'eliminar.";
+              const txtNou = "Eliminada la petició id " + peticio.id + ".";
+              await Log.create({
+                  usuari_id: req.user.id,
+                  accio: 'DELETE_PETICIO',
+                  taula_afectada: 'peticions',
+                  valor_anterior: txtAnterior,
+                  valor_nou: txtNou
+              });
+          } catch (logErr) {
+              console.error("Error creant log d'auditoria:", logErr.message);
+          }
+          res.json({ message: "Sol·licitud eliminada." });
+      } else {
+          res.status(404).json({ message: "No trobada." });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al eliminar." });
     }
+  }
 };
 
 module.exports = peticionsController;

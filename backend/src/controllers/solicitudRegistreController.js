@@ -39,8 +39,6 @@ const solicitudRegistreController = {
             } else {
                 // Si trien un centre existent, eliminem qualsevol text manual que s'hagi pogut enviar per error
                 data.nom_centre_manual = null;
-                // Si no es altres, assumim que el centre ja existeix, per tant no es primera vegada en teoria.
-                // Pero l'usuari no ha especificat que fer en aquest cas, així que respectem el que vingui o false.
                 // Si no ve definit, false.
                 if (data.es_primera_vegada === undefined) {
                     data.es_primera_vegada = false;
@@ -48,7 +46,7 @@ const solicitudRegistreController = {
             }
 
 
-            // 3.1 Comprovar Email del Coordinador (Login)
+            // 3. Comprovar Email del Coordinador (Login)
             const requestWithEmail = await SolicitudRegistre.findByEmailCoordinador(data.email_coordinador);
             const userWithEmail = await User.findByEmail(data.email_coordinador);
 
@@ -56,7 +54,7 @@ const solicitudRegistreController = {
                 return res.status(400).json({ message: 'Aquest email de coordinador ja està en ús o té una sol·licitud activa.' });
             }
 
-            // 3.2 Comprovar Codi de Centre (Identificador oficial)
+            // 4. Comprovar Codi de Centre (Identificador oficial)
             const requestWithCodi = await SolicitudRegistre.findByCodiCentre(data.codi_centre);
             const resCentres = await db.query("SELECT id FROM centres WHERE codi_centre = ?", [data.codi_centre]);
             const existingCentres = resCentres[0];
@@ -65,7 +63,7 @@ const solicitudRegistreController = {
                 return res.status(400).json({ message: 'Aquest codi de centre ja està registrat o té una sol·licitud activa.' });
             }
 
-            // 3.3 Comprovar Email del Centre (Oficial)
+            // 5. Comprovar Email del Centre (Oficial)
             const requestWithEmailCentre = await SolicitudRegistre.findByEmailCentre(data.email_centre);
             const resEmails = await db.query("SELECT id FROM centres WHERE email_oficial = ?", [data.email_centre]);
             const existingEmailsOficials = resEmails[0];
@@ -74,11 +72,11 @@ const solicitudRegistreController = {
                 return res.status(400).json({ message: 'Aquest email de centre ja està registrat o té una sol·licitud activa.' });
             }
 
-            // 4. Encriptar
+            // 6. Encriptar
             const hashedPassword = await bcrypt.hash(data.password, 10);
             data.password = hashedPassword;
 
-            // 5. Crear
+            // 7. Crear
             const newId = await SolicitudRegistre.create(data);
 
             res.status(201).json({
@@ -97,18 +95,22 @@ const solicitudRegistreController = {
   getAll: async (req, res) => {
     try {
       const result = await SolicitudRegistre.getAll();
-      // Eliminem la contrasenya del llistat amb un bucle for
+      
+      // 1. Eliminem la contrasenya del llistat amb un bucle
       const sanitizedResult = [];
       for (let i = 0; i < result.length; i++) {
         const item = result[i];
         const rest = {};
-        for (let k in item) {
+        // Copiem manualment les propietats excepte password
+        // (Podem usar bucle for-in ja que és un objecte pla de BD)
+        for (const k in item) {
           if (k !== "password") {
             rest[k] = item[k];
           }
         }
         sanitizedResult.push(rest);
       }
+      
       res.json(sanitizedResult);
     } catch (error) {
       console.error(error);
@@ -125,9 +127,9 @@ const solicitudRegistreController = {
         return res.status(404).json({ message: "No trobat" });
       }
 
-      // Eliminem la contrasenya construint un objecte sense aquest camp
+      // 1. Eliminem la contrasenya construint un objecte sense aquest camp
       const rest = {};
-      for (let k in item) {
+      for (const k in item) {
         if (k !== "password") {
           rest[k] = item[k];
         }
@@ -145,116 +147,140 @@ const solicitudRegistreController = {
       const id = req.params.id;
       const estat = req.body.estat;
 
+      // 1. Validem l'estat
       if (!estat) {
         return res.status(400).json({ message: "Cal enviar el nou estat." });
       }
 
+      // 2. Busquem la sol·licitud existent
       const existing = await SolicitudRegistre.findById(id);
       if (!existing) {
         return res.status(404).json({ message: "No trobat" });
       }
 
-      // Només actualitzem l'estat, la resta es manté igual
-      const updatedData = {
-                codi_centre: existing.codi_centre,
-                nom_centre: existing.nom_centre,
-                nom_centre_manual: existing.nom_centre_manual,
-                password: existing.password,
-                adreca: existing.adreca,
-                municipi: existing.municipi,
-                telefon: existing.telefon,
-                email_centre: existing.email_centre,
-                nom_coordinador: existing.nom_coordinador,
-                email_coordinador: existing.email_coordinador,
-                es_primera_vegada: existing.es_primera_vegada,
-                estat: estat // L'únic camp que deixem canviar
-            };
+      // 3. Només actualitzem l'estat, la resta es manté igual
+      const updatedData = {};
+      updatedData.codi_centre = existing.codi_centre;
+      updatedData.nom_centre = existing.nom_centre;
+      updatedData.nom_centre_manual = existing.nom_centre_manual;
+      updatedData.password = existing.password;
+      updatedData.adreca = existing.adreca;
+      updatedData.municipi = existing.municipi;
+      updatedData.telefon = existing.telefon;
+      updatedData.email_centre = existing.email_centre;
+      updatedData.nom_coordinador = existing.nom_coordinador;
+      updatedData.email_coordinador = existing.email_coordinador;
+      updatedData.es_primera_vegada = existing.es_primera_vegada;
+      updatedData.estat = estat; // L'únic camp que deixem canviar
 
-            const success = await SolicitudRegistre.update(id, updatedData);
+      // 4. Executem l'actualització
+      const success = await SolicitudRegistre.update(id, updatedData);
 
-            if (success) {
-                // Si l'estat passa a 'acceptada', creem l'usuari i el centre
-                if (estat === 'acceptada' && existing.estat !== 'acceptada') {
-                    try {
-                        // 1. Crear l'usuari per al coordinador
-                        // Nota: La contrasenya ja està hashejada a la taula solicituds_registre
-                        const userId = await User.create({
-                            email: existing.email_coordinador,
-                            password: existing.password,
-                            rol: 'CENTRE'
-                        });
-
-                        // 2. Crear el centre vinculat a l'usuari
-                        let nomCentreFinal;
-                        if (existing.nom_centre === "Altres") {
-                          nomCentreFinal = existing.nom_centre_manual;
-                        } else {
-                          nomCentreFinal = existing.nom_centre;
-                        }
-
-                        await Centre.create({
-                            codi_centre: existing.codi_centre,
-                            nom_centre: nomCentreFinal,
-                            adreca: existing.adreca,
-                            municipi: existing.municipi,
-                            telefon: existing.telefon,
-                            email_oficial: existing.email_centre,
-                            nom_coordinador: existing.nom_coordinador,
-                            es_primera_vegada: existing.es_primera_vegada,
-                            user_id: userId
-                        });
-                    } catch (err) {
-                        console.error('Error al crear usuari o centre tras acceptar sol·licitud:', err);
-                        return res.status(500).json({ message: 'Sol·licitud marcada com acceptada però error al crear entitats.', error: err.message });
-                    }
-                }
-
-                // Log d'auditoria quan l'administrador accepta o rebutja la sol·licitud
-                if (estat === "acceptada" || estat === "rebutjada") {
-                  let accio;
-                  if (estat === "acceptada") {
-                    accio = "ACCEPT_REGISTRATION";
-                  } else {
-                    accio = "REJECT_REGISTRATION";
-                  }
-                  let nomC;
-                  if (existing.nom_centre === "Altres") {
-                    nomC = existing.nom_centre_manual || "Altres";
-                  } else {
-                    nomC = existing.nom_centre || "";
-                  }
-                  const txtAnterior = "Sol·licitud de registre id " + existing.id + ", estat '" + (existing.estat || "") + "', centre '" + nomC + "' (codi: " + (existing.codi_centre || "") + "), email coordinador: " + (existing.email_coordinador || "") + ".";
-                  let txtNou;
-                  if (estat === "acceptada") {
-                    txtNou = "Acceptada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
-                  } else {
-                    txtNou = "Rebutjada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
-                  }
-                  let usuariIdLog = null;
-                  if (req.user) {
-                    usuariIdLog = req.user.id;
-                  }
-                  try {
-                    await Log.create({
-                      usuari_id: usuariIdLog,
-                      accio: accio,
-                      taula_afectada: "solicituds_registre",
-                      valor_anterior: txtAnterior,
-                      valor_nou: txtNou
+      if (success) {
+          // 5. Si l'estat passa a 'acceptada', creem l'usuari i el centre
+          if (estat === 'acceptada') {
+              if (existing.estat !== 'acceptada') {
+                try {
+                    // 5.1 Crear l'usuari per al coordinador
+                    // Nota: La contrasenya ja està hashejada a la taula solicituds_registre
+                    const userId = await User.create({
+                        email: existing.email_coordinador,
+                        password: existing.password,
+                        rol: 'CENTRE'
                     });
-                  } catch (logErr) {
-                    console.error("Error creant log d'auditoria:", logErr.message);
-                  }
-                }
 
-                res.json({ message: "Estat actualitzat correctament", data: { estat: estat } });
+                    // 5.2 Crear el centre vinculat a l'usuari
+                    let nomCentreFinal;
+                    if (existing.nom_centre === "Altres") {
+                        nomCentreFinal = existing.nom_centre_manual;
+                    } else {
+                        nomCentreFinal = existing.nom_centre;
+                    }
+
+                    await Centre.create({
+                        codi_centre: existing.codi_centre,
+                        nom_centre: nomCentreFinal,
+                        adreca: existing.adreca,
+                        municipi: existing.municipi,
+                        telefon: existing.telefon,
+                        email_oficial: existing.email_centre,
+                        nom_coordinador: existing.nom_coordinador,
+                        es_primera_vegada: existing.es_primera_vegada,
+                        user_id: userId
+                    });
+                } catch (err) {
+                    console.error('Error al crear usuari o centre tras acceptar sol·licitud:', err);
+                    return res.status(500).json({ message: 'Sol·licitud marcada com acceptada però error al crear entitats.', error: err.message });
+                }
+              }
+          }
+
+          // 6. Log d'auditoria quan l'administrador accepta o rebutja la sol·licitud
+          if (estat === "acceptada" || estat === "rebutjada") {
+            let accio;
+            if (estat === "acceptada") {
+              accio = "ACCEPT_REGISTRATION";
             } else {
-                res.status(400).json({ message: "Error al actualitzar l'estat" });
+              accio = "REJECT_REGISTRATION";
             }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Error al servidor" });
-        }
+            
+            let nomC;
+            if (existing.nom_centre === "Altres") {
+              if (existing.nom_centre_manual) {
+                  nomC = existing.nom_centre_manual;
+              } else {
+                  nomC = "Altres";
+              }
+            } else {
+              if (existing.nom_centre) {
+                  nomC = existing.nom_centre;
+              } else {
+                  nomC = "";
+              }
+            }
+            
+            let txtAnterior = "Sol·licitud de registre id " + existing.id + ", estat '";
+            if (existing.estat) txtAnterior += existing.estat;
+            txtAnterior += "', centre '" + nomC + "' (codi: ";
+            if (existing.codi_centre) txtAnterior += existing.codi_centre;
+            txtAnterior += "), email coordinador: ";
+            if (existing.email_coordinador) txtAnterior += existing.email_coordinador;
+            txtAnterior += ".";
+
+            let txtNou;
+            if (estat === "acceptada") {
+              txtNou = "Acceptada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+            } else {
+              txtNou = "Rebutjada la sol·licitud de registre del centre '" + nomC + "' (id: " + existing.id + ").";
+            }
+            
+            let usuariIdLog = null;
+            if (req.user) {
+              usuariIdLog = req.user.id;
+            }
+            try {
+              await Log.create({
+                usuari_id: usuariIdLog,
+                accio: accio,
+                taula_afectada: "solicituds_registre",
+                valor_anterior: txtAnterior,
+                valor_nou: txtNou
+              });
+            } catch (logErr) {
+              console.error("Error creant log d'auditoria:", logErr.message);
+            }
+          }
+
+          const responseData = {};
+          responseData.estat = estat;
+          res.json({ message: "Estat actualitzat correctament", data: responseData });
+      } else {
+          res.status(400).json({ message: "Error al actualitzar l'estat" });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al servidor" });
+    }
   },
 
   // E) --- Eliminar una sol·licitud (admin) ---
@@ -271,16 +297,34 @@ const solicitudRegistreController = {
       if (success) {
         let nomC;
         if (item.nom_centre === "Altres") {
-          nomC = item.nom_centre_manual || "Altres";
+          if (item.nom_centre_manual) {
+              nomC = item.nom_centre_manual;
+          } else {
+              nomC = "Altres";
+          }
         } else {
-          nomC = item.nom_centre || "";
+          if (item.nom_centre) {
+              nomC = item.nom_centre;
+          } else {
+              nomC = "";
+          }
         }
-        const txtAnterior = "Sol·licitud de registre id " + item.id + ", estat '" + (item.estat || "") + "', centre '" + nomC + "' (codi: " + (item.codi_centre || "") + "), email coordinador: " + (item.email_coordinador || "") + ", abans d'eliminar.";
+        
+        let txtAnterior = "Sol·licitud de registre id " + item.id + ", estat '";
+        if (item.estat) txtAnterior += item.estat;
+        txtAnterior += "', centre '" + nomC + "' (codi: ";
+        if (item.codi_centre) txtAnterior += item.codi_centre;
+        txtAnterior += "), email coordinador: ";
+        if (item.email_coordinador) txtAnterior += item.email_coordinador;
+        txtAnterior += ", abans d'eliminar.";
+        
         const txtNou = "Eliminada la sol·licitud de registre del centre '" + nomC + "' (id: " + item.id + ").";
+        
         let usuariIdLog = null;
         if (req.user) {
           usuariIdLog = req.user.id;
         }
+        
         try {
           await Log.create({
             usuari_id: usuariIdLog,

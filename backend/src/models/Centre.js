@@ -42,7 +42,7 @@ const Centre = {
         // 5. Creem un objecte nou per al centre
         const centreComplet = {};
         
-        // 6. Copiem totes les propietats del centre
+        // 6. Copiem totes les propietats del centre manualment
         for (const clau in centre) {
           centreComplet[clau] = centre[clau];
         }
@@ -65,6 +65,7 @@ const Centre = {
       
       // 10. Retornem el resultat
       return resultat;
+
     } catch (error) {
       console.error("Error a Centre.getAll:", error);
       throw error; 
@@ -127,6 +128,7 @@ const Centre = {
       
       // 9. Retornem l'objecte complet
       return centreComplet;
+
     } catch (error) {
       console.error("Error a Centre.findById:", error);
       throw error;
@@ -137,40 +139,37 @@ const Centre = {
   create: async (data) => {
     // 1. Obtenim les dades del centre
     let codi_centre = data.codi_centre;
+    
+    // 2. Generem codi temporal si no n'hi ha
     if (!codi_centre) {
       codi_centre = "TEMP-" + Date.now();
     }
-    const nom_centre = data.nom_centre;
-    let adreca = data.adreca;
-    if (!adreca) {
-      adreca = null;
-    }
-    let municipi = data.municipi;
-    if (!municipi) {
-      municipi = null;
-    }
-    let telefon = data.telefon;
-    if (!telefon) {
-      telefon = null;
-    }
-    let email_oficial = data.email_oficial;
-    if (!email_oficial) {
-      email_oficial = null;
-    }
-    let nom_coordinador = data.nom_coordinador;
-    if (!nom_coordinador) {
-      nom_coordinador = null;
-    }
-    let es_primera_vegada = data.es_primera_vegada;
-    if (!es_primera_vegada) {
-      es_primera_vegada = 0;
-    }
-    let user_id = data.user_id;
-    if (!user_id) {
-      user_id = null;
-    }
     
-    // 2. Executem la consulta SQL per inserir el centre
+    // 3. Assignem la resta de variables, gestionant els nuls
+    const nom_centre = data.nom_centre;
+    
+    let adreca = data.adreca;
+    if (!adreca) adreca = null;
+    
+    let municipi = data.municipi;
+    if (!municipi) municipi = null;
+    
+    let telefon = data.telefon;
+    if (!telefon) telefon = null;
+    
+    let email_oficial = data.email_oficial;
+    if (!email_oficial) email_oficial = null;
+    
+    let nom_coordinador = data.nom_coordinador;
+    if (!nom_coordinador) nom_coordinador = null;
+    
+    let es_primera_vegada = data.es_primera_vegada;
+    if (!es_primera_vegada) es_primera_vegada = 0;
+    
+    let user_id = data.user_id;
+    if (!user_id) user_id = null;
+    
+    // 4. Executem la consulta SQL per inserir el centre
     const sql = `
       INSERT INTO centres 
       (codi_centre, nom_centre, adreca, municipi, telefon, email_oficial, nom_coordinador, es_primera_vegada, user_id) 
@@ -182,10 +181,11 @@ const Centre = {
       es_primera_vegada, user_id
     ]);
     
-    // 3. Obtenim l'ID del registre inserit
-    const insertId = result[0].insertId;
+    // 5. Obtenim l'ID del registre inserit
+    const rows = result[0];
+    const insertId = rows.insertId;
     
-    // 4. Retornem l'ID del nou centre
+    // 6. Retornem l'ID del nou centre
     return insertId;
   },
 
@@ -217,7 +217,9 @@ const Centre = {
     ]);
     
     // 3. Comprovem si s'ha actualitzat alguna fila
-    const affectedRows = result[0].affectedRows;
+    const rows = result[0];
+    const affectedRows = rows.affectedRows;
+    
     if (affectedRows > 0) {
       return true;
     } else {
@@ -231,7 +233,9 @@ const Centre = {
     const result = await db.query("DELETE FROM centres WHERE id = ?", [id]);
     
     // 2. Comprovem si s'ha eliminat alguna fila
-    const affectedRows = result[0].affectedRows;
+    const rows = result[0];
+    const affectedRows = rows.affectedRows;
+    
     if (affectedRows > 0) {
       return true;
     } else {

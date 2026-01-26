@@ -30,7 +30,12 @@ const peticionsController = {
       }
 
       // 3. Validacions bàsiques
-      if (!tallers || !Array.isArray(tallers) || tallers.length === 0) {
+      let isArray = false;
+      if (tallers && Array.isArray(tallers)) {
+        isArray = true;
+      }
+      
+      if (!isArray || tallers.length === 0) {
         return res.status(400).json({ message: "Cal especificar almenys un taller." });
       }
 
@@ -73,7 +78,6 @@ const peticionsController = {
 
             const rows = await Peticio.getByCentreId(centre.id);
 
-            // Agrupar per peticio_id si cal, o retornar pla
             res.json(rows);
         } catch (error) {
             console.error("Error al obtenir peticions:", error);

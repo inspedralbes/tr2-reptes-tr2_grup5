@@ -61,23 +61,32 @@ const authController = {
   // B) --- Login: verifica credencials i retorna token ---
   login: async (req, res) => {
     try {
-      // 1. Obtenim email i contrasenya del cos de la petició (normalitzem l'email: trim + minúscules, com en crear centre)
-      const email = (typeof req.body.email === "string" ? req.body.email : "").trim().toLowerCase();
+      // 1. Obtenim email i contrasenya manualment sense ternaris
+      let emailRaw = req.body.email;
+      if (typeof emailRaw !== "string") {
+        emailRaw = "";
+      }
+      const email = emailRaw.trim().toLowerCase();
       const password = req.body.password;
 
-      console.log(`[LOGIN DEBUG] Intent de login: ${email}`);
+      console.log("[LOGIN DEBUG] Intent de login: " + email);
 
       // 2. Busquem l'usuari
       const user = await User.findByEmail(email);
       if (!user) {
-        console.log(`[LOGIN DEBUG] Usuari no trobat a la BD: ${email}`);
+        console.log("[LOGIN DEBUG] Usuari no trobat a la BD: " + email);
         return res.status(401).json({ message: "Email o contrasenya incorrectes." });
       }
-      console.log(`[LOGIN DEBUG] Usuari trobat ID: ${user.id}, Rol: ${user.rol}, PassHash: ${user.password.substring(0, 10)}...`);
+      
+      let passSub = "";
+      if (user.password) {
+        passSub = user.password.substring(0, 10);
+      }
+      console.log("[LOGIN DEBUG] Usuari trobat ID: " + user.id + ", Rol: " + user.rol + ", PassHash: " + passSub + "...");
 
       // 3. Comprovem la contrasenya (hash vs text pla)
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log(`[LOGIN DEBUG] Resultat comprovació password: ${isMatch}`);
+      console.log("[LOGIN DEBUG] Resultat comprovació password: " + isMatch);
 
       if (!isMatch) {
         return res.status(401).json({ message: "Email o contrasenya incorrectes." });
@@ -91,10 +100,15 @@ const authController = {
       );
 
       // 5. Retornem el token i les dades de l'usuari
+      const userData = {};
+      userData.id = user.id;
+      userData.email = user.email;
+      userData.rol = user.rol;
+
       res.json({
         message: "Login correcte",
         token: token,
-        user: { id: user.id, email: user.email, rol: user.rol }
+        user: userData
       });
     } catch (error) {
       console.error(error);
@@ -105,27 +119,42 @@ const authController = {
   // C) --- Obtenir info de l'usuari actual (Dynamic Name) ---
   getMe: async (req, res) => {
     try {
-      const { id, rol } = req.user;
+      const id = req.user.id;
+      const rol = req.user.rol;
       let name = "Usuari";
 
       if (rol === "ADMIN") {
-        const [adminRows] = await db.query("SELECT nom, cognoms FROM administradors WHERE user_id = ?", [id]);
+        const result = await db.query("SELECT nom, cognoms FROM administradors WHERE user_id = ?", [id]);
+        const adminRows = result[0];
         if (adminRows.length > 0) {
-          name = `${adminRows[0].nom} ${adminRows[0].cognoms}`;
+          name = adminRows[0].nom + " " + adminRows[0].cognoms;
         }
-      } else if (rol === "CENTRE") {
-        const centre = await Centre.findByUserId(id);
-        if (centre) {
-          name = centre.nom_coordinador || centre.nom_centre;
-        }
-      } else if (rol === "PROFESSOR") {
-        const prof = await Professor.getByUserId(id);
-        if (prof) {
-          name = `${prof.nom} ${prof.cognoms}`;
+      } else {
+        if (rol === "CENTRE") {
+            const centre = await Centre.findByUserId(id);
+            if (centre) {
+                if (centre.nom_coordinador) {
+                    name = centre.nom_coordinador;
+                } else {
+                    name = centre.nom_centre;
+                }
+            }
+        } else {
+            if (rol === "PROFESSOR") {
+                const prof = await Professor.getByUserId(id);
+                if (prof) {
+                name = prof.nom + " " + prof.cognoms;
+                }
+            }
         }
       }
 
-      res.json({ id, rol, name });
+      const responseData = {};
+      responseData.id = id;
+      responseData.rol = rol;
+      responseData.name = name;
+
+      res.json(responseData);
     } catch (error) {
       console.error("Error a getMe:", error);
       res.status(500).json({ message: "Error al obtenir dades de l'usuari." });

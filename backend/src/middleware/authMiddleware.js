@@ -14,8 +14,10 @@ const jwt = require('jsonwebtoken');
 // Declaracions de funcions
 // ======================================
 
+const authMiddleware = {};
+
 // A) --- Verificar el token JWT de la petició ---
-const verifyToken = (req, res, next) => {
+authMiddleware.verifyToken = (req, res, next) => {
     // 1. Llegim la capçalera 'Authorization' de la petició
     const tokenHeader = req.header('Authorization');
 
@@ -30,7 +32,7 @@ const verifyToken = (req, res, next) => {
     const tokenParts = tokenHeader.split(' ');
     
     // 5. Obtenim el token real eliminant el prefix "Bearer" si existeix
-    let token;
+    let token = "";
     if (tokenParts.length === 2) {
         token = tokenParts[1];
     } else {
@@ -52,4 +54,4 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-module.exports = verifyToken;
+module.exports = authMiddleware.verifyToken;

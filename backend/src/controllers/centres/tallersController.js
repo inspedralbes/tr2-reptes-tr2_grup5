@@ -33,7 +33,7 @@ const getAllTallersDisponibles = async (req, res) => {
 // B) --- Obtenir les assignacions del centre loguejat ---
 const getMevesAssignacions = async (req, res) => {
   try {
-    // Verificació de seguretat per evitar Error 500 si no hi ha middleware
+    // Verificació de seguretat
     if (!req.user) {
       return res.status(401).json({ message: "Sessió no vàlida o falta el token." });
     }
@@ -60,7 +60,7 @@ const getAssignacioById = async (req, res) => {
       return res.status(401).json({ message: "Usuari no autenticat." });
     }
 
-    const { id } = req.params;
+    const id = req.params.id;
     const user_id = req.user.id;
     
     // Obtenim el centre loguejat per validar propietat
@@ -83,8 +83,7 @@ const getAssignacioById = async (req, res) => {
 
     res.json(assignacio);
   } catch (error) {
-    // Si et surt Error 500, mira el que posarà aquí a la teva terminal de Node:
-    console.error("❌ ERROR a getAssignacioById:", error);
+    console.error("Error a getAssignacioById:", error);
     res.status(500).json({ 
       message: "Error intern del servidor.", 
       debug: error.message 

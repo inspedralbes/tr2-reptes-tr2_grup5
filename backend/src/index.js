@@ -2,7 +2,9 @@
 // Importem les dependències
 // ======================================
 
-require("dotenv").config();
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -66,5 +68,5 @@ app.get("/", (req, res) => {
 // A) --- Iniciem el servidor ---
 app.listen(PORT, () => {
   // 1. Mostrem un missatge al console indicant que el servidor està escoltant
-  console.log(`Servidor escoltant al port ${PORT}`);
+  console.log("Servidor escoltant al port " + PORT);
 });

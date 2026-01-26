@@ -58,7 +58,7 @@ const Peticio = {
       GROUP BY trimestre 
       ORDER BY total DESC LIMIT 1
     `);
-    const trimTop = resultTrimTop[0];
+    const rowsTrimTop = resultTrimTop[0];
 
     // 3. Construïm l'objecte de retorn
     const resultat = {};
@@ -72,8 +72,8 @@ const Peticio = {
     }
     
     // 5. Afegim el trimestre top
-    if (trimTop && trimTop.length > 0) {
-      resultat.trimestreTop = trimTop[0].trimestre;
+    if (rowsTrimTop && rowsTrimTop.length > 0) {
+      resultat.trimestreTop = rowsTrimTop[0].trimestre;
     } else {
       resultat.trimestreTop = 'N/A';
     }
@@ -96,15 +96,16 @@ const Peticio = {
         "INSERT INTO peticions (centre_id) VALUES (?)",
         [infoPeticio.centre_id]
       );
-      const peticioResult = resultPeticio[0];
-      const peticio_id = peticioResult.insertId;
+      
+      const rowsPeticio = resultPeticio[0];
+      const peticio_id = rowsPeticio.insertId;
 
       // 4. Comprovem si hi ha detalls de tallers per inserir
       if (tallersDetalls && tallersDetalls.length > 0) {
         // 5. Creem l'array de valors per a la inserció múltiple
         const values = [];
         
-        // 6. Recorrem cada detall de taller
+        // 6. Recorrem cada detall de taller amb un bucle clàssic
         for (let i = 0; i < tallersDetalls.length; i++) {
           const detall = tallersDetalls[i];
           
@@ -167,6 +168,7 @@ const Peticio = {
       
       // 15. Retornem l'ID de la petició creada
       return peticio_id;
+
     } catch (error) {
       // 16. En cas d'error, fem rollback
       await connection.rollback();
@@ -261,7 +263,7 @@ const Peticio = {
       // 9. Creem un objecte nou per a la petició enriquida
       const peticioEnriquida = {};
       
-      // 10. Copiem totes les propietats de la petició
+      // 10. Copiem totes les propietats de la petició manualment (sense spread)
       for (const clau in peticio) {
         peticioEnriquida[clau] = peticio[clau];
       }
@@ -324,7 +326,9 @@ const Peticio = {
     const result = await db.query("DELETE FROM peticions WHERE id = ?", [id]);
     
     // 2. Comprovem si s'ha eliminat alguna fila
-    const affectedRows = result[0].affectedRows;
+    const rows = result[0];
+    const affectedRows = rows.affectedRows;
+    
     if (affectedRows > 0) {
       return true;
     } else {
@@ -337,7 +341,7 @@ const Peticio = {
     // 1. Definim els estats vàlids
     const estatsValids = ['PENDENT', 'ASSIGNADA', 'REBUTJADA'];
     
-    // 2. Comprovem si l'estat és vàlid
+    // 2. Comprovem si l'estat és vàlid amb un bucle
     let estatValid = false;
     for (let i = 0; i < estatsValids.length; i++) {
       if (estatsValids[i] === estat) {
@@ -365,7 +369,9 @@ const Peticio = {
     );
     
     // 5. Comprovem si s'ha actualitzat alguna fila
-    const affectedRows = result[0].affectedRows;
+    const rows = result[0];
+    const affectedRows = rows.affectedRows;
+    
     if (affectedRows > 0) {
       return true;
     } else {
@@ -387,7 +393,8 @@ const Peticio = {
     const result = await db.query(sql, [taller_id, trimestre, places_disponibles]);
     
     // 2. Retornem el nombre de files afectades
-    return result[0].affectedRows;
+    const rows = result[0];
+    return rows.affectedRows;
   }
 };
 

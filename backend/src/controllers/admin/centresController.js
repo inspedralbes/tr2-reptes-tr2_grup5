@@ -35,7 +35,7 @@ const getAllCentres = async (req, res) => {
   }
 };
 
-// B) --- Obtenir un centre per ID (per al detall i per al formulari d'edició) ---
+// B) --- Obtenir un centre per ID ---
 const getCentreById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -45,7 +45,7 @@ const getCentreById = async (req, res) => {
       return res.status(404).json({ message: "No s'ha trobat el centre" });
     }
 
-    // Si té user_id, afegim l'email del coordinador (usuari) per al formulari d'edició
+    // 1. Si té user_id, afegim l'email del coordinador (usuari) per al formulari d'edició
     if (centre.user_id) {
       const user = await User.findById(centre.user_id);
       if (user) {
@@ -59,7 +59,7 @@ const getCentreById = async (req, res) => {
   }
 };
 
-// C) --- Crear un nou centre (i opcionalment l'usuari del centre amb email_coordinador + password) ---
+// C) --- Crear un nou centre ---
 const createCentre = async (req, res) => {
   const codi_centre = req.body.codi_centre;
   const nom_centre = req.body.nom_centre;
@@ -72,15 +72,18 @@ const createCentre = async (req, res) => {
   const telefon = req.body.telefon;
   const nom_coordinador = req.body.nom_coordinador;
 
-  // Normalitzar email del coordinador (trim + minúscules) per a Flux A
-  const emailCoord = (typeof email_coordinador === "string" ? email_coordinador : "").trim().toLowerCase();
+  // 1. Normalitzar email del coordinador
+  let emailCoord = "";
+  if (typeof email_coordinador === "string") {
+    emailCoord = email_coordinador.trim().toLowerCase();
+  }
 
   if (!nom_centre || !codi_centre) {
     return res.status(400).json({ message: "El nom del centre i el codi són obligatoris" });
   }
 
   try {
-    // Flux A: email_coordinador i password -> crear usuari CENTRE (email, contrasenya, rol) i després el centre (amb user_id i nom_coordinador)
+    // 2. Flux A: email_coordinador i password existents
     if (emailCoord && password) {
       const existent = await User.findByEmail(emailCoord);
       if (existent) {
@@ -96,19 +99,28 @@ const createCentre = async (req, res) => {
         rol: "CENTRE"
       });
     }
-    // Flux B: es proporciona user_id existent -> només crear el centre
-    else if (user_id) {
-      const user = await User.findById(user_id);
-      if (!user) {
-        return res.status(404).json({ message: "L'usuari assignat no existeix." });
-      }
-      if (user.rol !== "CENTRE") {
-        return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
-      }
-    } else {
-      return res.status(400).json({ message: "Cal l'email del coordinador i la contrasenya per crear l'usuari del centre." });
+    // 3. Flux B: es proporciona user_id existent
+    else {
+        if (user_id) {
+            const user = await User.findById(user_id);
+            if (!user) {
+                return res.status(404).json({ message: "L'usuari assignat no existeix." });
+            }
+            if (user.rol !== "CENTRE") {
+                return res.status(400).json({ message: "L'usuari assignat ha de tenir el rol 'CENTRE'." });
+            }
+        } else {
+            return res.status(400).json({ message: "Cal l'email del coordinador i la contrasenya per crear l'usuari del centre." });
+        }
     }
 
+    // 4. Determinem si és primera vegada
+    let primeraVegada = 0;
+    if (req.body.es_primera_vegada === true || req.body.es_primera_vegada === 1) {
+        primeraVegada = 1;
+    }
+
+    // 5. Creem el centre
     const newId = await Centre.create({
       codi_centre,
       nom_centre,
@@ -118,11 +130,21 @@ const createCentre = async (req, res) => {
       municipi: municipi || null,
       telefon: telefon || null,
       nom_coordinador: nom_coordinador || null,
-      es_primera_vegada: (req.body.es_primera_vegada === true || req.body.es_primera_vegada === 1) ? 1 : 0
+      es_primera_vegada: primeraVegada
     });
 
-    let usuariIdLog = req.user ? req.user.id : null;
-    const txtNou = "Creat el centre '" + (nom_centre || "") + "' (codi: " + (codi_centre || "") + ", id: " + newId + ")" + (emailCoord ? " i l'usuari del centre (email: " + emailCoord + ")." : ".");
+    // 6. Registrem log
+    let usuariIdLog = null;
+    if (req.user) {
+        usuariIdLog = req.user.id;
+    }
+    let txtNou = "Creat el centre '" + (nom_centre || "") + "' (codi: " + (codi_centre || "") + ", id: " + newId + ")";
+    if (emailCoord) {
+        txtNou = txtNou + " i l'usuari del centre (email: " + emailCoord + ").";
+    } else {
+        txtNou = txtNou + ".";
+    }
+
     try {
       await Log.create({
         usuari_id: usuariIdLog,
@@ -148,7 +170,7 @@ const createCentre = async (req, res) => {
   }
 };
 
-// D) --- Actualitzar un centre existent (i opcionalment l'email/password de l'usuari del centre) ---
+// D) --- Actualitzar un centre existent ---
 const updateCentre = async (req, res) => {
   const id = req.params.id;
   const b = req.body;
@@ -159,7 +181,7 @@ const updateCentre = async (req, res) => {
       return res.status(404).json({ message: "No s'ha trobat el centre" });
     }
 
-    // Si s'envia user_id (assignar altre usuari existent), validar-lo
+    // 1. Si s'envia user_id (assignar altre usuari existent), validar-lo
     if (b.user_id != null) {
       const user = await User.findById(b.user_id);
       if (!user) {
@@ -170,19 +192,27 @@ const updateCentre = async (req, res) => {
       }
     }
 
-    // Actualitzar l'usuari del centre (email i/o password) si el centre té user_id
+    // 2. Actualitzar l'usuari del centre (email i/o password) si el centre té user_id
     if (oldData.user_id) {
-      const emailCoord = (typeof b.email_coordinador === "string" ? b.email_coordinador : "").trim().toLowerCase();
+      let emailCoordStr = "";
+      if (typeof b.email_coordinador === "string") {
+        emailCoordStr = b.email_coordinador.trim().toLowerCase();
+      }
       const password = b.password;
 
-      if (emailCoord) {
+      if (emailCoordStr) {
+        let actualEmail = "";
         const userActual = await User.findById(oldData.user_id);
-        if (userActual && (userActual.email || "").toLowerCase() !== emailCoord) {
-          const existent = await User.findByEmail(emailCoord);
+        if (userActual && userActual.email) {
+            actualEmail = userActual.email.toLowerCase();
+        }
+        
+        if (actualEmail !== emailCoordStr) {
+          const existent = await User.findByEmail(emailCoordStr);
           if (existent) {
             return res.status(409).json({ message: "Ja existeix un usuari amb aquest email." });
           }
-          await User.update(oldData.user_id, { email: emailCoord });
+          await User.update(oldData.user_id, { email: emailCoordStr });
         }
       }
 
@@ -192,26 +222,63 @@ const updateCentre = async (req, res) => {
       }
     }
 
-    // Construir dades per a Centre.update
-    const nomFinal = (b.nom_centre === "Altres" && b.nom_centre_manual) ? (b.nom_centre_manual || "").trim() : (b.nom_centre ?? oldData.nom_centre);
-    const centreData = {
-      codi_centre: b.codi_centre ?? oldData.codi_centre,
-      nom_centre: nomFinal || oldData.nom_centre,
-      adreca: b.adreca !== undefined ? b.adreca : oldData.adreca,
-      municipi: b.municipi !== undefined ? b.municipi : oldData.municipi,
-      telefon: b.telefon !== undefined ? b.telefon : oldData.telefon,
-      email_oficial: b.email_oficial !== undefined ? b.email_oficial : oldData.email_oficial,
-      nom_coordinador: b.nom_coordinador !== undefined ? b.nom_coordinador : oldData.nom_coordinador,
-      es_primera_vegada: (b.es_primera_vegada === true || b.es_primera_vegada === 1) ? 1 : (oldData.es_primera_vegada ? 1 : 0),
-      user_id: b.user_id !== undefined ? b.user_id : oldData.user_id
-    };
+    // 3. Determinar nomFinal
+    let nomFinal = "";
+    if (b.nom_centre === "Altres" && b.nom_centre_manual) {
+        nomFinal = (b.nom_centre_manual || "").trim();
+    } else {
+        if (b.nom_centre) {
+            nomFinal = b.nom_centre;
+        } else {
+            nomFinal = oldData.nom_centre;
+        }
+    }
+
+    // 4. Preparar dades d'actualització
+    const centreData = {};
+    if (b.codi_centre !== undefined) centreData.codi_centre = b.codi_centre;
+    else centreData.codi_centre = oldData.codi_centre;
+
+    centreData.nom_centre = nomFinal;
+    
+    if (b.adreca !== undefined) centreData.adreca = b.adreca;
+    else centreData.adreca = oldData.adreca;
+
+    if (b.municipi !== undefined) centreData.municipi = b.municipi;
+    else centreData.municipi = oldData.municipi;
+
+    if (b.telefon !== undefined) centreData.telefon = b.telefon;
+    else centreData.telefon = oldData.telefon;
+
+    if (b.email_oficial !== undefined) centreData.email_oficial = b.email_oficial;
+    else centreData.email_oficial = oldData.email_oficial;
+
+    if (b.nom_coordinador !== undefined) centreData.nom_coordinador = b.nom_coordinador;
+    else centreData.nom_coordinador = oldData.nom_coordinador;
+
+    if (b.es_primera_vegada === true || b.es_primera_vegada === 1) {
+        centreData.es_primera_vegada = 1;
+    } else {
+        if (oldData.es_primera_vegada) {
+            centreData.es_primera_vegada = 1;
+        } else {
+            centreData.es_primera_vegada = 0;
+        }
+    }
+
+    if (b.user_id !== undefined) centreData.user_id = b.user_id;
+    else centreData.user_id = oldData.user_id;
 
     const updated = await Centre.update(id, centreData);
     if (!updated) {
       return res.status(400).json({ message: "No s'han pogut actualitzar les dades." });
     }
 
-    let usuariIdLog = req.user ? req.user.id : null;
+    // 5. Registrem log
+    let usuariIdLog = null;
+    if (req.user) {
+        usuariIdLog = req.user.id;
+    }
     const txtAnterior = "Centre id " + oldData.id + ", nom '" + (oldData.nom_centre || "") + "', codi " + (oldData.codi_centre || "") + ", abans d'actualitzar.";
     const txtNou = "Actualitzat el centre id " + id + " (nom: '" + (centreData.nom_centre || "") + "', codi: " + (centreData.codi_centre || "") + ").";
     try {
@@ -235,10 +302,13 @@ const updateCentre = async (req, res) => {
   }
 };
 
-// E) --- Eliminar un centre (usuari del centre, professors i usuaris, peticions, etc. i log) ---
+// E) --- Eliminar un centre ---
 const deleteCentre = async (req, res) => {
   const id = req.params.id;
-  const usuariIdLog = req.user ? req.user.id : null;
+  let usuariIdLog = null;
+  if (req.user) {
+      usuariIdLog = req.user.id;
+  }
 
   try {
     const result = await User.deleteCentre(id, usuariIdLog);
@@ -254,18 +324,14 @@ const deleteCentre = async (req, res) => {
   }
 }
 
-
 // F) --- Obtenir comentaris (reputació) ---
 const getCentreComments = async (req, res) => {
   try {
     const id = req.params.id;
-    // Join: Centres -> Peticions -> PeticioDetalls -> AssistenciaAlumnes
-    // We want all 'comentarios' from 'assistencia_alumnes' linked to this centre
-    // Note: This requires a direct DB query typically, unless models support deep nested joins differently.
-    // Using raw query for simplicity as models seem simple.
-    const db = require("../../config/db"); // Ensure we have db access
+    
+    const db = require("../../config/db"); 
 
-    const [rows] = await db.query(`
+    const result = await db.query(`
       SELECT aa.comentarios, t.titol as nom_taller, pd.id as taller_detall_id
       FROM assistencia_alumnes aa
       JOIN peticio_detalls pd ON aa.peticio_detall_id = pd.id
@@ -275,8 +341,9 @@ const getCentreComments = async (req, res) => {
       AND aa.comentarios IS NOT NULL 
       AND aa.comentarios != ''
     `, [id]);
+    
+    const rows = result[0];
 
-    // Retorna array d'objectes { comentarios, nom_taller, taller_detall_id }
     res.json(rows);
 
   } catch (error) {

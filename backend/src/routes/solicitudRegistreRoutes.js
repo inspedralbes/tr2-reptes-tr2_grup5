@@ -4,6 +4,7 @@
 
 const express = require("express");
 const router = express.Router();
+
 const solicitudRegistreController = require("../controllers/solicitudRegistreController");
 const verifyToken = require("../middleware/authMiddleware");
 

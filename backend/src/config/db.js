@@ -2,7 +2,9 @@
 // Importem les dependències
 // ======================================
 
-require("dotenv").config();
+const dotenv = require("dotenv");
+dotenv.config();
+
 const mysql = require("mysql2/promise");
 
 // ======================================
@@ -15,6 +17,7 @@ const mysql = require("mysql2/promise");
 // Declaracions de funcions
 // ======================================
 
+// A) --- Crear el pool de connexions ---
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -25,4 +28,3 @@ const pool = mysql.createPool({
 });
 
 module.exports = pool;
-

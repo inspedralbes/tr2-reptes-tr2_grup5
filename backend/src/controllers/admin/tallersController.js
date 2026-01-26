@@ -24,7 +24,7 @@ const SECTORS_VALID = [
 // A) --- Obtenir tots els tallers ---
 const getAllTallers = async (req, res) => {
   try {
-    // 1. Obtenim el filtre de la query (tot i que el model ja no filtra per 'actiu', ho mantenim per compatibilitat d'API)
+    // 1. Obtenim el filtre de la query
     let filter = req.query.filter;
     if (!filter) {
       filter = "active";
@@ -38,7 +38,7 @@ const getAllTallers = async (req, res) => {
   }
 };
 
-// B) --- Obtenir un taller per ID (per a l'edició) ---
+// B) --- Obtenir un taller per ID ---
 const getTallerById = async (req, res) => {
   try {
     // 1. Obtenim l'ID dels paràmetres
@@ -68,22 +68,34 @@ const createTaller = async (req, res) => {
   const places_maximes = req.body.places_maximes;
   const adreca = req.body.adreca;
   const ubicacio = req.body.ubicacio;
-  // AFEGIT: data_execucio
   const data_execucio = req.body.data_execucio;
 
   if (!titol || !modalitat || !sector) {
     return res.status(400).json({ message: "El títol, el sector i la modalitat són obligatoris" });
   }
 
-  if (!SECTORS_VALID.includes(sector)) {
+  // 2. Validar sector (bucle manual)
+  let sectorValid = false;
+  for (let i = 0; i < SECTORS_VALID.length; i++) {
+    if (SECTORS_VALID[i] === sector) {
+      sectorValid = true;
+      break;
+    }
+  }
+  if (!sectorValid) {
     return res.status(400).json({ message: "Sector no vàlid." });
   }
 
-  if (!["A", "B", "C"].includes(modalitat)) {
+  // 3. Validar modalitat (bucle manual)
+  let modalitatValida = false;
+  if (modalitat === 'A' || modalitat === 'B' || modalitat === 'C') {
+    modalitatValida = true;
+  }
+  if (!modalitatValida) {
     return res.status(400).json({ message: "La modalitat ha de ser 'A', 'B' o 'C'" });
   }
 
-  // 2. Capacitat: per defecte 12 si no ve
+  // 4. Capacitat: per defecte 12 si no ve
   let capacitat = places_maximes;
   if (!capacitat) {
     capacitat = 12;
@@ -93,7 +105,7 @@ const createTaller = async (req, res) => {
   }
 
   try {
-    // 3. Creem el taller a la base de dades
+    // 5. Creem el taller a la base de dades
     const newId = await Taller.create({
       titol: titol,
       descripcio: descripcio,
@@ -106,7 +118,7 @@ const createTaller = async (req, res) => {
       data_execucio: data_execucio
     });
 
-    // 4. Registrem el log d'auditoria
+    // 6. Registrem el log d'auditoria
     let usuariIdLog = null;
     if (req.user) {
       usuariIdLog = req.user.id;
@@ -124,7 +136,7 @@ const createTaller = async (req, res) => {
       console.error("Error creant log d'auditoria:", logErr.message);
     }
 
-    // 5. Retornem èxit
+    // 7. Retornem èxit
     res.status(201).json({ id: newId, message: "Taller creat correctament" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -135,7 +147,7 @@ const createTaller = async (req, res) => {
 const updateTaller = async (req, res) => {
   // 1. Obtenim l'ID i les dades noves
   const id = req.params.id;
-  const newData = req.body; // Això ja inclou data_execucio
+  const newData = req.body;
 
   try {
     // 2. Obtenim les dades antigues
@@ -152,8 +164,17 @@ const updateTaller = async (req, res) => {
       if (req.user) {
         usuariIdLog = req.user.id;
       }
+      
+      let tActual = "";
+      if (newData.titol) tActual = newData.titol;
+      else if (oldData.titol) tActual = oldData.titol;
+      
+      let sActual = "";
+      if (newData.sector) sActual = newData.sector;
+      else if (oldData.sector) sActual = oldData.sector;
+
       const txtAnterior = "Taller id " + oldData.id + ", títol '" + (oldData.titol || "") + "', sector " + (oldData.sector || "") + ", abans d'actualitzar.";
-      const txtNou = "Actualitzat el taller id " + id + " (títol: '" + (newData.titol || oldData.titol || "") + "', sector: " + (newData.sector || oldData.sector || "") + ").";
+      const txtNou = "Actualitzat el taller id " + id + " (títol: '" + tActual + "', sector: " + sActual + ").";
       try {
         await Log.create({
           usuari_id: usuariIdLog,
@@ -190,7 +211,7 @@ const deleteTaller = async (req, res) => {
     const hasDeps = await Taller.hasDependencies(id);
 
     if (hasDeps) {
-      // 4. Si té dependències, arxivem en lloc d'eliminar
+      // 4. Si té dependències, arxivem
       await Taller.archive(id);
       let usuariIdLog = null;
       if (req.user) {

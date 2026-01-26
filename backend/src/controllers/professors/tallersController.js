@@ -1,4 +1,18 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const Professor = require('../../models/Professor');
+
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Controlador de tallers (professors): Llistat de tallers assignats
+
+// ======================================
+// Declaracions de funcions
+// ======================================
 
 const tallersController = {
     getTallersAssignats: async (req, res) => {
@@ -18,42 +32,62 @@ const tallersController = {
             // 3. Obtenim tallers on és referent (REFERENT)
             const referentTallers = await Professor.getReferentTallers(professor.id, userEmail);
 
-            console.log(`[DEBUG] Controller: Prof ${userEmail} (ID ${professor.id}) -> Referent Count: ${referentTallers.length}`);
-
             // 4. Fusionem llistes i calculem permisos
             const tallersMap = new Map();
 
-            // Afegim els assignats (Docents)
-            assignedTallers.forEach(t => {
-                tallersMap.set(t.detall_id, {
-                    ...t,
-                    is_assigned: true,
-                    is_referent: false
-                });
-            });
+            // Afegim els assignats (Docents) - Bucle clàssic
+            for (let i=0; i < assignedTallers.length; i++) {
+                const t = assignedTallers[i];
+                // Creem una còpia explicita
+                const tCopy = {};
+                for (const k in t) {
+                    tCopy[k] = t[k];
+                }
+                tCopy.is_assigned = true;
+                tCopy.is_referent = false;
+                tallersMap.set(t.detall_id, tCopy);
+            }
 
-            // Afegim o actualitzem amb els referents
-            referentTallers.forEach(t => {
+            // Afegim o actualitzem amb els referents - Bucle clàssic
+            for (let i=0; i < referentTallers.length; i++) {
+                const t = referentTallers[i];
                 if (tallersMap.has(t.detall_id)) {
                     const existing = tallersMap.get(t.detall_id);
                     existing.is_referent = true; // Ara és ambdós
                 } else {
-                    tallersMap.set(t.detall_id, {
-                        ...t,
-                        is_assigned: false,
-                        is_referent: true
-                    });
+                    const tCopy = {};
+                    for (const k in t) {
+                        tCopy[k] = t[k];
+                    }
+                    tCopy.is_assigned = false;
+                    tCopy.is_referent = true;
+                    tallersMap.set(t.detall_id, tCopy);
                 }
-            });
+            }
 
-            // Convertim a array i afegim l'objecte permissions
-            const result = Array.from(tallersMap.values()).map(t => ({
-                ...t,
-                permissions: {
-                    canManageList: t.is_assigned,       // Si és docent, fa la llista
-                    canTakeAttendance: t.is_referent    // Si és referent, passa llista
+            // Convertim a array i afegim l'objecte permissions - Sense .map(), utilitzem bucle
+            const result = [];
+            
+            // Iterem sobre els valors del Map
+            const iterator = tallersMap.values();
+            let step = iterator.next();
+            
+            while (!step.done) {
+                const t = step.value;
+                const tFinal = {};
+                // Copiar tot
+                for (const k in t) {
+                    tFinal[k] = t[k];
                 }
-            }));
+                // Afegir permissions
+                const perms = {};
+                perms.canManageList = t.is_assigned;
+                perms.canTakeAttendance = t.is_referent;
+                tFinal.permissions = perms;
+                
+                result.push(tFinal);
+                step = iterator.next();
+            }
 
             res.json(result);
         } catch (error) {

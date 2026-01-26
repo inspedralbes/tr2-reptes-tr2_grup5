@@ -23,15 +23,24 @@ const AssignacioTaller = {
       FROM peticio_detalls pd
       WHERE pd.taller_id = ? AND pd.trimestre = ? AND pd.estat = 'ASSIGNADA'
     `, [taller_id, trimestre]);
-    const resultat = result[0];
-
-    // 2. Obtenim el total ocupat
-    let total_ocupat = resultat[0].total_ocupat;
-    if (!total_ocupat) {
+    
+    // 2. Obtenim els resultats de la consulta
+    const rows = result[0];
+    
+    // 3. Obtenim el total ocupat
+    const fila = rows[0];
+    let total_ocupat = fila.total_ocupat;
+    
+    // 4. Si és null, el posem a 0
+    if (total_ocupat === null) {
+      total_ocupat = 0;
+    }
+    
+    if (total_ocupat === undefined) {
       total_ocupat = 0;
     }
 
-    // 3. Retornem el total ocupat
+    // 5. Retornem el total ocupat
     return total_ocupat;
   },
 
@@ -39,25 +48,30 @@ const AssignacioTaller = {
   teCapacitatSuficient: async (taller_id, trimestre, num_nous_participants) => {
     // 1. Obtenim les dades del taller
     const resultTaller = await db.query("SELECT id, places_maximes FROM tallers WHERE id = ?", [taller_id]);
-    const taller = resultTaller[0];
+    const rowsTaller = resultTaller[0];
 
     // 2. Comprovem si el taller existeix
-    if (!taller || taller.length === 0) {
-      const resposta = {};
-      resposta.valid = false;
-      resposta.message = "Taller no trobat";
-      return resposta;
+    if (rowsTaller.length === 0) {
+      const respostaError = {};
+      respostaError.valid = false;
+      respostaError.message = "Taller no trobat";
+      return respostaError;
     }
+
+    const taller = rowsTaller[0];
 
     // 3. Obtenim l'ocupació actual
     const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
 
     // 4. Calculem les places lliures
-    const places_maximes = taller[0].places_maximes;
+    const places_maximes = taller.places_maximes;
     const lliures = places_maximes - ocupat;
 
     // 5. Comprovem si hi ha capacitat suficient
-    const valid = num_nous_participants <= lliures;
+    let valid = false;
+    if (num_nous_participants <= lliures) {
+      valid = true;
+    }
 
     // 6. Construïm l'objecte de resposta
     const resposta = {};
@@ -74,18 +88,20 @@ const AssignacioTaller = {
   getPlacesLliuresTotals: async (taller_id, trimestre) => {
     // 1. Obtenim les dades del taller
     const resultTaller = await db.query("SELECT places_maximes FROM tallers WHERE id = ?", [taller_id]);
-    const taller = resultTaller[0];
+    const rowsTaller = resultTaller[0];
 
     // 2. Comprovem si el taller existeix
-    if (!taller || taller.length === 0) {
+    if (rowsTaller.length === 0) {
       return 0;
     }
+
+    const taller = rowsTaller[0];
 
     // 3. Obtenim l'ocupació actual
     const ocupat = await AssignacioTaller.getOcupacioTallerTrimestre(taller_id, trimestre);
 
     // 4. Calculem les places lliures
-    const places_maximes = taller[0].places_maximes;
+    const places_maximes = taller.places_maximes;
     const lliures = places_maximes - ocupat;
 
     // 5. Retornem les places lliures
@@ -99,10 +115,11 @@ const AssignacioTaller = {
       "SELECT COUNT(*) as count FROM referents_assignats WHERE peticio_detall_id = ?",
       [peticio_detall_id]
     );
-    const resultat = result[0];
-
+    const rows = result[0];
+    
     // 2. Obtenim el compte
-    const count = resultat[0].count;
+    const fila = rows[0];
+    const count = fila.count;
 
     // 3. Retornem el compte
     return count;
@@ -120,9 +137,11 @@ const AssignacioTaller = {
       WHERE p.centre_id = ? AND pd.estat = 'ASSIGNADA'
       ORDER BY p.data_creacio DESC
     `, [centre_id]);
+    
+    // 2. Obtenim les files del resultat
     const rows = result[0];
 
-    // 2. Retornem els resultats
+    // 3. Retornem els resultats
     return rows;
   },
 
@@ -138,27 +157,40 @@ const AssignacioTaller = {
       JOIN tallers t ON pd.taller_id = t.id
       WHERE pd.id = ?
     `, [id]);
+    
     const rows = result[0];
 
-    if (rows && rows.length > 0) {
+    // 2. Comprovem si s'ha trobat l'assignació
+    if (rows.length > 0) {
       const assignacio = rows[0];
 
-      // 2. Busquem les sessions programades per a aquesta assignació
-      const [sessions] = await db.query(`
+      // 3. Busquem les sessions programades per a aquesta assignació
+      const resultSessions = await db.query(`
         SELECT id, ordre, data
         FROM sessions
         WHERE peticio_detall_id = ?
         ORDER BY ordre ASC
       `, [id]);
+      
+      const sessions = resultSessions[0];
 
-      assignacio.sessions = sessions || [];
+      // 4. Assignem les sessions a l'objecte assignació (o un array buit si no n'hi ha)
+      if (sessions) {
+        assignacio.sessions = sessions;
+      } else {
+        assignacio.sessions = [];
+      }
+      
       return assignacio;
     }
+    
+    // 5. Retornem null si no s'ha trobat
     return null;
   },
 
   // C) --- Comprovar si un professor és referent d'una assignació ---
   isReferent: async (peticio_detall_id, professor_id) => {
+    // 1. Executem la consulta SQL complexa
     const result = await db.query(`
       SELECT 1
       FROM peticio_detalls pd_target
@@ -169,8 +201,16 @@ const AssignacioTaller = {
       WHERE pd_target.id = ?
       AND (ra.professor_id = ? OR (pd_ref.docent_email = u.email AND pd_ref.es_preferencia_referent = 1))
     `, [professor_id, peticio_detall_id, professor_id]);
+    
+    // 2. Obtenim les files
     const rows = result[0];
-    return rows && rows.length > 0;
+    
+    // 3. Retornem cert si hi ha resultats, fals si no
+    if (rows.length > 0) {
+      return true;
+    } else {
+      return false;
+    }
   }
 };
 

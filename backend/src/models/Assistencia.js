@@ -1,59 +1,109 @@
+// ======================================
+// Importem les dependències
+// ======================================
+
 const db = require("../config/db");
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// Model Assistencia: Gestiona l'assistència dels alumnes
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
 const Assistencia = {
-    // Guardar llista d'assistència
+    // A) --- Guardar llista d'assistència ---
     saveList: async (peticio_detall_id, alumnes) => {
+        // 1. Obtenim connexió
         const connection = await db.getConnection();
+        
         try {
+            // 2. Iniciem transacció
             await connection.beginTransaction();
 
-            // Sugerencia: Limpiar lista previa para evitar duplicados si se re-envía
+            // 3. Netegem la llista prèvia
             await connection.query('DELETE FROM assistencia_alumnes WHERE peticio_detall_id = ?', [peticio_detall_id]);
 
-            for (const alumne of alumnes) {
+            // 4. Recorrem i inserim els alumnes amb bucle clàssic
+            for (let i = 0; i < alumnes.length; i++) {
+                const alumne = alumnes[i];
+                
+                let ha_assistit_val = 0;
+                if (alumne.ha_assistit) {
+                    ha_assistit_val = 1;
+                }
+
                 await connection.query(`
                     INSERT INTO assistencia_alumnes (peticio_detall_id, nom, cognoms, email, ha_assistit)
                     VALUES (?, ?, ?, ?, ?)
-                `, [peticio_detall_id, alumne.nom, alumne.cognoms, alumne.email, alumne.ha_assistit ? 1 : 0]);
+                `, [peticio_detall_id, alumne.nom, alumne.cognoms, alumne.email, ha_assistit_val]);
             }
 
+            // 5. Confirmem transacció
             await connection.commit();
-            return { success: true, count: alumnes.length };
+            
+            // 6. Retornem resultat
+            const resultat = {};
+            resultat.success = true;
+            resultat.count = alumnes.length;
+            return resultat;
+
         } catch (error) {
+            // 7. En cas d'error, desfem
             await connection.rollback();
             throw error;
+            
         } finally {
+            // 8. Alliberem connexió
             connection.release();
         }
     },
 
-    // Obtenir llista d'assistència per a una petició
+    // A) --- Obtenir llista d'assistència per a una petició ---
     getByDetallId: async (peticio_detall_id) => {
-        const [rows] = await db.query(`
+        // 1. Executem la consulta
+        const result = await db.query(`
             SELECT * FROM assistencia_alumnes 
             WHERE peticio_detall_id = ?
             ORDER BY cognoms, nom
         `, [peticio_detall_id]);
+        
+        // 2. Retornem les files
+        const rows = result[0];
         return rows;
     },
 
-    // Actualitzar estat d'assistència d'un alumne
+    // A) --- Actualitzar estat d'assistència d'un alumne ---
     updateStatus: async (id, ha_assistit) => {
-        const [result] = await db.query(`
+        // 1. Determinem el valor enter
+        let val_assistit = 0;
+        if (ha_assistit) {
+            val_assistit = 1;
+        }
+
+        // 2. Executem l'actualització
+        const result = await db.query(`
             UPDATE assistencia_alumnes
             SET ha_assistit = ?
             WHERE id = ?
-        `, [ha_assistit ? 1 : 0, id]);
-        return result.affectedRows > 0;
+        `, [val_assistit, id]);
+        
+        // 3. Retornem cert si s'ha actualitzat
+        const rows = result[0];
+        if (rows.affectedRows > 0) {
+            return true;
+        } else {
+            return false;
+        }
     },
 
-    /**
-     * NUEVOS MÉTODOS PARA EL DASHBOARD
-     */
-
-    // 1. Obtener ranking de centros basado en asistencia real vs planificada
+    // A) --- Obtenir ranking de centres basat en assistència ---
     getRankingAsistenciaCentres: async () => {
-        const [rows] = await db.query(`
+        // 1. Executem la consulta complexa de ranking
+        const result = await db.query(`
             SELECT 
                 c.nom_centre,
                 COUNT(DISTINCT pd.id) as total_tallers,
@@ -82,12 +132,16 @@ const Assistencia = {
             GROUP BY c.id, c.nom_centre
             ORDER BY percentatge_asistencia DESC
         `);
+        
+        // 2. Retornem les files
+        const rows = result[0];
         return rows;
     },
 
-    // 2. Obtener estadísticas de tallers por ejecución
+    // A) --- Obtenir estadístiques de tallers per execució ---
     getStatsTallers: async () => {
-        const [rows] = await db.query(`
+        // 1. Executem la consulta d'estadístiques
+        const result = await db.query(`
             SELECT 
                 t.titol,
                 t.sector,
@@ -101,19 +155,28 @@ const Assistencia = {
             ORDER BY total_peticions DESC
             LIMIT 5
         `);
+        
+        // 2. Retornem les files
+        const rows = result[0];
         return rows;
     },
 
+    // A) --- Obtenir el total d'alumnes registrats ---
     getTotalAlumnesRegistrats: async () => {
-    const [rows] = await db.query(`
-        SELECT COUNT(*) as total 
-        FROM assistencia_alumnes
-    `);
-    return rows[0].total || 0;
-}
-
-
-    
+        // 1. Executem el comptatge global
+        const result = await db.query(`
+            SELECT COUNT(*) as total 
+            FROM assistencia_alumnes
+        `);
+        
+        // 2. Retornem el valor
+        const rows = result[0];
+        if (rows[0].total) {
+            return rows[0].total;
+        } else {
+            return 0;
+        }
+    }
 };
 
 module.exports = Assistencia;

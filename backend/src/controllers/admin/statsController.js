@@ -38,7 +38,7 @@ const getDashboardStats = async (req, res) => {
     const tallersStats = results[1];
     const rankingCentres = results[2];
 
-    // 2. Construïm els valors per a centres (evitant ternaris i optional chaining)
+    // 2. Construïm els valors per a centres (evitant ternaris)
     let solicitants = 0;
     if (centresStats && centresStats.total_centres !== undefined && centresStats.total_centres !== null) {
       solicitants = centresStats.total_centres;
@@ -81,23 +81,26 @@ const getDashboardStats = async (req, res) => {
     }
 
     // 4. Muntem la resposta
+    const dadesCentres = {};
+    dadesCentres.solicitants = solicitants;
+    dadesCentres.totalAlumnes = totalAlumnes;
+    dadesCentres.mediaAlumnes = mediaAlumnes;
+    dadesCentres.ranking = ranking;
+
+    const dadesTallers = {};
+    dadesTallers.mesSolicitats = mesSolicitats;
+    dadesTallers.sectorTop = sectorTop;
+    dadesTallers.modalitatTop = modalitatTop;
+    dadesTallers.trimestreTop = trimestreTop;
+    dadesTallers.abandonats = 0;
+
+    const data = {};
+    data.centres = dadesCentres;
+    data.tallers = dadesTallers;
+
     res.json({
       success: true,
-      data: {
-        centres: {
-          solicitants: solicitants,
-          totalAlumnes: totalAlumnes,
-          mediaAlumnes: mediaAlumnes,
-          ranking: ranking
-        },
-        tallers: {
-          mesSolicitats: mesSolicitats,
-          sectorTop: sectorTop,
-          modalitatTop: modalitatTop,
-          trimestreTop: trimestreTop,
-          abandonats: 0
-        }
-      }
+      data: data
     });
   } catch (error) {
     console.error("ERROR CRÍTIC al controlador d'estadístiques:", error);

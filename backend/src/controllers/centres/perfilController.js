@@ -3,6 +3,7 @@
 // ======================================
 
 const Centre = require("../../models/Centre");
+const Config = require("../../models/Config");
 
 // ======================================
 // Definició de l'Esquema
@@ -30,20 +31,31 @@ const perfilController = {
       }
 
       // 4. Obtenim la configuració d'inscripció
-      const configs = await require("../../models/Config").getAll();
+      const configs = await Config.getAll();
       const configMap = {};
-      configs.forEach(c => configMap[c.clau] = c.valor);
+      
+      // Bucle for clàssic
+      for (let i = 0; i < configs.length; i++) {
+        const c = configs[i];
+        configMap[c.clau] = c.valor;
+      }
 
-      // 5. Retornem el centre amb la configuració
-      res.json({
-        ...centre,
-        config: {
-          enrollment_start: configMap['enrollment_start'],
-          enrollment_end: configMap['enrollment_end']
-        }
-      });
+      // 5. Construïm resposta sense spread operator
+      const response = {};
+      // Copiar propietats del centre
+      for (const k in centre) {
+        response[k] = centre[k];
+      }
+      
+      // Afegir config
+      const configObj = {};
+      configObj.enrollment_start = configMap['enrollment_start'];
+      configObj.enrollment_end = configMap['enrollment_end'];
+      
+      response.config = configObj;
+
+      res.json(response);
     } catch (error) {
-      // 4. En cas d'error, retornem error 500
       console.error("Error al obtenir el perfil del centre:", error);
       res.status(500).json({ message: "Error al obtenir el perfil" });
     }

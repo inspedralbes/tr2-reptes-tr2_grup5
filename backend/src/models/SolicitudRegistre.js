@@ -30,10 +30,12 @@ const SolicitudRegistre = {
     // 1. Obtenim les dades de la sol·licitud
     const codi_centre = data.codi_centre;
     const nom_centre = data.nom_centre;
+    
     let nom_centre_manual = data.nom_centre_manual;
     if (!nom_centre_manual) {
       nom_centre_manual = null;
     }
+    
     const password = data.password;
     const adreca = data.adreca;
     const municipi = data.municipi;
@@ -41,10 +43,9 @@ const SolicitudRegistre = {
     const email_centre = data.email_centre;
     const nom_coordinador = data.nom_coordinador;
     const email_coordinador = data.email_coordinador;
-    let es_primera_vegada = data.es_primera_vegada;
-    if (!es_primera_vegada) {
-      es_primera_vegada = 0;
-    } else {
+    
+    let es_primera_vegada = 0;
+    if (data.es_primera_vegada) {
       es_primera_vegada = 1;
     }
 
@@ -67,10 +68,10 @@ const SolicitudRegistre = {
       email_coordinador,
       es_primera_vegada
     ]);
-    const resultat = result[0];
+    const rows = result[0];
 
     // 3. Retornem l'ID de la sol·licitud creada
-    return resultat.insertId;
+    return rows.insertId;
   },
 
   // A) --- Actualitzar una sol·licitud de registre ---
@@ -78,10 +79,12 @@ const SolicitudRegistre = {
     // 1. Obtenim les dades de la sol·licitud
     const codi_centre = data.codi_centre;
     const nom_centre = data.nom_centre;
+    
     let nom_centre_manual = data.nom_centre_manual;
     if (!nom_centre_manual) {
       nom_centre_manual = null;
     }
+    
     const password = data.password;
     const adreca = data.adreca;
     const municipi = data.municipi;
@@ -89,12 +92,12 @@ const SolicitudRegistre = {
     const email_centre = data.email_centre;
     const nom_coordinador = data.nom_coordinador;
     const email_coordinador = data.email_coordinador;
-    let es_primera_vegada = data.es_primera_vegada;
-    if (!es_primera_vegada) {
-      es_primera_vegada = 0;
-    } else {
+    
+    let es_primera_vegada = 0;
+    if (data.es_primera_vegada) {
       es_primera_vegada = 1;
     }
+    
     const estat = data.estat;
 
     // 2. Executem la consulta SQL per actualitzar la sol·licitud
@@ -129,10 +132,10 @@ const SolicitudRegistre = {
       estat,
       id
     ]);
-    const resultat = result[0];
+    const rows = result[0];
 
     // 3. Comprovem si s'ha actualitzat alguna fila
-    if (resultat.affectedRows > 0) {
+    if (rows.affectedRows > 0) {
       return true;
     } else {
       return false;
@@ -143,10 +146,10 @@ const SolicitudRegistre = {
   delete: async (id) => {
     // 1. Executem la consulta SQL per eliminar la sol·licitud
     const result = await db.query("DELETE FROM solicituds_registre WHERE id = ?", [id]);
-    const resultat = result[0];
+    const rows = result[0];
     
     // 2. Comprovem si s'ha eliminat alguna fila
-    if (resultat.affectedRows > 0) {
+    if (rows.affectedRows > 0) {
       return true;
     } else {
       return false;

@@ -39,13 +39,10 @@ const createChecklistStep = async (req, res) => {
     return res.status(400).json({ message: "El camp 'titol_pas' és obligatori, ha de ser text i màxim 255 caràcters." });
   }
 
-  // 3. Validació d'obligatori: convertim a 0 o 1 segons el valor rebut
-  const isObligatory = obligatori === true || obligatori === 1 || obligatori === "1";
-  let obligatoriVal;
-  if (isObligatory) {
+  // 3. Validació d'obligatori
+  let obligatoriVal = 0;
+  if (obligatori === true || obligatori === 1 || obligatori === "1") {
     obligatoriVal = 1;
-  } else {
-    obligatoriVal = 0;
   }
 
   try {
@@ -115,13 +112,20 @@ const updateChecklistStep = async (req, res) => {
     }
 
     // 5. Construïm l'objecte de dades noves
-    let newTitol = titol_pas || oldData.titol_pas;
-    let newObligatori;
+    let newTitol = "";
+    if (titol_pas) {
+        newTitol = titol_pas;
+    } else {
+        newTitol = oldData.titol_pas;
+    }
+
+    let newObligatori = 0;
     if (obligatoriVal !== undefined) {
       newObligatori = obligatoriVal;
     } else {
       newObligatori = oldData.obligatori;
     }
+    
     const newData = {
       titol_pas: newTitol,
       obligatori: newObligatori
@@ -136,7 +140,7 @@ const updateChecklistStep = async (req, res) => {
       usuariIdLog = req.user.id;
     }
     const txtAnterior = "Pas de checklist id " + oldData.id + ", títol '" + (oldData.titol_pas || "") + "', obligatori: " + (oldData.obligatori || 0) + ", abans d'actualitzar.";
-    const txtNou = "Actualitzat el pas de checklist id " + id + " (títol: '" + (newData.titol_pas || oldData.titol_pas || "") + "', obligatori: " + newData.obligatori + ").";
+    const txtNou = "Actualitzat el pas de checklist id " + id + " (títol: '" + (newData.titol_pas || "") + "', obligatori: " + newData.obligatori + ").";
     try {
       await Log.create({
         usuari_id: usuariIdLog,
