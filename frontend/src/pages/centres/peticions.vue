@@ -748,7 +748,17 @@ async function handleSubmit() {
       headers: { 'Authorization': 'Bearer ' + token },
       body: form.value
     });
-    useSwal().fire({ title: 'Fet', text: 'Sol·licitud enviada correctament!', icon: 'success' }).then(() => { window.location.reload(); });
+
+    // Reset de l'estat sense recarregar la pàgina
+    selectedTallers.value = [];
+    form.value.tallers = [];
+    showModalDetalls.value = false;
+    fieldErrors.value = {};
+    
+    useSwal().fire({ title: 'Fet', text: 'Sol·licitud enviada correctament!', icon: 'success' });
+    
+    // Actualitzam dades (places lliures, etc)
+    fetchData();
   } catch (err) {
     console.error(err);
     const msg = err.data?.message || err.message || 'Error desconegut';
