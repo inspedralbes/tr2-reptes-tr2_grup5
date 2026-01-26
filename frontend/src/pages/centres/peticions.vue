@@ -2,7 +2,7 @@
   <div>
     
     <!-- VIEW 1: SELECTION GRID -->
-    <div v-if="step === 'selection'" class="animate-in fade-in slide-in-from-left-4 duration-500 pb-24 relative">
+    <div class="animate-in fade-in slide-in-from-left-4 duration-500 pb-24 relative">
        
        <!-- 1. Header -->
        <div class="mb-8">
@@ -231,7 +231,7 @@
           </div>
           
           <button 
-            @click="step = 'details'"
+            @click="showModalDetalls = true"
             class="flex items-center gap-3 px-8 py-3.5 bg-[#022B3A] text-white font-black text-[11px] uppercase tracking-[0.15em] rounded-xl hover:bg-[#1F7A8C] transition-colors shadow-xl shadow-[#022B3A]/20"
           >
             Continuar Sol·licitud
@@ -241,176 +241,139 @@
       </div>
     </div>
 
-    <!-- VIEW 2: DETAILS FORM -->
-    <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-      
-      <!-- Header with Square Back Button -->
-      <div class="mb-8">
-         <button 
-           @click="step = 'selection'"
-           class="w-14 h-14 bg-white border border-[#BFDBF7] rounded-xl flex items-center justify-center text-[#022B3A]/40 hover:text-[#1F7A8C] hover:border-[#1F7A8C] transition-all shadow-sm group"
-         >
-            <ArrowLeft :size="24" class="group-hover:-translate-x-1 transition-transform" />
-         </button>
-      </div>
+    <!-- Modal: Completar sol·licitud (popup, estils com FormCrearTaller/FormCrearUsuari) -->
+    <div 
+      v-if="showModalDetalls" 
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#022B3A]/40 backdrop-blur-sm"
+      @click.self="showModalDetalls = false"
+    >
+      <div class="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[#BFDBF7] bg-[#E1E5F2] shadow-2xl animate-in zoom-in-95 duration-300">
+        
+        <!-- Capçalera del modal (igual que altres formularis) -->
+        <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/80 border-b border-[#BFDBF7]/60 backdrop-blur-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-[#1F7A8C]/10 flex items-center justify-center text-[#1F7A8C]">
+              <FileText :size="18" />
+            </div>
+            <div>
+              <h2 class="text-lg font-black text-[#022B3A] tracking-tight">Completar sol·licitud</h2>
+              <p class="text-[10px] font-bold text-[#022B3A]/50 uppercase tracking-widest">Detalls dels tallers seleccionats</p>
+            </div>
+          </div>
+          <button type="button" @click="showModalDetalls = false" class="p-2 rounded-lg text-[#022B3A]/40 hover:text-[#022B3A] hover:bg-white border border-transparent hover:border-[#BFDBF7] transition-all" aria-label="Tancar">
+            <X :size="20" />
+          </button>
+        </div>
 
-      <!-- Cards Area -->
-      <div class="max-w-4xl mx-auto space-y-8"> 
-        <div v-for="workshop in selectedWorkshopDetails" :key="workshop.id" class="bg-white rounded-2xl border border-[#BFDBF7] shadow-xl shadow-[#022B3A]/5 overflow-hidden">
-             
-             <!-- Card Header -->
-             <div class="flex items-center gap-3 p-8 pb-0">
-                <div class="w-10 h-10 rounded-xl bg-[#1F7A8C]/10 text-[#1F7A8C] flex items-center justify-center">
-                   <FileText :size="20" />
-                </div>
-                <div>
-                   <h3 class="text-[13px] font-black text-[#022B3A] uppercase tracking-widest">{{ workshop.title }}</h3>
-                   <div class="flex items-center gap-2">
-                      <span class="text-[10px] font-bold text-[#022B3A]/40 uppercase tracking-widest">Ref: {{ workshop.id }}</span>
-                      <span :class="['px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border', getProjectStyles(workshop.project)]">{{ workshop.project }}</span>
-                   </div>
-                </div>
-             </div>
+        <div class="p-6 space-y-10">
+          <div v-for="(workshop, idx) in selectedWorkshopDetails" :key="workshop.id" class="bg-white rounded-2xl border border-[#BFDBF7] shadow-md shadow-[#022B3A]/5 p-6 md:p-8">
+            <!-- Títol secció (estil FormCrearTaller) -->
+            <div class="space-y-4">
+              <h3 class="text-base font-black text-[#022B3A] tracking-tight flex items-center gap-2">
+                <FileText :size="16" class="text-[#1F7A8C]" />
+                {{ workshop.title }}
+                <span :class="['px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border', getProjectStyles(workshop.project)]">{{ workshop.project }}</span>
+              </h3>
 
-             <!-- Form Content -->
-             <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8" :set="formModel = getFormModel(workshop.id)">
-                
-                <div class="space-y-6">
-                  <div class="space-y-2">
-                    <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Trimestre(s) d'execució</label>
-                    <div class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-bold text-[#022B3A] flex items-center gap-2">
-                      <CalendarDays :size="16" class="text-[#022B3A]/50 shrink-0" />
-                      <span>{{ (workshop.trimestres && workshop.trimestres.length) ? workshop.trimestres.join(', ') : '—' }}</span>
-                      <span class="text-[9px] font-medium text-[#022B3A]/50 normal-case">(definit pel taller)</span>
-                    </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Trimestre(s) d'execució</label>
+                  <div class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] flex items-center gap-2 shadow-sm">
+                    <CalendarDays :size="16" class="text-[#022B3A]/50 shrink-0" />
+                    <span>{{ (workshop.trimestres && workshop.trimestres.length) ? workshop.trimestres.join(', ') : '—' }}</span>
+                    <span class="text-[9px] font-medium text-[#022B3A]/50 normal-case">(definit pel taller)</span>
                   </div>
-
-                  <label class="flex items-center gap-3 cursor-pointer group select-none p-4 bg-[#E1E5F2]/10 border border-[#BFDBF7]/30 rounded-xl hover:bg-white hover:border-[#1F7A8C]/30 hover:shadow-md transition-all">
-                      <div class="relative flex-shrink-0">
-                        <input type="checkbox" v-model="formModel.es_preferencia_referent" class="peer sr-only" />
-                        <div class="w-5 h-5 border-2 border-[#BFDBF7] rounded-md peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] transition-all bg-white group-hover:border-[#1F7A8C]/50"></div>
-                        <Check :size="14" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity" :strokeWidth="4" />
-                      </div>
-                      <div>
-                         <span class="text-xs font-bold text-[#022B3A] group-hover:text-[#1F7A8C] transition-colors block">Preferència Referent</span>
-                         <span class="text-[10px] text-[#022B3A]/40 font-medium leading-tight block mt-0.5">Marca si voleu un docent concret com a referent.</span>
-                      </div>
-                   </label>
                 </div>
 
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Num. Participants (max 4) *</label>
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Num. Participants (max 4) *</label>
+                  <input 
+                    type="number" min="1" max="4"
+                    v-model="getFormModel(workshop.id).num_participants"
+                    class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none shadow-sm"
+                    @input="validateField(workshop.id, 'num_participants')"
+                  />
+                  <p v-if="fieldErrors[workshop.id]?.num_participants" class="text-sm text-red-600 font-bold mt-1">{{ fieldErrors[workshop.id].num_participants }}</p>
+                </div>
+
+                <div class="md:col-span-2 space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Preferència Referent</label>
+                  <label class="flex items-center gap-3 cursor-pointer group select-none p-4 bg-white border border-[#BFDBF7]/60 rounded-xl hover:border-[#1F7A8C] transition-all">
+                    <input type="checkbox" v-model="getFormModel(workshop.id).es_preferencia_referent" class="peer sr-only" />
+                    <div class="w-5 h-5 border-2 border-[#BFDBF7] rounded-md peer-checked:bg-[#1F7A8C] peer-checked:border-[#1F7A8C] transition-all bg-white group-hover:border-[#1F7A8C]"></div>
+                    <span class="text-xs font-medium text-[#022B3A]">Marca si voleu un docent concret com a referent.</span>
+                  </label>
+                </div>
+
+                <div class="md:col-span-2 space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Docent Responsable *</label>
+                  <div class="relative">
+                    <select 
+                      v-model="getFormModel(workshop.id).docent_nom" 
+                      class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none appearance-none cursor-pointer shadow-sm"
+                      @change="handleDocentChange(workshop.id)"
+                    >
+                      <option value="" disabled>Selecciona un docent</option>
+                      <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
+                      <option value="NEW_TEACHER" class="text-[#1F7A8C] font-black">+ Crear nou docent...</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40"><ArrowRight :size="12" class="rotate-90" /></div>
+                  </div>
+                  <p v-if="fieldErrors[workshop.id]?.docent_nom" class="text-sm text-red-600 mt-1">{{ fieldErrors[workshop.id].docent_nom }}</p>
+
+                  <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
+                    <div v-if="showAddTeacherInline[workshop.id]" class="mt-3 p-4 bg-white border border-[#BFDBF7]/60 rounded-xl space-y-4 shadow-sm">
+                      <div class="flex items-center gap-2"><UserPlus :size="16" class="text-[#1F7A8C]" /><span class="text-[10px] font-black text-[#022B3A] uppercase tracking-widest">Creació Ràpida de Docent</span></div>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input v-model="newTeacher.nom" type="text" placeholder="Nom" class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none" />
+                        <input v-model="newTeacher.cognoms" type="text" placeholder="Cognoms" class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none" />
+                        <div class="md:col-span-2"><input v-model="newTeacher.email" type="email" placeholder="Email (xtec.cat / escola.cat)" class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none" /></div>
+                      </div>
+                      <div class="flex justify-end">
+                        <button type="button" @click="handleCreateTeacherQuick(workshop.id)" :disabled="creatingTeacher" class="px-6 py-2.5 bg-[#1F7A8C] text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md hover:bg-[#022B3A] transition-all disabled:opacity-50"> {{ creatingTeacher ? 'CREANT...' : 'CREAR I SELECCIONAR' }} </button>
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Prioritat (1-10) *</label>
                   <input 
                     type="number" 
                     min="1" 
-                    max="4"
-                    v-model="formModel.num_participants"
-                    class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-bold text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all"
-                    @input="validateField(workshop.id, 'num_participants')"
+                    max="10" 
+                    v-model="getFormModel(workshop.id).prioritat" 
+                    class="w-full max-w-[140px] bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none shadow-sm" 
+                    @input="validateField(workshop.id, 'prioritat')"
                   />
-                  <p v-if="fieldErrors[workshop.id]?.num_participants" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].num_participants }}</p>
+                  <p v-if="fieldErrors[workshop.id]?.prioritat" class="text-sm text-red-600 font-bold mt-1">{{ fieldErrors[workshop.id].prioritat }}</p>
+                  <p v-else class="text-[9px] font-bold text-[#022B3A]/40 uppercase tracking-wider ml-1">1: Màxima — 10: Mínima</p>
                 </div>
 
-                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-[#BFDBF7]/10 pt-6">
-                   <div class="md:col-span-12 space-y-2">
-                     <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Docent Responsable *</label>
-                     <div class="relative">
-                        <select 
-                          v-model="formModel.docent_nom" 
-                          class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-medium text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all appearance-none"
-                          @change="handleDocentChange(workshop.id)"
-                        >
-                           <option value="" disabled>Selecciona un docent</option>
-                           <option v-for="d in docents" :key="d" :value="d">{{ d }}</option>
-                           <option value="NEW_TEACHER" class="text-[#1F7A8C] font-black">+ Crear nou docent...</option>
-                        </select>
-                        <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#022B3A]/40">
-                           <ArrowRight :size="12" class="rotate-90" />
-                        </div>
-                     </div>
-                     <p v-if="fieldErrors[workshop.id]?.docent_nom" class="text-xs text-red-600 mt-1 ml-1 font-bold">{{ fieldErrors[workshop.id].docent_nom }}</p>
-
-                     <!-- Quick Teacher Creation Form -->
-                     <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                        <div v-if="showAddTeacherInline[workshop.id]" class="mt-4 p-6 bg-[#F8FAFC] border border-[#BFDBF7] rounded-2xl space-y-4 shadow-inner">
-                           <div class="flex items-center gap-2 mb-2">
-                              <UserPlus :size="16" class="text-[#1F7A8C]" />
-                              <span class="text-[10px] font-black text-[#022B3A] uppercase tracking-widest">Creació Ràpida de Docent</span>
-                           </div>
-                           
-                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <input v-model="newTeacher.nom" type="text" placeholder="Nom" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
-                              <input v-model="newTeacher.cognoms" type="text" placeholder="Cognoms" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
-                              <div class="md:col-span-2">
-                                 <input v-model="newTeacher.email" type="email" placeholder="Email (xtec.cat / escola.cat)" class="w-full bg-white border border-[#BFDBF7] rounded-lg px-4 py-2.5 text-xs font-bold" />
-                              </div>
-                           </div>
-
-                           <div class="flex justify-end pt-2">
-                              <button 
-                                @click="handleCreateTeacherQuick(workshop.id)"
-                                :disabled="creatingTeacher"
-                                class="px-6 py-2 bg-[#1F7A8C] text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-md hover:bg-[#022B3A] transition-all disabled:opacity-50"
-                              >
-                                {{ creatingTeacher ? 'CREANT...' : 'CREAR I SELECCIONAR' }}
-                              </button>
-                           </div>
-                        </div>
-                     </transition>
-                   </div>
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-widest ml-1 block">Observacions</label>
+                  <textarea rows="3" v-model="getFormModel(workshop.id).descripcio" placeholder="Detalls específics..." class="w-full bg-white border border-[#BFDBF7]/60 rounded-xl px-4 py-3 text-sm text-[#022B3A] focus:ring-4 focus:ring-[#1F7A8C]/10 focus:border-[#1F7A8C] outline-none resize-none placeholder:text-[#022B3A]/20 shadow-sm"></textarea>
                 </div>
-
-                <div class="md:col-span-2 space-y-2 border-t border-[#BFDBF7]/10 pt-4">
-                  <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Prioritat (1-10) *</label>
-                  <div class="max-w-[140px]">
-                    <input 
-                      type="number" 
-                      min="1" 
-                      max="10"
-                      v-model="formModel.prioritat"
-                      class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-5 py-4 text-sm font-bold text-[#022B3A] focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all"
-                    />
-                  </div>
-                  <p class="text-[9px] font-bold text-[#022B3A]/40 uppercase tracking-wider ml-1">1: Màxima — 10: Mínima</p>
-                </div>
-
-                <div class="md:col-span-2 space-y-2">
-                   <label class="text-[10px] font-black text-[#022B3A]/60 uppercase tracking-[0.15em] ml-1">Observacions</label>
-                   <textarea 
-                      rows="3"
-                      v-model="formModel.descripcio"
-                      placeholder="Detalls específics..."
-                      class="w-full bg-[#E1E5F2]/20 border border-[#BFDBF7] rounded-xl px-6 py-5 text-sm font-medium focus:ring-2 focus:ring-[#1F7A8C]/20 focus:border-[#1F7A8C] outline-none transition-all placeholder:text-[#022B3A]/20 resize-none"
-                   ></textarea>
-                </div>
-
-             </div>
-        </div>
-
-        <!-- Footer Actions -->
-        <div class="p-10 bg-white rounded-2xl border border-[#BFDBF7] shadow-xl shadow-[#022B3A]/5 flex items-center justify-between gap-6">
-            <div class="flex items-center gap-2 text-[10px] font-bold text-[#022B3A]/30 italic">
-              <Info :size="14" />
-              Revisa les dades abans d'enviar la sol·licitud
+              </div>
             </div>
-            
-            <div class="flex items-center gap-3">
-              <button 
-                @click="step = 'selection'"
-                class="px-8 py-4 text-[11px] font-black text-[#022B3A]/40 uppercase tracking-widest hover:text-[#022B3A] transition-all"
-              >
+          </div>
+
+          <!-- Peu del modal (estil FormCrearTaller/FormCrearUsuari) -->
+          <div class="w-full h-px bg-[#BFDBF7]/40"></div>
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-2 text-[10px] font-bold text-[#022B3A]/40 italic">
+              <Info :size="14" /> Revisa les dades abans d'enviar la sol·licitud
+            </div>
+            <div class="flex gap-3">
+              <button type="button" @click="showModalDetalls = false" class="px-6 py-3 rounded-xl border border-[#BFDBF7]/60 bg-white text-[#022B3A]/40 hover:text-[#022B3A] hover:shadow-lg transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
                 Cancel·lar
               </button>
-              <button 
-                @click="handleSubmit"
-                class="flex items-center gap-3 px-10 py-4 bg-[#1F7A8C] text-white font-black text-[12px] uppercase tracking-[0.1em] rounded-xl hover:bg-[#022B3A] transition-all shadow-xl shadow-[#1F7A8C]/20 group"
-              >
-                <Save :size="18" />
-                CONFIRMAR SOL·LICITUD
+              <button type="button" @click="handleSubmit" :disabled="submitting" class="px-10 py-3 bg-[#1F7A8C] text-white rounded-xl shadow-lg shadow-[#1F7A8C]/20 hover:bg-[#022B3A] hover:shadow-2xl transition-all text-[11px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                <Save :size="14" /> {{ submitting ? 'Enviant...' : 'Confirmar sol·licitud' }}
               </button>
             </div>
+          </div>
         </div>
-
       </div>
     </div>
 
@@ -429,14 +392,14 @@ import {
   Check, 
   Plus, 
   Users, 
-  Calendar, // Changed from CalendarDays to match Lucide export if needed, usually Calendar or CalendarDays
+  Calendar,
   ArrowRight, 
-  ArrowLeft, 
   FileText, 
   UserPlus, 
   Info, 
   Save,
-  CalendarDays
+  CalendarDays,
+  X
 } from 'lucide-vue-next';
 
 // ======================================
@@ -449,7 +412,7 @@ const professors = ref([]);
 const selectedTallers = ref([]); // Stores full objects
 
 // UI State matching template
-const step = ref('selection'); // 'selection' | 'details'
+const showModalDetalls = ref(false);
 const viewMode = ref('grid');
 const searchQuery = ref('');
 const submitting = ref(false);
@@ -537,12 +500,23 @@ function validateField(workshopId, key) {
 
   if (key === 'num_participants') {
     const val = Number(workshopForm.num_participants);
-    if (!val || val < 1) {
-      fieldErrors.value[workshopId].num_participants = 'Introduïu el nombre d\'alumnes.';
+    if (!val || isNaN(val) || val < 1) {
+      fieldErrors.value[workshopId].num_participants = 'Introduïu el nombre d\'alumnes (mínim 1).';
     } else if (val > 4) {
       fieldErrors.value[workshopId].num_participants = 'El màxim permès és de 4 participants.';
     } else {
       delete fieldErrors.value[workshopId].num_participants;
+    }
+  }
+
+  if (key === 'prioritat') {
+    const val = Number(workshopForm.prioritat);
+    if (!val || isNaN(val) || val < 1) {
+      fieldErrors.value[workshopId].prioritat = 'La prioritat ha d\'estar entre 1 i 10.';
+    } else if (val > 10) {
+      fieldErrors.value[workshopId].prioritat = 'El màxim permès és 10.';
+    } else {
+      delete fieldErrors.value[workshopId].prioritat;
     }
   }
 
@@ -564,6 +538,7 @@ function validateAll() {
   let isValid = true;
   form.value.tallers.forEach(workshopForm => {
     validateField(workshopForm.taller_id, 'num_participants');
+    validateField(workshopForm.taller_id, 'prioritat');
     validateField(workshopForm.taller_id, 'docent_nom');
     
     if (fieldErrors.value[workshopForm.taller_id]) {
