@@ -90,7 +90,12 @@
                 <input type="radio" name="modalitat-edit" :value="mod.id" v-model="form.modalitat" class="peer sr-only" @change="validateField('modalitat')" />
                 <div class="flex flex-col items-center justify-center p-5 bg-white border border-[#BFDBF7]/60 rounded-xl peer-checked:bg-[#022B3A] peer-checked:border-[#022B3A] transition-all group-hover:border-[#1F7A8C]">
                   <div :class="['w-3 h-3 rounded-full mb-2', mod.colorClass]"></div>
-                  <span class="text-[11px] font-black uppercase tracking-widest text-[#022B3A] peer-checked:text-white">Projecte {{ mod.id }}</span>
+                  <span 
+                    class="text-[11px] font-black uppercase tracking-widest transition-colors duration-200"
+                    :class="form.modalitat === mod.id ? 'text-white' : 'text-[#022B3A]'"
+                  >
+                    Projecte {{ mod.id }}
+                  </span>
                 </div>
               </label>
             </div>
