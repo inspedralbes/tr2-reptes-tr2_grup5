@@ -277,79 +277,199 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { Search, LayoutGrid, List, Check, X, Calendar, Building2, Clock, Info, Star, Sparkles } from 'lucide-vue-next';
 
-const header = useHeaderStore();
-header.setHeaderAdmin();
+// ======================================
+// Configuració i Serveis
+// ======================================
 
+// 1. Configurem la capçalera d'administrador
+const headerStore = useHeaderStore();
+headerStore.setHeaderAdmin();
+
+// 2. Autenticació
 const tokenCookie = useCookie('authToken');
-const actionLoading = ref(false);
-const autoAssignLoading = ref(false);
+const tokenRef = tokenCookie.value;
+
+// ======================================
+// Estat Reactiu del Component
+// ======================================
+
 const detallsPeticions = ref([]);
 const pending = ref(true);
 const error = ref(null);
 
+const actionLoading = ref(false);
+const autoAssignLoading = ref(false);
+
 const searchQuery = ref('');
-const filterStatus = ref('PENDENT'); // Nou estat del filtre, per defecte PENDENT
+const filterStatus = ref('PENDENT'); 
 const viewMode = ref('grid');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-// Reiniciar pàgina quan canvia cerca o filtre
-watch([searchQuery, filterStatus], () => { currentPage.value = 1; });
+// ======================================
+// Propietats Computades
+// ======================================
 
+// 1. Estat de càrrega visual
 const mostraLoading = computed(function () {
-  return pending.value && detallsPeticions.value.length === 0;
+  const isPending = pending.value;
+  const listLen = detallsPeticions.value.length;
+  let charging = false;
+  if (isPending === true) {
+    if (listLen === 0) {
+      charging = true;
+    }
+  }
+  return charging;
 });
 
+// 2. Estat d'error de la petició
 const errorFetch = computed(function () {
-  return error.value !== null;
+  let hiHaError = false;
+  if (error.value !== null) {
+    hiHaError = true;
+  }
+  return hiHaError;
 });
 
+// 3. Missatge d'error textual
 const textError = computed(function () {
-  return (error.value && error.value.message) ? error.value.message : '';
+  let msg = '';
+  const errObj = error.value;
+  if (errObj) {
+    if (errObj.message) {
+      msg = errObj.message;
+    }
+  }
+  return msg;
 });
 
+// 4. Comprovació de si hi ha dades originals
 const hiHaDetalls = computed(function () {
-  return detallsPeticions.value && detallsPeticions.value.length > 0;
+  const llista = detallsPeticions.value;
+  let existeixen = false;
+  if (llista) {
+    if (llista.length > 0) {
+      existeixen = true;
+    }
+  }
+  return existeixen;
 });
 
-// Lògica de filtratge combinada (Cerca + Estat)
+// 5. Filtre de dades combinat (Cerca + Estat) - Sense .filter()
 const filteredRequests = computed(function () {
-  const q = (searchQuery.value || '').toLowerCase().trim();
-  const s = filterStatus.value;
-  let list = detallsPeticions.value || [];
-
-  // Filtre d'estat
-  if (s !== 'all') {
-    list = list.filter(d => (d.estat || 'PENDENT') === s);
+  const query = searchQuery.value;
+  let textBusca = '';
+  if (query) { textBusca = query.toLowerCase().trim(); }
+  
+  const estatFiltre = filterStatus.value;
+  const llistaDades = detallsPeticions.value;
+  
+  const resultatFiltrat = [];
+  
+  // A) --- Aplicació dels filtres amb bucle for ---
+  for (let i = 0; i < llistaDades.length; i++) {
+    const d = llistaDades[i];
+    
+    // Filtre d'estat
+    let estatDada = d.estat;
+    if (!estatDada) { estatDada = 'PENDENT'; }
+    
+    let passaFiltreEstat = false;
+    if (estatFiltre === 'all') {
+      passaFiltreEstat = true;
+    } else if (estatDada === estatFiltre) {
+      passaFiltreEstat = true;
+    }
+    
+    if (passaFiltreEstat === true) {
+      // Filtre de cerca
+      let passaCerca = false;
+      if (textBusca === '') {
+        passaCerca = true;
+      } else {
+        let t = '';
+        if (d.titol) { t = d.titol.toLowerCase(); }
+        
+        let c = '';
+        if (d.nom_centre) { c = d.nom_centre.toLowerCase(); }
+        
+        if (t.indexOf(textBusca) !== -1) {
+          passaCerca = true;
+        } else if (c.indexOf(textBusca) !== -1) {
+          passaCerca = true;
+        }
+      }
+      
+      if (passaCerca === true) {
+        resultatFiltrat.push(d);
+      }
+    }
   }
 
-  // Filtre de cerca
-  if (q) {
-    list = list.filter(function (d) {
-      const titol = (d.titol || '').toLowerCase();
-      const centre = (d.nom_centre || '').toLowerCase();
-      return titol.indexOf(q) >= 0 || centre.indexOf(q) >= 0;
-    });
+  // B) --- Ordenació manual per prioritat (Bubble Sort simple) ---
+  const n = resultatFiltrat.length;
+  for (let x = 0; x < n - 1; x++) {
+    for (let y = 0; y < n - x - 1; y++) {
+      const p1 = resultatFiltrat[y].prioritat || 0;
+      const p2 = resultatFiltrat[y+1].prioritat || 0;
+      if (p1 > p2) {
+        let temp = resultatFiltrat[y];
+        resultatFiltrat[y] = resultatFiltrat[y+1];
+        resultatFiltrat[y+1] = temp;
+      }
+    }
   }
-
-  // Ordenació per prioritat (ja ve del fetch, però assegurem)
-  return list.slice().sort(function (a, b) { return (a.prioritat || 0) - (b.prioritat || 0); });
+  
+  return resultatFiltrat;
 });
 
+// 6. Càlcul de pàgines totals
 const totalPages = computed(function () {
-  return Math.max(1, Math.ceil(filteredRequests.value.length / itemsPerPage));
+  const totalItems = filteredRequests.value.length;
+  let pagines = 1;
+  if (totalItems > 0) {
+    pagines = Math.ceil(totalItems / itemsPerPage);
+  }
+  return pagines;
 });
 
+// 7. Peticions de la pàgina actual (Sense .slice)
 const currentRequests = computed(function () {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return filteredRequests.value.slice(start, start + itemsPerPage);
+  const llistaCompleta = filteredRequests.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const llistaPagina = [];
+  for (let k = 0; k < llistaCompleta.length; k++) {
+    if (k >= inici) {
+      if (k < fi) {
+        llistaPagina.push(llistaCompleta[k]);
+      }
+    }
+  }
+  return llistaPagina;
 });
 
-function goToPage(page) {
-  if (page >= 1 && page <= totalPages.value) currentPage.value = page;
-}
+// ======================================
+// Vigilants (Watchers)
+// ======================================
+
+// 1. Reiniciar a la pàgina 1 si canvien filtres o cerca
+watch([searchQuery, filterStatus], function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió d'estils visuals ---
 
 function getModalitatStyles(modalitat) {
   return 'bg-[#E1E5F2]/40 text-[#022B3A]/50 border-[#BFDBF7]/40';
@@ -357,26 +477,220 @@ function getModalitatStyles(modalitat) {
 
 function getPriorityStyles(priority) {
   const p = Number(priority) || 5;
-  if (p <= 2) return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/30';
-  if (p <= 4) return 'bg-[#FFF9EA] text-[#D4C51F] border-[#D4C51F]/30';
-  if (p <= 6) return 'bg-[#FFF4E0] text-[#FBB02D] border-[#FBB02D]/30';
-  if (p <= 8) return 'bg-[#FFECE2] text-[#FB6107] border-[#FB6107]/30';
+  if (p <= 2) { return 'bg-[#F0F7E9] text-[#7CB518] border-[#7CB518]/30'; }
+  if (p <= 4) { return 'bg-[#FFF9EA] text-[#D4C51F] border-[#D4C51F]/30'; }
+  if (p <= 6) { return 'bg-[#FFF4E0] text-[#FBB02D] border-[#FBB02D]/30'; }
+  if (p <= 8) { return 'bg-[#FFECE2] text-[#FB6107] border-[#FB6107]/30'; }
   return 'bg-[#FFECEC] text-[#FF4D4D] border-[#FF4D4D]/30';
 }
 
 function getEstatStyles(estat) {
-  const e = (estat || 'PENDENT').toUpperCase();
-  if (e === 'ASSIGNADA') return 'bg-[#dcfce7]/80 text-[#15803d] border-[#22c55e]/30';
-  if (e === 'REBUTJADA') return 'bg-[#fee2e2]/80 text-[#b91c1c] border-[#ef4444]/30';
+  const e = String(estat || 'PENDENT').toUpperCase();
+  if (e === 'ASSIGNADA') { return 'bg-[#dcfce7]/80 text-[#15803d] border-[#22c55e]/30'; }
+  if (e === 'REBUTJADA') { return 'bg-[#fee2e2]/80 text-[#b91c1c] border-[#ef4444]/30'; }
   return 'bg-[#fef3c7]/80 text-[#92400e] border-[#f59e0b]/30';
 }
 
 function getEstatTextColor(estat) {
-  const e = (estat || 'PENDENT').toUpperCase();
-  if (e === 'ASSIGNADA') return 'text-[#15803d]';
-  if (e === 'REBUTJADA') return 'text-[#b91c1c]';
+  const e = String(estat || 'PENDENT').toUpperCase();
+  if (e === 'ASSIGNADA') { return 'text-[#15803d]'; }
+  if (e === 'REBUTJADA') { return 'text-[#b91c1c]'; }
   return 'text-[#92400e]';
 }
+
+// B) --- Gestió d'estat i format ---
+
+function textEstat(detall) {
+  let val = detall.estat;
+  if (!val) { val = 'PENDENT'; }
+  return val;
+}
+
+function esPendent(detall) {
+  const e = String(detall.estat || 'PENDENT').toUpperCase();
+  let pendentStatus = false;
+  if (e === 'PENDENT') {
+    pendentStatus = true;
+  }
+  return pendentStatus;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) { return '—'; }
+  const dataObj = new Date(dateStr);
+  const opcions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return dataObj.toLocaleDateString('ca-ES', opcions);
+}
+
+function clauDetall(detall) {
+  const pId = String(detall.peticio_id);
+  const tId = String(detall.taller_id);
+  return pId + '-' + tId;
+}
+
+// C) --- Crides a l'API i accions ---
+
+async function fetchPeticions() {
+  pending.value = true;
+  error.value = null;
+  try {
+    const headersPeticio = {};
+    if (tokenRef) {
+      headersPeticio.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    const dadesAPI = await $fetch('/api/admin/peticions', { 
+       headers: headersPeticio 
+    });
+    
+    const llistaFinal = [];
+    // Aplanem les peticions amb els seus detalls (sense .map ni .flatMap)
+    for (let i = 0; i < dadesAPI.length; i++) {
+        const peticio = dadesAPI[i];
+        let d = peticio.detalls;
+        if (!d) { d = []; }
+        
+        for (let j = 0; j < d.length; j++) {
+            const item = d[j];
+            const objecteRefet = {
+              peticio_id: peticio.id,
+              nom_centre: peticio.nom_centre,
+              data_creacio: peticio.data_creacio,
+              id: item.id,
+              taller_id: item.taller_id,
+              modalitat: item.modalitat,
+              titol: item.titol,
+              descripcio: item.descripcio,
+              trimestre: item.trimestre,
+              num_participants: item.num_participants,
+              prioritat: item.prioritat,
+              estat: item.estat,
+              es_preferencia_referent: item.es_preferencia_referent,
+              docent_nom: item.docent_nom,
+              docent_email: item.docent_email
+            };
+            llistaFinal.push(objecteRefet);
+        }
+    }
+    detallsPeticions.value = llistaFinal;
+    
+  } catch (errPeticio) {
+    console.error('Error carregant peticions:', errPeticio);
+    error.value = errPeticio;
+  } finally {
+    pending.value = false;
+  }
+}
+
+async function updateTallerStatus(peticioId, tallerId, nouEstat) {
+  const swal = useSwal();
+  let missatgeConfirm = 'Vols REBUTJAR aquesta sol·licitud?';
+  if (nouEstat === 'ASSIGNADA') {
+    missatgeConfirm = 'Vols marcar aquest taller com a ASSIGNAT?';
+  }
+
+  const confirmResultArr = await swal.fire({ 
+    title: 'Confirmar', 
+    text: missatgeConfirm, 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  if (confirmResultArr.isConfirmed === false) {
+    return;
+  }
+
+  actionLoading.value = true;
+  try {
+    const headersUpdate = {};
+    if (tokenRef) {
+      headersUpdate.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    await $fetch('/api/admin/peticions/' + String(peticioId) + '/tallers/' + String(tallerId) + '/estat', {
+      method: 'PUT',
+      headers: headersUpdate,
+      body: { estat: nouEstat }
+    });
+    
+    swal.fire({ title: 'Fet', text: 'Estat actualitzat correctament.', icon: 'success' });
+    await fetchPeticions();
+    
+  } catch (errUpd) {
+    console.error('Error actualitzant estat:', errUpd);
+    swal.fire({ title: 'Error', text: "No s'ha pogut actualitzar l'estat.", icon: 'error' });
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function executeAutoAssignment() {
+  const swalAuto = useSwal();
+  const msgAuto = "Vols executar l'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.";
+  
+  const resConfirm = await swalAuto.fire({ 
+    title: 'Confirmar', 
+    text: msgAuto, 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  if (resConfirm.isConfirmed === false) {
+    return;
+  }
+
+  autoAssignLoading.value = true;
+  try {
+    const headerAuto = {};
+    if (tokenRef) {
+      headerAuto.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    const rAPI = await $fetch('/api/admin/matching/auto', { 
+       method: 'POST', 
+       headers: headerAuto 
+    });
+    
+    await fetchPeticions();
+    
+    let numS = 0;
+    let numR = 0;
+    let numE = 0;
+    
+    if (rAPI.summary) {
+       const s = rAPI.summary;
+       if (s.success !== undefined) { numS = s.success; }
+       if (s.rejected !== undefined) { numR = s.rejected; }
+       if (s.errors !== undefined) { numE = s.errors; }
+    }
+    
+    await swalAuto.fire({
+      title: 'Assignació automàtica completada!',
+      html: 'Assignades: <strong>' + numS + '</strong> | Rebutjades: <strong>' + numR + '</strong> | Errors: <strong>' + numE + '</strong>',
+      icon: 'success'
+    });
+    
+  } catch (errAuto) {
+    console.error('Error executant assignació automàtica:', errAuto);
+    let errorMsgText = 'No s\'ha pogut executar l\'assignació automàtica.';
+    if (errAuto.data) {
+       if (errAuto.data.message) {
+         errorMsgText = errAuto.data.message;
+       }
+    }
+    await swalAuto.fire({
+      title: 'Error',
+      text: errorMsgText,
+      icon: 'error'
+    });
+  } finally {
+    autoAssignLoading.value = false;
+  }
+}
+
+// D) --- Gestors d'esdeveniments ---
 
 function handleApprove(detall) {
   updateTallerStatus(detall.peticio_id, detall.taller_id, 'ASSIGNADA');
@@ -386,116 +700,17 @@ function handleReject(detall) {
   updateTallerStatus(detall.peticio_id, detall.taller_id, 'REBUTJADA');
 }
 
-async function fetchPeticions() {
-  pending.value = true;
-  error.value = null;
-  try {
-    const tok = tokenCookie.value;
-    const data = await $fetch('/api/admin/peticions', { headers: { Authorization: tok ? 'Bearer ' + tok : '' } });
-    const llista = [];
-    for (let i = 0; i < data.length; i++) {
-      const peticio = data[i];
-      let detalls = peticio.detalls || [];
-      for (let j = 0; j < detalls.length; j++) {
-        const d = detalls[j];
-        llista.push({
-          peticio_id: peticio.id,
-          nom_centre: peticio.nom_centre,
-          data_creacio: peticio.data_creacio,
-          id: d.id,
-          taller_id: d.taller_id,
-          modalitat: d.modalitat,
-          titol: d.titol,
-          descripcio: d.descripcio,
-          trimestre: d.trimestre,
-          num_participants: d.num_participants,
-          prioritat: d.prioritat,
-          estat: d.estat,
-          es_preferencia_referent: d.es_preferencia_referent,
-          docent_nom: d.docent_nom,
-          docent_email: d.docent_email
-        });
-      }
+function goToPage(page) {
+  const maxP = totalPages.value;
+  if (page >= 1) {
+    if (page <= maxP) {
+      currentPage.value = page;
     }
-    // Ordenació simple per prioritat
-    llista.sort((a, b) => (a.prioritat || 0) - (b.prioritat || 0));
-    detallsPeticions.value = llista;
-  } catch (err) {
-    console.error('Error fetching peticions:', err);
-    error.value = err;
-  } finally {
-    pending.value = false;
   }
 }
 
-onMounted(function () { fetchPeticions(); });
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-async function updateTallerStatus(peticioId, tallerId, estat) {
-  const confirmMsg = estat === 'ASSIGNADA' ? 'Vols marcar aquest taller com a ASSIGNAT?' : 'Vols REBUTJAR aquesta sol·licitud?';
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: confirmMsg, icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
-  actionLoading.value = true;
-  try {
-    const tok = tokenCookie.value;
-    await $fetch('/api/admin/peticions/' + peticioId + '/tallers/' + tallerId + '/estat', {
-      method: 'PUT',
-      headers: { Authorization: tok ? 'Bearer ' + tok : '' },
-      body: { estat }
-    });
-    useSwal().fire({ title: 'Fet', text: 'Estat actualitzat.', icon: 'success' });
-    await fetchPeticions();
-  } catch (err) {
-    console.error('Error actualitzant estat:', err);
-    useSwal().fire({ title: 'Error', text: "No s'ha pogut actualitzar l'estat.", icon: 'error' });
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
-async function executeAutoAssignment() {
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: "Vols executar l'assignació automàtica de tallers? Això assignarà automàticament les peticions pendents segons prioritat i disponibilitat.", icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
-  autoAssignLoading.value = true;
-  try {
-    const tok = tokenCookie.value;
-    const result = await $fetch('/api/admin/matching/auto', { method: 'POST', headers: { Authorization: tok ? 'Bearer ' + tok : '' } });
-    await fetchPeticions();
-    const s = result.summary || {};
-    const assignades = s.success ?? 0;
-    const rebutjades = s.rejected ?? 0;
-    const errors = s.errors ?? 0;
-    await useSwal().fire({
-      title: 'Assignació automàtica completada!',
-      html: `Assignades: <strong>${assignades}</strong> | Rebutjades: <strong>${rebutjades}</strong> | Errors: <strong>${errors}</strong>`,
-      icon: 'success'
-    });
-  } catch (err) {
-    console.error('Error executant assignació automàtica:', err);
-    await useSwal().fire({
-      title: 'Error',
-      text: err?.data?.message || 'No s\'ha pogut executar l\'assignació automàtica.',
-      icon: 'error'
-    });
-  } finally {
-    autoAssignLoading.value = false;
-  }
-}
-
-function clauDetall(detall) {
-  return String(detall.peticio_id) + '-' + String(detall.taller_id);
-}
-
-function textEstat(detall) {
-  return detall.estat || 'PENDENT';
-}
-
-function esPendent(detall) {
-  const e = (detall.estat || 'PENDENT').toUpperCase();
-  return e === 'PENDENT';
-}
+// E) --- Ganxo de muntatge ---
+onMounted(function () { 
+  fetchPeticions(); 
+});
 </script>

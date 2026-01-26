@@ -187,15 +187,28 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { Briefcase, FileText, Settings, Users, Calendar, MapPin, Building2, ArrowLeft, Eraser, Plus, X } from 'lucide-vue-next';
 
-const emit = defineEmits(['close', 'created']);
-const tokenRef = useCookie('authToken');
+// ======================================
+// Definició de l'Esquema
+// ======================================
 
+// 1. Definim els esdeveniments que emet el component
+const emit = defineEmits(['close', 'created']);
+
+// 2. Obtenim la cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// 3. Llistes de dades estàtiques per al formulari
 const sectors = ['Agroalimentari', 'Manufacturer', 'Energia i Aigua', 'Construcció', 'Comerç i Turisme', 'Transport', 'Hoteleria', 'Informació i Comunicació', 'Financer', 'Immobiliari', 'Professional'];
 const modalities = [ { id: 'A', colorClass: 'bg-[#fb6107]' }, { id: 'B', colorClass: 'bg-[#7cb518]' }, { id: 'C', colorClass: 'bg-[#fbb02d]' } ];
 const quarters = ['1r', '2n', '3r'];
 
+// 4. Estat reactiu del formulari
 const form = ref({
   titol: '',
   descripcio: '',
@@ -208,56 +221,123 @@ const form = ref({
   data_execucio: ''
 });
 
+// 5. Estats de control de la interfície i errors
 const loading = ref(false);
 const message = ref('');
 const error = ref('');
 const fieldErrors = ref({});
 
+// 6. Propietat computada per a la durada estimada del taller
+const duradaCalculada = computed(function () {
+  const mod = form.value.modalitat;
+  if (mod === 'A') {
+    return '20 hores (10 sessions de 2 hores)';
+  }
+  if (mod === 'B') {
+    return '20 hores (10 sessions de 2 hores)';
+  }
+  if (mod === 'C') {
+    return '30 hores (10 sessions de 3 hores)';
+  }
+  return 'Selecciona una modalitat';
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Validació d'un camp específic ---
 function validateField(key) {
-  const v = form.value;
+  const dades = form.value;
+  const errors = fieldErrors.value;
+
+  // 1. Validació del títol
   if (key === 'titol') {
-    if (!(v.titol || '').trim()) { fieldErrors.value.titol = 'Introduïu un títol.'; return; }
-    delete fieldErrors.value.titol;
-    return;
-  }
-  if (key === 'sector') {
-    if (!(v.sector || '').trim()) { fieldErrors.value.sector = 'Seleccioneu un sector.'; return; }
-    delete fieldErrors.value.sector;
-    return;
-  }
-  if (key === 'modalitat') {
-    if (!(v.modalitat || '').trim()) { fieldErrors.value.modalitat = 'Seleccioneu una modalitat.'; return; }
-    delete fieldErrors.value.modalitat;
-    return;
-  }
-  if (key === 'trimestres') {
-    if (!(v.trimestres || []).length) { fieldErrors.value.trimestres = 'Seleccioneu almenys un trimestre.'; return; }
-    delete fieldErrors.value.trimestres;
-    return;
-  }
-  if (key === 'places_maximes') {
-    const n = Number(v.places_maximes);
-    if (isNaN(n) || n < 1) { fieldErrors.value.places_maximes = 'Les places han de ser com a mínim 1.'; return; }
-    delete fieldErrors.value.places_maximes;
-    return;
+    let titolStr = dades.titol;
+    if (!titolStr) {
+      errors.titol = 'Introduïu un títol.';
+    } else {
+      let net = titolStr.trim();
+      if (!net) {
+        errors.titol = 'Introduïu un títol.';
+      } else {
+        delete errors.titol;
+      }
+    }
+  } 
+  
+  // 2. Validació del sector professional
+  else if (key === 'sector') {
+    let sec = dades.sector;
+    if (!sec) {
+      errors.sector = 'Seleccioneu un sector.';
+    } else {
+      let net = sec.trim();
+      if (!net) {
+        errors.sector = 'Seleccioneu un sector.';
+      } else {
+        delete errors.sector;
+      }
+    }
+  } 
+  
+  // 3. Validació de la modalitat
+  else if (key === 'modalitat') {
+    let mod = dades.modalitat;
+    if (!mod) {
+      errors.modalitat = 'Seleccioneu una modalitat.';
+    } else {
+      let net = mod.trim();
+      if (!net) {
+        errors.modalitat = 'Seleccioneu una modalitat.';
+      } else {
+        delete errors.modalitat;
+      }
+    }
+  } 
+  
+  // 4. Validació dels trimestres (mínim un)
+  else if (key === 'trimestres') {
+    let llista = dades.trimestres;
+    if (!llista) {
+      errors.trimestres = 'Seleccioneu almenys un trimestre.';
+    } else if (llista.length === 0) {
+      errors.trimestres = 'Seleccioneu almenys un trimestre.';
+    } else {
+      delete errors.trimestres;
+    }
+  } 
+  
+  // 5. Validació de places màximes
+  else if (key === 'places_maximes') {
+    const n = Number(dades.places_maximes);
+    if (isNaN(n) === true) {
+      errors.places_maximes = 'Les places han de ser com a mínim 1.';
+    } else if (n < 1) {
+      errors.places_maximes = 'Les places han de ser com a mínim 1.';
+    } else {
+      delete errors.places_maximes;
+    }
   }
 }
 
+// B) --- Validació de tot el formulari ---
 function validateAll() {
   validateField('titol');
   validateField('sector');
   validateField('modalitat');
   validateField('trimestres');
   validateField('places_maximes');
-  return Object.keys(fieldErrors.value).length === 0;
+  
+  const llistaClausErrors = Object.keys(fieldErrors.value);
+  let esValid = false;
+  if (llistaClausErrors.length === 0) {
+    esValid = true;
+  }
+  return esValid;
 }
 
-const duradaCalculada = computed(() => {
-  if (form.value.modalitat === 'A' || form.value.modalitat === 'B') return '20 hores (10 sessions de 2 hores)';
-  if (form.value.modalitat === 'C') return '30 hores (10 sessions de 3 hores)';
-  return 'Selecciona una modalitat';
-});
-
+// C) --- Reinicialització completa del formulari ---
 function resetForm() {
   form.value.titol = '';
   form.value.descripcio = '';
@@ -273,35 +353,88 @@ function resetForm() {
   fieldErrors.value = {};
 }
 
+// D) --- Enviament de les dades del taller a l'API ---
 async function submitForm() {
+  // 1. Netegem l'estat d'alertes
   error.value = '';
   message.value = '';
-  if (!validateAll()) return;
+  
+  // 2. Comprovem la validesa del formulari
+  const esFormulariValid = validateAll();
+  if (esFormulariValid === false) {
+    return;
+  }
 
+  // 3. Iniciem el procés de càrrega
   loading.value = true;
+  
   try {
-    const trimestresStr = (form.value.trimestres || []).join(', ');
+    const dadesForm = form.value;
+    
+    // 4. Convertim la llista de trimestres a cadena string (sense .join)
+    let trimestresCadena = '';
+    const llistaTrim = dadesForm.trimestres;
+    for (let i = 0; i < llistaTrim.length; i++) {
+       if (i > 0) {
+         trimestresCadena = trimestresCadena + ', ';
+       }
+       trimestresCadena = trimestresCadena + llistaTrim[i];
+    }
+    
+    // 5. Preparem el paquet de dades (Payload)
     const payload = {
-      titol: form.value.titol,
-      descripcio: form.value.descripcio || null,
-      sector: form.value.sector,
-      modalitat: form.value.modalitat,
-      places_maximes: Number(form.value.places_maximes) || 12,
-      trimestres_disponibles: trimestresStr,
-      ubicacio: form.value.ubicacio || null,
-      adreca: form.value.adreca || null,
-      data_execucio: form.value.data_execucio || null
+      titol: dadesForm.titol,
+      descripcio: null,
+      sector: dadesForm.sector,
+      modalitat: dadesForm.modalitat,
+      places_maximes: Number(dadesForm.places_maximes),
+      trimestres_disponibles: trimestresCadena,
+      ubicacio: null,
+      adreca: null,
+      data_execucio: null
     };
-    const tok = tokenRef.value;
+    
+    if (dadesForm.descripcio) { payload.descripcio = dadesForm.descripcio; }
+    if (dadesForm.ubicacio) { payload.ubicacio = dadesForm.ubicacio; }
+    if (dadesForm.adreca) { payload.adreca = dadesForm.adreca; }
+    if (dadesForm.data_execucio) { payload.data_execucio = dadesForm.data_execucio; }
+
+    // 6. Realitzem la petició POST
+    const tok = tokenRef;
+    const headers = {};
+    if (tok) {
+      headers.Authorization = 'Bearer ' + tok;
+    }
+
     await $fetch('/api/admin/tallers', {
       method: 'POST',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : {},
+      headers: headers,
       body: payload
     });
-    useSwal().fire({ title: 'Fet', text: 'Taller creat correctament.', icon: 'success' }).then(() => { resetForm(); emit('created'); });
-  } catch (err) {
-    error.value = err?.data?.message || err?.message || 'Error en crear el taller.';
+
+    // 7. Mostrem missatge d'èxit i notifiquem
+    const swal = useSwal();
+    swal.fire({ 
+      title: 'Fet', 
+      text: 'Taller creat correctament.', 
+      icon: 'success' 
+    }).then(function () { 
+      resetForm(); 
+      emit('created'); 
+    });
+    
+  } catch (errPeticio) {
+    // 8. Gestionem l'error de la petició
+    console.error('Error creant taller:', errPeticio);
+    let msgError = 'Error en crear el taller.';
+    if (errPeticio.data) {
+      if (errPeticio.data.message) {
+        msgError = errPeticio.data.message;
+      }
+    }
+    error.value = msgError;
   } finally {
+    // 9. Finalitzem l'estat de càrrega
     loading.value = false;
   }
 }

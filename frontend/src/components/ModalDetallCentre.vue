@@ -222,6 +222,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import { 
   Building2, 
   MapPin, 
@@ -233,79 +236,199 @@ import {
   ChevronLeft
 } from 'lucide-vue-next';
 
+// ======================================
+// Definició de l'Esquema
+// ======================================
+
+// 1. Propietats que rep el component
 const props = defineProps({
   centreId: { type: [Number, String], required: true }
 });
 
+// 2. Esdeveniments que emet el component
 const emit = defineEmits(['close']);
 
+// 3. Estat local per a la navegació de pestanyes
 const activeTab = ref('info');
-const token = useCookie('authToken').value;
 
-// FETCH DATA
-const { data: centreRaw, pending: pendent } = await useFetch(`/api/admin/centres/${props.centreId}`, {
-  headers: token ? { Authorization: 'Bearer ' + token } : {},
-  key: `modal-centre-${props.centreId}`
-});
-
-const centre = computed(() => centreRaw.value);
-
-// COMPLEMENTARY DATA FETCHING (COMMENTS)
+// 4. Estat local per als comentaris i sub-modal
 const usersComments = ref([]);
 const showCommentsModal = ref(false);
 const selectedTallerName = ref("");
 const selectedTallerComments = ref([]);
 
-const fetchComments = async () => {
-  try {
-    const data = await $fetch(`/api/admin/centres/${props.centreId}/comments`, {
-       headers: token ? { Authorization: 'Bearer ' + token } : {}
-    });
-    usersComments.value = data || [];
-  } catch (e) {
-    console.error("Error carregant comentaris:", e);
+// 5. Autenticació
+const tokenCookie = useCookie('authToken');
+const tokenValue = tokenCookie.value;
+
+// 6. Carreguem les dades del centre (sense desestructuració)
+const resultatRespuesta = await useFetch('/api/admin/centres/' + props.centreId, {
+  headers: tokenValue ? { Authorization: 'Bearer ' + tokenValue } : {},
+  key: 'modal-centre-' + props.centreId
+});
+
+const centreRaw = resultatRespuesta.data;
+const pendent = resultatRespuesta.pending;
+
+// 7. Propietat computada per accedir a les dades reactives del centre
+const centre = computed(function () {
+   return centreRaw.value;
+});
+
+// ======================================
+// Propietats Computades (Mètriques i Llistes)
+// ======================================
+
+// 1. Número total de tallers assignats
+const compteTallers = computed(function () {
+  let total = 0;
+  if (centre.value) {
+    if (centre.value.tallers) {
+      total = centre.value.tallers.length;
+    }
   }
-};
-
-onMounted(() => {
-  fetchComments();
+  return total;
 });
 
-// COMPUTED WRAPPERS
-const compteTallers = computed(() => centre.value?.tallers?.length || 0);
-const llistaProfessors = computed(() => centre.value?.professors || []);
-const llistaProfessorsLength = computed(() => llistaProfessors.value.length);
-const llistaGrups = computed(() => centre.value?.responsables_grups || []);
-const llistaGrupsLength = computed(() => llistaGrups.value.length);
-const compteGrups = computed(() => llistaGrups.value.length);
+// 2. Llista de professors del centre
+const llistaProfessors = computed(function () {
+  let professors = [];
+  if (centre.value) {
+    if (centre.value.professors) {
+      professors = centre.value.professors;
+    }
+  }
+  return professors;
+});
 
-const totalAlumnes = computed(() => {
+// 3. Longitud de la llista de professors
+const llistaProfessorsLength = computed(function () {
+  return llistaProfessors.value.length;
+});
+
+// 4. Llista de grups de risc / responsables
+const llistaGrups = computed(function () {
+  let grups = [];
+  if (centre.value) {
+    if (centre.value.responsables_grups) {
+      grups = centre.value.responsables_grups;
+    }
+  }
+  return grups;
+});
+
+// 5. Longitud de la llista de grups
+const llistaGrupsLength = computed(function () {
+  return llistaGrups.value.length;
+});
+
+// 6. Número total de grups assignats
+const compteGrups = computed(function () {
+  return llistaGrups.value.length;
+});
+
+// 7. Càlcul total d'alumnes sumant els participants de cada grup
+const totalAlumnes = computed(function () {
   const grups = llistaGrups.value;
-  return grups.reduce((acc, g) => acc + (g.n_alumnes || 0), 0);
+  let suma = 0;
+  for (let i = 0; i < grups.length; i++) {
+    const g = grups[i];
+    if (g.n_alumnes) {
+      suma = suma + g.n_alumnes;
+    }
+  }
+  return suma;
 });
 
-// FUNCTIONS
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Càrrega de comentaris dels tallers ---
+async function fetchComments() {
+  const idC = props.centreId;
+  const tkn = tokenValue;
+  try {
+    const capçaleres = {};
+    if (tkn) {
+      capçaleres.Authorization = 'Bearer ' + tkn;
+    }
+
+    const dadesAPI = await $fetch('/api/admin/centres/' + idC + '/comments', {
+       headers: capçaleres
+    });
+    
+    if (dadesAPI) {
+      usersComments.value = dadesAPI;
+    } else {
+      usersComments.value = [];
+    }
+    
+  } catch (errComm) {
+    console.error("Error carregant comentaris:", errComm);
+  }
+}
+
+// B) --- Obrir sub-modal de comentaris per a un taller ---
 function openComments(taller) {
-  if (!taller) return;
+  if (!taller) {
+    return;
+  }
+  
   selectedTallerName.value = taller.titol;
-  const commentsForThisTaller = usersComments.value.filter(c => 
-    c.taller_detall_id === taller.id || c.nom_taller === taller.titol
-  );
-  selectedTallerComments.value = commentsForThisTaller.map(c => c.comentarios);
+  
+  // Filtrem comentaris manualment (sense .filter ni .map)
+  const llistaTots = usersComments.value;
+  const comentarisFiltrats = [];
+  
+  for (let j = 0; j < llistaTots.length; j++) {
+    const c = llistaTots[j];
+    let coincideix = false;
+    if (c.taller_detall_id === taller.id) {
+       coincideix = true;
+    } else if (c.nom_taller === taller.titol) {
+       coincideix = true;
+    }
+    
+    if (coincideix === true) {
+      if (c.comentarios) {
+        comentarisFiltrats.push(c.comentarios);
+      }
+    }
+  }
+  
+  selectedTallerComments.value = comentarisFiltrats;
   showCommentsModal.value = true;
 }
 
+// C) --- Tancar sub-modal de comentaris ---
 function closeCommentsModal() {
   showCommentsModal.value = false;
   selectedTallerName.value = "";
   selectedTallerComments.value = [];
 }
 
+// D) --- Obtenir les inicials d'una persona ---
 function getInitials(nom, cognom) {
-  const n = (nom || '').charAt(0);
-  const c = (cognom || '').charAt(0);
-  return (n + c).toUpperCase() || '??';
+  let initials = '';
+  if (nom) {
+    initials = initials + nom.charAt(0);
+  }
+  if (cognom) {
+    initials = initials + cognom.charAt(0);
+  }
+  
+  let resultat = '??';
+  if (initials.length > 0) {
+    resultat = initials.toUpperCase();
+  }
+  return resultat;
 }
+
+// E) --- Ganxo de muntatge per disparar accions inicials ---
+onMounted(function () {
+  fetchComments();
+});
 </script>
 
 <style scoped>

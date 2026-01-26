@@ -249,6 +249,9 @@
 </template>
 
 <script setup>
+// ======================================
+// Importem les dependències
+// ======================================
 import {
   Search,
   LayoutGrid,
@@ -261,98 +264,192 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// Importacions i Composables (Rutes, Cookies, Stores)
+// Configuració i Serveis
 // ======================================
-const header = useHeaderStore();
-header.setHeaderAdmin();
+
+// 1. Configurem la capçalera de l'administrador
+const headerStore = useHeaderStore();
+headerStore.setHeaderAdmin();
+
+// 2. Autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// 3. Crida a l'API per obtenir els tallers (sense desestructuració)
+const opcionsCapçalera = {};
+if (tokenRef) {
+  opcionsCapçalera.Authorization = 'Bearer ' + tokenRef;
+}
+
+const resultatFetch = await useFetch('/api/admin/tallers', {
+  server: false,
+  headers: opcionsCapçalera
+});
 
 // ======================================
-// Estat Reactiu i Refs (Variables i Formularis)
+// Estat Reactiu del Component
 // ======================================
-const token = useCookie('authToken').value;
-const respostaFetch = await useFetch('/api/admin/tallers', {
-  server: false,
-  headers: {
-    Authorization: token ? 'Bearer ' + token : ''
-  }
-});
 
 const searchQuery = ref('');
 const viewMode = ref('grid');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-watch(searchQuery, () => { currentPage.value = 1; });
+// Popups de creació i edició
+const showFormCrearTaller = ref(false);
+const showFormEditarTaller = ref(false);
+const tallerIdEditar = ref(null);
 
-const totalPages = computed(function () {
-  return Math.max(1, Math.ceil((filteredTallers.value || []).length / itemsPerPage));
-});
-const paginatedTallers = computed(function () {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return (filteredTallers.value || []).slice(start, start + itemsPerPage);
-});
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
+// ======================================
+// Propietats Computades
+// ======================================
 
+// 1. Accés a la llista de tallers reactiva
 const tallers = computed(function () {
-  if (respostaFetch.data && respostaFetch.data.value) {
-    return respostaFetch.data.value;
+  let llista = [];
+  if (resultatFetch.data) {
+    if (resultatFetch.data.value) {
+      llista = resultatFetch.data.value;
+    }
   }
-  return [];
+  return llista;
 });
 
-// Filtre per cerca (bucle for, sense .filter())
+// 2. Filtre de cerca (bucle for en comptes de .filter)
 const filteredTallers = computed(function () {
-  const q = (searchQuery.value || '').toLowerCase();
-  const arr = tallers.value;
-  if (!arr) {
-    return [];
+  const query = searchQuery.value;
+  let textCerca = '';
+  if (query) {
+    textCerca = query.toLowerCase();
   }
+  
+  const llistaOriginal = tallers.value;
   const resultat = [];
-  for (let i = 0; i < arr.length; i++) {
-    const t = arr[i];
-    const titol = (t.titol || '').toLowerCase();
-    const sector = (t.sector || '').toLowerCase();
-    if (q === '' || titol.indexOf(q) !== -1 || sector.indexOf(q) !== -1) {
+  
+  for (let i = 0; i < llistaOriginal.length; i++) {
+    const t = llistaOriginal[i];
+    let titol = '';
+    if (t.titol) { titol = t.titol.toLowerCase(); }
+    
+    let sector = '';
+    if (t.sector) { sector = t.sector.toLowerCase(); }
+    
+    let coincideix = false;
+    if (textCerca === '') {
+      coincideix = true;
+    } else {
+      if (titol.indexOf(textCerca) !== -1) {
+        coincideix = true;
+      } else if (sector.indexOf(textCerca) !== -1) {
+        coincideix = true;
+      }
+    }
+    
+    if (coincideix === true) {
       resultat.push(t);
     }
   }
   return resultat;
 });
 
+// 3. Paginació: Càlcul del total de pàgines
+const totalPages = computed(function () {
+  const llistaFiltrada = filteredTallers.value;
+  const totalElements = llistaFiltrada.length;
+  
+  let pagines = 1;
+  if (totalElements > 0) {
+    pagines = Math.ceil(totalElements / itemsPerPage);
+  }
+  return pagines;
+});
+
+// 4. Paginació: Tallers de la pàgina actual (bucle for en comptes de .slice)
+const paginatedTallers = computed(function () {
+  const llistaFiltrada = filteredTallers.value;
+  const inici = (currentPage.value - 1) * itemsPerPage;
+  const fi = inici + itemsPerPage;
+  
+  const resultatPagina = [];
+  for (let k = 0; k < llistaFiltrada.length; k++) {
+    if (k >= inici) {
+      if (k < fi) {
+        resultatPagina.push(llistaFiltrada[k]);
+      }
+    }
+  }
+  return resultatPagina;
+});
+
+// 5. Estat de càrrega de la petició
 const pendent = computed(function () {
-  if (respostaFetch.pending) {
-    return respostaFetch.pending.value;
+  let estatPendent = false;
+  if (resultatFetch.pending) {
+    if (resultatFetch.pending.value === true) {
+      estatPendent = true;
+    }
   }
-  return false;
+  return estatPendent;
 });
 
+// 6. Estat d'error de la petició
 const errorFetch = computed(function () {
-  if (respostaFetch.error && respostaFetch.error.value) {
-    return true;
+  let hiHaError = false;
+  if (resultatFetch.error) {
+    if (resultatFetch.error.value) {
+      hiHaError = true;
+    }
   }
-  return false;
+  return hiHaError;
 });
 
+// 7. Missatge d'error textual
 const textError = computed(function () {
-  if (respostaFetch.error && respostaFetch.error.value && respostaFetch.error.value.message) {
-    return respostaFetch.error.value.message;
+  let msg = '';
+  if (resultatFetch.error) {
+    if (resultatFetch.error.value) {
+      if (resultatFetch.error.value.message) {
+        msg = resultatFetch.error.value.message;
+      }
+    }
   }
-  return '';
+  return msg;
 });
 
+// 8. Comprovació de si hi ha tallers a la base de dades
 const hiHaTallers = computed(function () {
   const t = tallers.value;
-  if (t && t.length > 0) {
-    return true;
+  let existeixen = false;
+  if (t) {
+    if (t.length > 0) {
+      existeixen = true;
+    }
   }
-  return false;
+  return existeixen;
 });
 
 // ======================================
-// Lògica i Funcions (Handlers i Lifecycle)
+// Vigilants (Watchers)
 // ======================================
 
-// A) --- Estils del badge de projecte (modalitat A, B, C) ---
+// 1. Reiniciem la pàgina quan es canvia la cerca
+watch(searchQuery, function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió de la visualització ---
+function classeBotoView(mode) {
+  const base = 'p-2 rounded-md shadow-sm border transition-all';
+  if (viewMode.value === mode) {
+    return base + ' text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm';
+  }
+  return base + ' text-[#022B3A]/20 border-transparent hover:text-[#022B3A]';
+}
+
 function getProjectStyles(modalitat) {
   if (modalitat === 'A') {
     return 'bg-[#FFF0EB] text-[#FB6107] border-[#FB6107]/20';
@@ -366,16 +463,7 @@ function getProjectStyles(modalitat) {
   return 'bg-white/40 text-[#022B3A]/50 border-[#BFDBF7]/40';
 }
 
-// A) --- Classe del botó de vista (grid / list) ---
-function classeBotoView(mode) {
-  const base = 'p-2 rounded-md shadow-sm border transition-all';
-  if (viewMode.value === mode) {
-    return base + ' text-[#1F7A8C] bg-white border-[#BFDBF7]/40 shadow-sm';
-  }
-  return base + ' text-[#022B3A]/20 border-transparent hover:text-[#022B3A]';
-}
-
-// A) --- Retornar el text d'estat (Actiu / Arxivat) ---
+// B) --- Informació d'estat del taller ---
 function textEstat(taller) {
   if (taller.actiu) {
     return 'Actiu';
@@ -383,7 +471,6 @@ function textEstat(taller) {
   return 'Arxivat';
 }
 
-// A) --- Classe del punt d'estat (actiu = verd, inactiu = gris) ---
 function classePuntEstat(actiu) {
   if (actiu) {
     return 'bg-[#7CB518]';
@@ -391,7 +478,6 @@ function classePuntEstat(actiu) {
   return 'bg-[#94a3b8]';
 }
 
-// A) --- Retornar la descripció o text per defecte ---
 function descripcioTaller(taller) {
   if (taller.descripcio) {
     return taller.descripcio;
@@ -399,7 +485,6 @@ function descripcioTaller(taller) {
   return 'Sense descripció disponible.';
 }
 
-// A) --- Retornar les places restants ---
 function placesRestants(taller) {
   if (taller.places_restants !== undefined && taller.places_restants !== null) {
     return taller.places_restants;
@@ -407,97 +492,145 @@ function placesRestants(taller) {
   return taller.places_maximes;
 }
 
-// A) --- Array de trimestres per al taller ---
+// C) --- Tractament de dades de l'API ---
 function trimestresArray(taller) {
-  const v = taller.trimestres_disponibles;
-  if (!v) {
+  const valor = taller.trimestres_disponibles;
+  if (!valor) {
     return [];
   }
-  if (Array.isArray(v)) {
-    return v;
+  if (Array.isArray(valor)) {
+    return valor;
   }
-  if (typeof v === 'string') {
-    const parts = v.split(',');
-    const out = [];
+  
+  const sortida = [];
+  if (typeof valor === 'string') {
+    const parts = valor.split(',');
     for (let i = 0; i < parts.length; i++) {
-      const s = String(parts[i] || '').trim();
-      if (s) {
-        out.push(s);
+      const net = parts[i].trim();
+      if (net) {
+        sortida.push(net);
       }
     }
-    return out;
   }
-  return [];
+  return sortida;
 }
 
-// A) --- Text de trimestres per a la vista llista ---
 function trimestresText(taller) {
   const arr = trimestresArray(taller);
   let s = '';
   for (let i = 0; i < arr.length; i++) {
-    if (i > 0) s = s + ', ';
+    if (i > 0) {
+      s = s + ', ';
+    }
     s = s + arr[i];
   }
   return s;
 }
 
-// A) --- Format REF-XXX ---
 function refFormat(id) {
-  return String(id).padStart(3, '0');
+  let s = String(id);
+  while (s.length < 3) {
+    s = '0' + s;
+  }
+  return s;
 }
 
-// A) --- Obrir popup crear taller ---
-const showFormCrearTaller = ref(false);
+function formatDate(dateStr) {
+  if (!dateStr) {
+    return 'Pendent';
+  }
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-ES');
+}
+
+// D) --- Gestió d'accions (Crear, Editar, Eliminar) ---
+
 function crearTaller() {
   showFormCrearTaller.value = true;
 }
+
 function onTallerCreated() {
   showFormCrearTaller.value = false;
-  respostaFetch.refresh();
+  resultatFetch.refresh();
 }
+
 function closeCrear() {
   showFormCrearTaller.value = false;
 }
 
-// A) --- Obrir popup editar taller ---
-const showFormEditarTaller = ref(false);
-const tallerIdEditar = ref(null);
 function editTaller(id) {
   tallerIdEditar.value = id;
   showFormEditarTaller.value = true;
 }
+
 function onTallerUpdated() {
   showFormEditarTaller.value = false;
   tallerIdEditar.value = null;
-  respostaFetch.refresh();
+  resultatFetch.refresh();
 }
+
 function closeEditar() {
   showFormEditarTaller.value = false;
   tallerIdEditar.value = null;
 }
 
-// A) --- Eliminar un taller ---
 async function deleteTaller(id) {
-  const confirmResult = await useSwal().fire({ title: 'Eliminar taller', text: 'Segur que vols eliminar aquest taller?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar' });
-  if (!confirmResult.isConfirmed) return;
+  const swal = useSwal();
+  const confirmacio = await swal.fire({
+    title: 'Eliminar taller',
+    text: 'Segur que vols eliminar aquest taller?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar'
+  });
+  
+  if (confirmacio.isConfirmed === false) {
+    return;
+  }
+
   try {
-    await $fetch('/api/admin/tallers/' + id, {
+    const optionsDelete = {
       method: 'DELETE',
-      headers: { Authorization: token ? 'Bearer ' + token : '' }
+      headers: {}
+    };
+    if (tokenRef) {
+      optionsDelete.headers.Authorization = 'Bearer ' + tokenRef;
+    }
+
+    await $fetch('/api/admin/tallers/' + id, optionsDelete);
+    
+    swal.fire({
+      title: 'Fet',
+      text: 'Taller eliminat correctament.',
+      icon: 'success'
+    }).then(function () {
+      resultatFetch.refresh();
     });
-    useSwal().fire({ title: 'Fet', text: 'Taller eliminat correctament.', icon: 'success' }).then(() => { respostaFetch.refresh(); });
-  } catch (err) {
-    console.error('Error eliminant taller:', err);
-    useSwal().fire({ title: 'Error', text: err?.data?.message || err?.message || 'Error en eliminar el taller.', icon: 'error' });
+    
+  } catch (errDel) {
+    console.error('Error eliminant taller:', errDel);
+    let msgError = 'Error en eliminar el taller.';
+    if (errDel.data) {
+      if (errDel.data.message) {
+        msgError = errDel.data.message;
+      }
+    }
+    swal.fire({
+      title: 'Error',
+      text: msgError,
+      icon: 'error'
+    });
   }
 }
 
-
-// A) --- Formata la data "YYYY-MM-DD" a "DD/MM/YYYY" ---
-function formatDate(dateStr) {
-  if (!dateStr) return 'Pendent';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-ES');
+// E) --- Navegació entre pàgines ---
+function goToPage(p) {
+  const max = totalPages.value;
+  if (p >= 1) {
+    if (p <= max) {
+      currentPage.value = p;
+    }
+  }
 }
 </script>
 

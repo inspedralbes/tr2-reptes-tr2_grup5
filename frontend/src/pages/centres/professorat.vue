@@ -283,7 +283,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+// ======================================
+// Importem les dependències
+// ======================================
+import { ref, computed, onMounted, watch } from 'vue';
 import { 
   Search, 
   LayoutGrid, 
@@ -300,86 +303,172 @@ import {
 } from 'lucide-vue-next';
 
 // ======================================
-// CONFIG & STATE
+// Configuració i Serveis
 // ======================================
+
+// 1. Configuració de la capçalera
+const headerStore = useHeaderStore();
+headerStore.setHeaderCentres();
+
+// 2. Cookie d'autenticació
+const tokenCookie = useCookie('authToken');
+const tokenRef = tokenCookie.value;
+
+// ======================================
+// Estat Reactiu del Component
+// ======================================
+
 const professors = ref([]);
 const loading = ref(false);
-const editingId = ref(null); // If null -> Create mode
+const editingId = ref(null); 
 const showModal = ref(false);
-const tokenCookie = useCookie('authToken');
 const searchQuery = ref('');
-const viewMode = ref('grid'); // 'grid' | 'list'
+const viewMode = ref('grid'); 
 const currentPage = ref(1);
-const itemsPerPage = 10;
-
-watch(searchQuery, () => { currentPage.value = 1; });
+const itemsPerPage = 8; // Ajustat per a vista compacta
 
 const form = ref({ nom: '', cognoms: '', email: '' });
 
 // ======================================
-// COMPUTED UI
+// Propietats Computades (Tractament de dades)
 // ======================================
-const filteredTeachers = computed(() => {
-  let list = professors.value || [];
-  
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    list = list.filter(p => 
-      (p.nom || '').toLowerCase().includes(q) || 
-      (p.cognoms || '').toLowerCase().includes(q) || 
-      (p.email || '').toLowerCase().includes(q)
-    );
+
+// 1. Filtre i mapeig de docents (Bucle for clàssic)
+const filteredTeachers = computed(function () {
+  const queryRaw = searchQuery.value;
+  let queryText = '';
+  if (queryRaw) {
+    queryText = queryRaw.toLowerCase().trim();
   }
-
-  return list.map(p => ({
-    id: p.id,
-    initials: (p.nom?.[0] || '?') + (p.cognoms?.[0] || '?'),
-    name: `${p.nom} ${p.cognoms}`,
-    email: p.email,
-    role: 'Professor',
-    status: 'Actiu', // Mock status for UI
-    data: p // Keep original object for editing
-  }));
+  
+  const llistaP = professors.value || [];
+  const resultatFiltrat = [];
+  
+  for (let i = 0; i < llistaP.length; i++) {
+    const p = llistaP[i];
+    let coincideix = false;
+    
+    if (queryText === '') {
+      coincideix = true;
+    } else {
+      let pNom = '';
+      if (p.nom) { pNom = p.nom.toLowerCase(); }
+      
+      let pCognoms = '';
+      if (p.cognoms) { pCognoms = p.cognoms.toLowerCase(); }
+      
+      let pEmail = '';
+      if (p.email) { pEmail = p.email.toLowerCase(); }
+      
+      if (pNom.indexOf(queryText) !== -1) {
+        coincideix = true;
+      } else if (pCognoms.indexOf(queryText) !== -1) {
+        coincideix = true;
+      } else if (pEmail.indexOf(queryText) !== -1) {
+        coincideix = true;
+      }
+    }
+    
+    if (coincideix === true) {
+      // Calculem les inicials manualment
+      let ini = '?';
+      if (p.nom) {
+        if (p.cognoms) {
+          ini = p.nom.charAt(0) + p.cognoms.charAt(0);
+        } else {
+          ini = p.nom.charAt(0);
+        }
+      }
+      
+      const itemUI = {
+        id: p.id,
+        initials: ini.toUpperCase(),
+        name: p.nom + ' ' + p.cognoms,
+        email: p.email,
+        role: 'Professor',
+        status: 'Actiu', 
+        data: p 
+      };
+      resultatFiltrat.push(itemUI);
+    }
+  }
+  return resultatFiltrat;
 });
 
-const totalPages = computed(() => Math.max(1, Math.ceil((filteredTeachers.value || []).length / itemsPerPage)));
-const paginatedTeachers = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return (filteredTeachers.value || []).slice(start, start + itemsPerPage);
+// 2. Càlcul del total de pàgines
+const totalPages = computed(function () {
+  const totalItems = filteredTeachers.value.length;
+  let nPagines = 1;
+  if (totalItems > 0) {
+    nPagines = Math.ceil(totalItems / itemsPerPage);
+  }
+  return nPagines;
 });
-function goToPage(p) { if (p >= 1 && p <= totalPages.value) currentPage.value = p; }
+
+// 3. Docents de la pàgina actual (Sense .slice)
+const paginatedTeachers = computed(function () {
+  const llistaF = filteredTeachers.value;
+  const iniciP = (currentPage.value - 1) * itemsPerPage;
+  const fiP = iniciP + itemsPerPage;
+  
+  const resultatPag = [];
+  for (let k = 0; k < llistaF.length; k++) {
+    if (k >= iniciP) {
+      if (k < fiP) {
+        resultatPag.push(llistaF[k]);
+      }
+    }
+  }
+  return resultatPag;
+});
 
 // ======================================
-// METHODS
+// Vigilants (Watchers)
 // ======================================
 
-function getRoleStyles(role) {
+// 1. Tornar a la pàgina 1 si canvia la cerca
+watch(searchQuery, function () {
+  currentPage.value = 1;
+});
+
+// ======================================
+// Declaracions de funcions
+// ======================================
+
+// A) --- Gestió d'estils visuals ---
+
+function getRoleStyles(rolText) {
   return 'bg-[#F5F3FF] text-[#7C3AED] border-[#7C3AED]/20';
 }
 
-function getStatusStyles(status) {
-  if(status === 'Actiu') return 'bg-[#F0FDF4] text-[#16A34A] border-[#16A34A]/20';
+function getStatusStyles(estatText) {
+  if (estatText === 'Actiu') {
+    return 'bg-[#F0FDF4] text-[#16A34A] border-[#16A34A]/20';
+  }
   return 'bg-red-50 text-red-500 border-red-200';
 }
 
-function formatDate(date) {
-  if (!date) return '';
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+function formatDate(dateObj) {
+  if (!dateObj) { return ''; }
+  const opcionsD = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return new Intl.DateTimeFormat('es-ES', opcionsD).format(dateObj);
 }
+
+// B) --- Gestió del Modal i Formulari ---
 
 function handleAddTeacher() {
   editingId.value = null;
-  form.value = { nom: '', cognoms: '', email: '' };
+  form.value.nom = '';
+  form.value.cognoms = '';
+  form.value.email = '';
   showModal.value = true;
 }
 
-function handleEdit(originalProf) {
-  editingId.value = originalProf.id;
-  form.value = { 
-    nom: originalProf.nom, 
-    cognoms: originalProf.cognoms, 
-    email: originalProf.email 
-  };
+function handleEdit(originalProfObj) {
+  editingId.value = originalProfObj.id;
+  form.value.nom = originalProfObj.nom || '';
+  form.value.cognoms = originalProfObj.cognoms || '';
+  form.value.email = originalProfObj.email || '';
   showModal.value = true;
 }
 
@@ -388,59 +477,107 @@ function closeModal() {
   editingId.value = null;
 }
 
-// API ACTIONS
+// C) --- Accions de l'API ---
+
 async function fetchProfessors() {
   try {
-    const token = tokenCookie.value;
+    const headersAPI = {};
+    if (tokenRef) {
+      headersAPI.Authorization = 'Bearer ' + tokenRef;
+    }
+    
     professors.value = await $fetch('/api/centre/professors', {
-      headers: { 'Authorization': 'Bearer ' + token }
+      headers: headersAPI
     });
-  } catch (e) {
-    console.error('Error carregant professors:', e);
+  } catch (errFetch) {
+    console.error('Error carregant professors:', errFetch);
   }
 }
 
 async function handleSave() {
   loading.value = true;
   try {
-    const token = tokenCookie.value;
-    const method = editingId.value ? 'PUT' : 'POST';
-    const url = editingId.value 
-      ? `/api/centre/professors/${editingId.value}`
-      : '/api/centre/professors';
+    const headersSave = {};
+    if (tokenRef) {
+      headersSave.Authorization = 'Bearer ' + tokenRef;
+    }
+    
+    let methodAPI = 'POST';
+    let urlAPI = '/api/centre/professors';
+    
+    if (editingId.value) {
+      methodAPI = 'PUT';
+      urlAPI = '/api/centre/professors/' + editingId.value;
+    }
 
-    await $fetch(url, { 
-      method, 
-      headers: { 'Authorization': 'Bearer ' + token }, 
+    await $fetch(urlAPI, { 
+      method: methodAPI, 
+      headers: headersSave, 
       body: form.value 
     });
 
-    useSwal().fire({ title: 'Fet', text: 'Docent desat correctament.', icon: 'success' }).then(() => { closeModal(); fetchProfessors(); });
-  } catch (e) {
-    console.error('Error desant docent:', e);
-    useSwal().fire({ title: 'Error', text: 'Error en desar les dades.', icon: 'error' });
+    const swalA = useSwal();
+    swalA.fire({ title: 'Fet', text: 'Docent desat correctament.', icon: 'success' }).then(function () {
+      closeModal();
+      fetchProfessors();
+    });
+  } catch (errSave) {
+    console.error('Error desant docent:', errSave);
+    const swalE = useSwal();
+    swalE.fire({ title: 'Error', text: 'Error en desar les dades.', icon: 'error' });
   } finally {
     loading.value = false;
   }
 }
 
-async function handleDelete(id) {
-  const confirmResult = await useSwal().fire({ title: 'Confirmar', text: 'Esteu segur que voleu eliminar aquest docent?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí' });
-  if (!confirmResult.isConfirmed) return;
+async function handleDelete(idProf) {
+  const swalD = useSwal();
+  const resConfirmD = await swalD.fire({ 
+    title: 'Confirmar', 
+    text: 'Esteu segur que voleu eliminar aquest docent?', 
+    icon: 'question', 
+    showCancelButton: true, 
+    confirmButtonText: 'Sí' 
+  });
+  
+  if (resConfirmD.isConfirmed === false) {
+    return;
+  }
+  
   try {
-    const token = tokenCookie.value;
-    await $fetch(`/api/centre/professors/${id}`, { 
+    const headersDel = {};
+    if (tokenRef) {
+      headersDel.Authorization = 'Bearer ' + tokenRef;
+    }
+    
+    await $fetch('/api/centre/professors/' + idProf, { 
       method: 'DELETE', 
-      headers: { 'Authorization': 'Bearer ' + token } 
+      headers: headersDel
     });
-    useSwal().fire({ title: 'Fet', text: 'Docent eliminat.', icon: 'success' }).then(() => { fetchProfessors(); });
-  } catch (e) {
-    console.error('Error eliminant docent:', e);
-    useSwal().fire({ title: 'Error', text: "No s'ha pogut eliminar.", icon: 'error' });
+    
+    swalD.fire({ title: 'Fet', text: 'Docent eliminat correctament.', icon: 'success' }).then(function () {
+      fetchProfessors();
+    });
+  } catch (errDel) {
+    console.error('Error eliminant docent:', errDel);
+    swalD.fire({ title: 'Error', text: "No s'ha pogut eliminar.", icon: 'error' });
   }
 }
 
-onMounted(fetchProfessors);
+function goToPage(pNum) {
+  const pagMax = totalPages.value;
+  if (pNum >= 1) {
+    if (pNum <= pagMax) {
+      currentPage.value = pNum;
+    }
+  }
+}
+
+// D) --- Cicle de vida ---
+
+onMounted(function () {
+  fetchProfessors();
+});
 </script>
 
 <style scoped>
