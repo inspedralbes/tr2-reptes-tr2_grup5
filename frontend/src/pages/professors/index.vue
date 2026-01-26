@@ -1,13 +1,13 @@
-<template>
-  <div class="page">
-    <h2>Panell de Profes</h2>
-    <p>Benvingut/da al panell de profes.</p>
-  </div>
-</template>
+<script setup>
+definePageMeta({
+  middleware: [
+    function (to, from) {
+      return navigateTo('/professors/tallers');
+    }
+  ]
+});
+</script>
 
-<style scoped>
-.page {
-  text-align: center;
-  margin-top: 50px;
-}
-</style>
+<template>
+  <div></div>
+</template>

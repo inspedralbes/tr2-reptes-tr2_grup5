@@ -259,6 +259,13 @@
       @close="showFormEditarUsuari = false; usuariIdEditar = null"
       @updated="onUsuariUpdated"
     />
+
+    <!-- Modal Detall Centre (Pop-up de dades del centre) -->
+    <ModalDetallCentre
+      v-if="showModalDetall && idDetallForModal"
+      :centre-id="idDetallForModal"
+      @close="showModalDetall = false; idDetallForModal = null"
+    />
   </div>
 </template>
 
@@ -297,6 +304,8 @@ const showFormEditarCentre = ref(false);
 const showFormEditarUsuari = ref(false);
 const centreIdEditar = ref(null);
 const usuariIdEditar = ref(null);
+const showModalDetall = ref(false);
+const idDetallForModal = ref(null);
 
 const tokenRef = useCookie('authToken');
 
@@ -426,11 +435,8 @@ function classeBotoView(mode) {
 // ======================================
 
 async function handleNavigation(id) {
-  isExiting.value = true;
-  await new Promise(function (resolve) {
-    setTimeout(resolve, 100);
-  });
-  navigateTo('/admin/itemDetail/' + id);
+  idDetallForModal.value = id;
+  showModalDetall.value = true;
 }
 
 function handleEdit(id) {
