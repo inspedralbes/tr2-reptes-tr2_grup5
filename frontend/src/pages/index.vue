@@ -278,7 +278,7 @@
             <ul class="space-y-4 text-sm font-medium text-[#022B3A]/60">
               <li>Iker Mata</li>
               <li>Biel Domínguez</li>
-              <li>Llorenç Carnisser</li>
+              <li>Llorenç Carnicer</li>
               <li>Iker Lopez</li>
             </ul>
           </div>
